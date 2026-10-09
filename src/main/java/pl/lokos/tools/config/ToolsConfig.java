@@ -99,8 +99,8 @@ public final class ToolsConfig {
         private int tabTopLimit = 3;
         private int tabRefreshTicks = 60;
         private String defaultPrefix = "&8[&7Gracz&8] &7";
-        private String tabHeader = "&#4ACBFF&lTOOLS &8| &fSerwer Minecraft";
-        private String tabFooter = "&7Online: &#77DD88{online} &8| &#4ACBFF&lMilej gry!";
+        private String tabHeader = "&a&lTOOLS &8| &7ꜱᴇʀᴡᴇʀ ᴍɪɴᴇᴄʀᴀꜰᴛ";
+        private String tabFooter = "&7ᴏɴʟɪɴᴇ&8: &a{online} &8| &aᴍɪłᴇᴊ ɢʀʏ!";
 
         public boolean enabled() { return enabled; }
         public boolean selfNameTag() { return selfNameTag; }

@@ -13,6 +13,7 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.RankFormatting;
 import pl.lokos.tools.utils.ThreadChecks;
 
 import java.util.*;
@@ -48,14 +49,14 @@ public final class RankVisualManager {
         int index = 0;
         for (RankSnapshot.Rank rank : sorted) {
             Team team = scoreboard.registerNewTeam(String.format(Locale.ROOT, "r%04d", index++));
-            team.prefix(Colors.color("&7" + rank.prefix()));
+            team.prefix(Colors.color("&7" + RankFormatting.prefix(rank.prefix())));
             team.color(NamedTextColor.GRAY);
-            team.suffix(Colors.color("&7" + rank.suffix()));
+            team.suffix(Colors.color("&7" + RankFormatting.suffix(rank.suffix())));
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
             teams.put(rank.name(), team);
         }
         Team common = scoreboard.registerNewTeam("r9999");
-        common.prefix(Colors.color(config.defaultPrefix()));
+        common.prefix(Colors.color(RankFormatting.prefix(config.defaultPrefix())));
         common.color(NamedTextColor.GRAY);
         common.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
 
@@ -87,16 +88,6 @@ public final class RankVisualManager {
         List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
         if (online.isEmpty()) return;
 
-        List<TabPanel.TopPlayer> top = config.tabTopKillsEnabled()
-                ? online.stream()
-                    .sorted(Comparator.comparingInt((Player player) -> player.getStatistic(Statistic.PLAYER_KILLS))
-                        .reversed().thenComparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
-                    .limit(config.tabTopLimit())
-                    .map(player -> new TabPanel.TopPlayer(player.getName(),
-                            player.getStatistic(Statistic.PLAYER_KILLS)))
-                    .toList()
-                : List.of();
-
         double[] tpsValues = Bukkit.getTPS();
         double tps = tpsValues.length == 0 ? 20.0 : tpsValues[0];
         RankSnapshot ranksSnapshot = ranks.snapshot();
@@ -110,7 +101,7 @@ public final class RankVisualManager {
                     viewer.getStatistic(Statistic.PLAY_ONE_MINUTE), tps);
             viewer.sendPlayerListHeaderAndFooter(
                     TabPanel.header(config, stats),
-                    TabPanel.footer(config, stats, top));
+                    TabPanel.footer(config, stats));
         }
     }
 
@@ -121,8 +112,9 @@ public final class RankVisualManager {
     private Component label(Player player, RankSnapshot.Rank rank) {
         String prefix = rank == null ? config.defaultPrefix() : rank.prefix();
         String suffix = rank == null ? "" : rank.suffix();
-        return Colors.color("&7" + prefix).append(Component.text(player.getName(), NamedTextColor.GRAY))
-                .append(Colors.color("&7" + suffix));
+        return Colors.color("&7" + RankFormatting.prefix(prefix))
+                .append(Component.text(player.getName(), NamedTextColor.GRAY))
+                .append(Colors.color("&7" + RankFormatting.suffix(suffix)));
     }
 
     private void updateSelfTag(Player player, RankSnapshot.Rank rank) {

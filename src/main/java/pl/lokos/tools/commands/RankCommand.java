@@ -9,6 +9,8 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.RankRepository;
 import pl.lokos.tools.helpers.Messages;
+import pl.lokos.tools.helpers.RankValidity;
+import java.time.ZoneId;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.manager.RankSnapshot;
 
@@ -50,17 +52,17 @@ public final class RankCommand implements BasicCommand {
         try {
             switch (operation) {
                 case "stworz" -> {
-                    if (args.length != 4) {
-                        errorUsage(sender, "Podaj nazwę rangi, prefix i suffix.",
-                                "/ranga stworz <nazwa> <prefix> <suffix>");
+                    if (args.length != 3 && args.length != 4) {
+                        errorUsage(sender, "Podaj nazwę rangi i prefix. Sufix jest opcjonalny.",
+                                "/ranga stworz <nazwa> <prefix> [sufix]");
                         return;
                     }
                     String name = rankName(args[1]);
                     String prefix = displayValue(args[2]);
-                    String suffix = displayValue(args[3]);
+                    String suffix = args.length == 4 ? displayValue(args[3]) : "";
                     if (ranks.snapshot().ranks().containsKey(name)) {
                         Messages.error(sender, "Ranga &c&n" + name + "&r&c już istnieje.");
-                        Messages.hint(sender, "Jeśli chcesz ją zmienić, użyj &e/ranga edytuj " + name + " prefix <tekst>");
+                        Messages.hint(sender, "Jeśli chcesz ją zmienić, użyj &a/ranga edytuj " + name + " prefix <tekst>");
                         return;
                     }
                     checkLength("Prefix", prefix, 256);
@@ -201,7 +203,7 @@ public final class RankCommand implements BasicCommand {
                 throw new IllegalArgumentException("Gracz &c&n" + target
                         + "&r&c nie został znaleziony w bazie. Musi najpierw wejść na serwer.");
             return ranks.change(() -> repository.grant(uuid, name, expires));
-        }), "Nadano rangę &e" + name + "&a graczowi &e" + target + "&a na czas &e" + duration + "&a.");
+        }), "Nadano rangę &a" + name + "&7 graczowi &a" + target + "&7. Ważność: &a" + RankValidity.durationLabel(duration) + "&7.");
     }
 
     private void checkGrant(CommandSender sender, String[] args) {
@@ -227,14 +229,18 @@ public final class RankCommand implements BasicCommand {
                 return;
             }
             Messages.title(sender, "RANGA GRACZA " + nick);
-            if (grant == null || !grant.active(System.currentTimeMillis())) {
-                Messages.info(sender, "Aktywna ranga: &eGracz &8(brak nadanej rangi)");
+            long now = System.currentTimeMillis();
+            if (grant == null) {
+                Messages.info(sender, "Przypisanie: &7brak rangi");
+                Messages.info(sender, "Ważność: &7nie dotyczy");
             } else {
-                Messages.info(sender, "Zapisana w MySQL: &a" + grant.rank());
-                Messages.info(sender, "Ważność: &e" +
-                        (grant.expiresAt() == null ? "na zawsze" :
-                                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-                                        .format(new java.util.Date(grant.expiresAt()))));
+                Messages.info(sender, "Ranga w bazie: &a" + grant.rank());
+                Messages.info(sender, "Ważność: " + (grant.active(now) ? "&a" : "&c")
+                        + RankValidity.remaining(grant.expiresAt(), now));
+                if (grant.expiresAt() != null) {
+                    Messages.info(sender, "Data wygaśnięcia: &7"
+                            + RankValidity.expirationDate(grant.expiresAt(), ZoneId.systemDefault()));
+                }
             }
             Player current = Bukkit.getPlayerExact(nick);
             if (current != null) {
@@ -382,7 +388,7 @@ public final class RankCommand implements BasicCommand {
 
     private void help(CommandSender sender) {
         Messages.title(sender, "ZARZĄDZANIE RANGAMI");
-        Messages.line(sender, "&e/ranga stworz &7<nazwa> <prefix> <suffix>");
+        Messages.line(sender, "&e/ranga stworz &7<nazwa> <prefix> [sufix]");
         Messages.line(sender, "&e/ranga dodaj &7<ranga> <uprawnienie>");
         Messages.line(sender, "&e/ranga pozycja &7<ranga> <1-9998>");
         Messages.line(sender, "&e/ranga wejscie &7<ranga> <tekst|brak>");

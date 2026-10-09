@@ -1,128 +1,73 @@
-# Tools 1.3.0 — duża tablista i zweryfikowane nadawanie rang
+# Tools 1.3.1 — klasyczny TAB i poprawione rangi
 
-Modułowy plugin Java 25 / Paper 26.3 z MySQL (HikariCP), konfiguracją definiowaną w Java i zapisywaną do JSON dopiero przy uruchomieniu.
+Modułowy plugin **Paper 26.3 / Java 25** z HikariCP, MariaDB/MySQL, rangami i konfiguracją JSON generowaną z klas Java.
 
-## Poprawki Tools 1.3.0
+## Zmiany w 1.3.1
 
-**Duża tablista:** zamiast kilku krótkich linii plugin generuje szeroki panel z trzema kolumnami (serwer, profil, statystyki), ozdobnymi separatorami, sekcją graczy i rozbudowaną stopką. Panel nie zwęża się już, gdy na serwerze przebywa tylko jedna osoba. Nie tworzy fałszywych profili i działa bez ProtocolLib. Szerokość w grze zależy także od skali interfejsu Minecraft; przy bardzo dużej skali klient może obciąć boki.
+- **TAB** wrócił do standardowej listy prawdziwych graczy, bez sztucznych kolumn i poszerzania. Sortowanie według pozycji rang pozostało. U góry jest krótki tytuł i liczba graczy (czcionka `ᴀᴋᴛᴜᴀʟɴɪᴇ ɢʀᴀᴄᴢʏ ɴᴀ ᴛʀʏʙɪᴇ`), na dole ranga, ping, statystyki i TPS.
+- **Jednolite kolory:** czerwony `&c` dla błędów, zielony `&a` dla sukcesów i wyróżnień, szary `&7` dla treści, ciemny `&8` dla separatorów. Nie ma znaków ✓ / ✖ ani prefiksu `[Tools]`. Przykłady stylu:
+  - `&c&lBŁĄD &8» &cNie znaleziono rangi.`
+  - `&a&lSUKCES &8» &7Nadano rangę &awłaściciel&7.`
+  - `&a&lTIP &8» &7Użyj /ranga lista`
+- **Prefix i suffix:** plugin sam dokłada brakującą spację między prefixem, szarym nickiem a sufiksem, w TAB-ie, czacie i nazwach nad głową. Nie zmienia przy tym wartości zapisanych w MySQL.
+- **Ważność:** `/ranga sprawdz <nick>` pokazuje `na zawsze`, `wygasła` lub pozostały czas oraz datę zakończenia w lokalnej strefie serwera. Potwierdzenie `/ranga nadaj ... *` wyświetla `na zawsze`, zamiast surowej gwiazdki.
+- **Tworzenie:** suffix jest opcjonalny: `/ranga stworz <nazwa> <prefix> [sufix]`. Przy nieustawionym suffixie może pozostać tylko prefix i nick.
+- **Konfiguracja w Javie:** domyślne wartości `tabHeader` i `tabFooter` są aktualizowane dla starszych, **niezmienionych** presetów przy starcie. Twoje własne zmiany w JSON pozostają zachowane.
 
-**Nadawanie rang:** odświeżanie stanu początkowego zostało zsynchronizowane z kolejką operacji; po zapisie MySQL sprawdzana jest rzeczywiście zapisana ranga i czas wygaśnięcia. Odczyt rang i uprawnień może teraz sygnalizować problem zamiast pozostawać bez odpowiedzi. Błędy odświeżenia TAB-u i uprawnień są logowane oddzielnie od zapisu.
+## Pierwszy start
 
-**Nowa komenda diagnostyczna:**
+1. Uruchom MySQL/MariaDB i serwer Paper **26.3** na Java **25**.
+2. Wgraj plik `Tools.jar` do folderu `plugins` i uruchom serwer.
+3. Plugin wygeneruje `plugins/Tools/config.json` na podstawie domyślnych ustawień w `ToolsConfig.java` i przygotuje tabele MySQL.
+4. Użyj `/tools status`, `/tools ping`, a następnie komend rang.
+
+Domyślny lokalny preset MySQL: `127.0.0.1:3306`, baza `tools`, użytkownik `root`, puste hasło. To wyłącznie konfiguracja do testów z Laragonem na tym samym komputerze. **Nie używaj root bez hasła w produkcji**; utwórz dedykowanego użytkownika.
+
+## Komendy
+
 ```text
-/ranga sprawdz LokosPL
-```
-Pokazuje rangę zapisaną w MySQL, jej czas ważności oraz aktualną rangę widoczną na serwerze. W razie problemu prześlij zrzut wyniku i fragment konsoli.
-
-**Testy bazy:** workflow GitHub Actions uruchamia usługę MariaDB i testuje rzeczywiste utworzenie rangi, ustawienie pozycji, nadanie na zawsze (SQL NULL), ponowne nadanie czasowe, odczyt rangi, wygaśnięcie i usunięcie. Test obejmuje samą warstwę SQL i model danych, ale nie zastępuje testu uprawnień w działającym serwerze Minecraft.
-
-Aby nadać rangę:
-```text
-/ranga stworz właściciel &c&lWłaściciel_ &7
+/ranga stworz właściciel &c&lWłaściciel
 /ranga pozycja właściciel 1
+/ranga dodaj właściciel essentials.fly
 /ranga nadaj LokosPL właściciel *
 /ranga sprawdz LokosPL
+/ranga lista
+/ranga info właściciel
+/ranga edytuj właściciel sufix &7★
+/ranga wejscie właściciel &a • &7Gracz&8: &a{player} &7dołączył do serwera!
 ```
-Nie można nadawać rang bez przypisanej pozycji.
 
-## Instalacja
+Uwaga: wiadomość `wejscie` jest opcjonalna, a pusta nie wyświetla niczego. Dostępne placeholdery: `{player}`, `{nick}`, `{ranga}`. Podkreślenie `_` w prefixie/suffixie przy `stworz` oznacza spację.
 
-1. Uruchom lokalny Laragon MySQL (domyślnie 127.0.0.1:3306, użytkownik root, puste hasło **tylko do testów lokalnych**).
-2. Pobierz `Tools.jar` z [GitHub Actions](https://github.com/LokosPL/Tools/actions/workflows/build.yml) i przenieś do `plugins/` serwera Paper 26.3 + Java 25.
-3. Uruchom serwer. Plugin automatycznie utworzy bazę `tools` i potrzebne tabele, jeżeli użytkownik ma do tego uprawnienia.
-4. Jeśli masz własne ustawienia połączenia MySQL, zostaną zachowane. Zmodyfikuj `plugins/Tools/config.json` tylko gdy to potrzebne.
-5. Jako operator sprawdź `/tools status`, `/tools ping`, `/ranga info`.
+- `/ranga stworz` tworzy rangę, której jeszcze nie można nadać; `/ranga pozycja` aktywuje możliwość nadania.
+- `/ranga dodaj <ranga> *` ustawia wszystkie uprawnienia (OP); dawnego statusu OP nie traci się po odebraniu tego uprawnienia.
+- `/ranga nadaj <nick> <ranga> <1h|7d|30d|*|na_zawsze>` zapisuje przypisanie w MySQL. Dla graczy offline wymagane jest wcześniejsze wejście na serwer.
+- `/ranga sprawdz <nick>` pokazuje wynik z MySQL i bieżący stan rangi online.
+- `/ranga usun <nazwa>` usuwa rangę i jej przypisania.
 
-**Nie używaj root bez hasła na publicznym serwerze.** Serwer MySQL i Paper muszą działać na tym samym komputerze, by adres 127.0.0.1 był poprawny.
+Nicki są **szare** na czacie, nad głową i w TAB-ie, a prefixy i suffixy mogą być kolorowane `&a`, `&c`, `&#RRGGBB`. Tekst gracza na czacie również pozostaje szary. Nazwa nad głową w F5 korzysta z oddzielnego `TextDisplay` i wymaga testu wizualnego.
 
-## Kolorowanie
-
-We wszystkich wiadomościach Tools, prefixach, suffixach, komunikatach rang oraz nagłówku i stopce TAB-u używaj kodów **`&`**:
-
-- `&a` — zielony, `&b` — błękitny, `&l` — pogrubienie, `&r` — reset.
-- `&#FF9900` — kolor HEX RGB (6 cyfr).
-- `&x&F&F&9&9&0&0` — równoważny rozszerzony zapis HEX.
-
-Kolory interpretuje centralnie `helpers/Colors.java` z użyciem Adventure Component. Przykład: `&#FFBB00&l[PREMIUM] &f`. Nie używamy kodu sekcji w plikach konfiguracyjnych.
-
-## Wygląd czatu, TAB-u i nazwy nad głową
-
-Nick gracza jest **zawsze szary** (`&7`) — w TAB-ie, na czacie i w nicku nad głową (również przy etykiecie F5). Treść wiadomości czatu jest zawsze szara; kolory wpisane przez gracza nie są interpretowane. Kolorowy prefix rangi można nadal ustawić przez `&` albo `&#RRGGBB`; po nim nick automatycznie wraca do szarości. Prefix bez ustawionego koloru domyślnie będzie szary.
-
-Komunikaty pluginu **nie zawierają powtarzanego prefiksu [Tools]**. Potwierdzenie pojawia się na zielono, błędy na czerwono wraz z podkreślonym błędnym argumentem lub poprawną składnią.
-
-## Rangi / komendy
-
-| Komenda | Znaczenie |
-| --- | --- |
-| `/ranga stworz premium &#FFBB00[PREMIUM]_ &7` | Tworzy rangę (początkowo nie można jej nadać) |
-| `/ranga dodaj premium essentials.fly` | Dopisuje uprawnienie |
-| `/ranga dodaj admin *` | Nadaje wszystkie zarejestrowane uprawnienia i status OP na czas działania rangi |
-| `/ranga pozycja premium 2` | Ustala priorytet i odblokowuje nadawanie |
-| `/ranga wejscie premium &a{nick}_dolaczyl!` | Ustawia komunikat powitalny |
-| `/ranga wejscie premium brak` | Wyłącza komunikat |
-| `/ranga nadaj LokosPL premium 7d` | Nadaje rangę na siedem dni |
-| `/ranga nadaj LokosPL premium na_zawsze` | Nadaje bez końca |
-| `/ranga nadaj LokosPL premium *` | Skrót oznaczający rangę na zawsze (to samo co `na_zawsze`) |
-| `/ranga edytuj premium prefix &#55AAFF[VIP]_` | Edytuje prefix |
-| `/ranga edytuj premium sufix &7*` | Edytuje suffix |
-| `/ranga edytuj premium nazwa vip` | Zmienia nazwę |
-| `/ranga info [premium]` | Lista rang lub szczegóły i liczba graczy |
-| `/ranga lista` | Wyświetla wszystkie rangi według pozycji, z informacją o możliwości nadania |
-| `/ranga usun premium` | Usuwa rangę, jej uprawnienia i przypisania |
-
-Podkreślenie w parametrach prefix/suffix dla `stworz` służy jako spacja. W poleceniach `edytuj` i `wejscie` możesz podać tekst z odstępami. Nazwy rang: 1–24 znaków — także polskie litery (`Właściciel`, `Zażółć`), cyfry, `_`, `-`. Nazwy są zapisywane małymi literami, by komendy nie rozróżniały wielkości znaków.
-
-Dostęp do komend: `tools.ranga.admin` (domyślnie OP). Komendy rejestrowane są w **Javie**, bez wpisów w `plugin.yml`. Podpowiedzi w grze obejmują nazwy rang, online nicki, uprawnienia zarejestrowane na serwerze oraz przykładowe czasy. Nadawanie graczom offline działa dla tych, którzy już kiedyś weszli na serwer (UUID z bazy `tools_players`).
-
-**Uwaga bezpieczeństwa:** `*` zmienia uprawnienia oraz status OP gracza; oryginalny stan OP jest zapisywany do MySQL i przywracany przy wyjściu, odebraniu rangi i zamknięciu pluginu. Daj dostęp do `/ranga` wyłącznie zaufanym operatorom. Nadawanie rangi bez ustawionej pozycji jest zablokowane.
-
-## Rozbudowana tablista — styl inspirowany podanym zrzutem
-
-Panel TAB używa wbudowanych możliwości Paper, bez wymogu ProtocolLib ani fałszywych kont graczy. **Wersja 1.3.0 wymusza szeroki, trzykolumnowy układ nagłówka i stopki niezależnie od liczby graczy online.** Rozbudowany, kolorowy nagłówek i stopka obejmują:
-
-- **Serwer:** liczba graczy online / maksymalna pojemność, bieżący TPS (średnia 1 min).
-- **Twój profil:** twoja ranga i bieżący ping w milisekundach.
-- **Twoje statystyki:** zabójstwa, śmierci oraz czas gry (z wbudowanych statystyk Minecraft).
-- **TOP ZABÓJSTW:** maksymalnie trzy najwyższe wyniki **spośród aktualnie grających** (nie globalny ranking MySQL).
-- **Lista graczy:** istniejące rangi i ich sortowanie (pozycja 1 najwyżej), szare nicki, kolorowe prefixy.
-
-Tablista automatycznie aktualizuje widoczne statystyki co **3 sekundy** (60 ticków). Odświeżenie korzysta z danych Bukkit na głównym wątku, bez zapytań do MySQL. Zmiana nicków, grup i sortowanie odbywa się po zmianie rangi / dołączeniu gracza, a nie przy każdym odświeżeniu statystyk.
-
-Ustawienia w `config/ToolsConfig.java` (domyślne wartości w Java, do `plugins/Tools/config.json` są dopisywane przy starcie):
-- `ranks.tabStatsEnabled` — wyświetlanie profilu i statystyk.
-- `ranks.tabTopKillsEnabled` — ranking zabójstw online.
-- `ranks.tabTopLimit` — ile osób w rankingu (od 1 do 5).
-- `ranks.tabRefreshTicks` — częstotliwość odświeżania (od 20 do 1200 ticków; 60 to ok. 3 sekundy).
-- `ranks.tabHeader`, `ranks.tabFooter` — linie nagłówka i stopki z kodami kolorów `&` / `&#RRGGBB`.
-
-Własne linie obsługują znaczniki: `{online}`, `{max_online}`, `{nick}`, `{ranga}`, `{ping}`, `{zabojstwa}`, `{smierci}`, `{czas_gry}` i `{tps}`.
-
-**Ograniczenie Minecraft:** dokładne boczne kolumny i sztuczne wpisy jak na zdjęciu nie są natywnie obsługiwane przez nagłówek/stopkę Paper. Tutaj statystyki trafiają w czytelne sekcje nad i pod prawdziwą listą graczy. Do odwzorowania wszystkich bocznych bloków 1:1 potrzebny byłby osobny system wirtualnych wpisów i pakietów.
-
-- **Czat:** kolorowy prefix rangi, szary nick i szara wiadomość; kody wpisywane przez zwykłych graczy są traktowane jak tekst.
-- **Wejście:** komunikat rangi jest opcjonalny; szablon pozwala użyć `{nick}` i `{ranga}`.
-- **Nick nad głową:** scoreboard team dla innych graczy; w trybie F5 własny `TextDisplay`, widoczny tylko dla właściciela.
-
-Uwaga: scoreboard może kolidować z innymi pluginami zarządzającymi TAB-em; F5 i TAB wymagają weryfikacji wizualnej na kliencie Minecraft.
-
-## Struktura
+## Struktura i konfiguracja
 
 ```text
-basic/ToolsPlugin.java
-commands/ToolsCommand.java, RankCommand.java
-config/ToolsConfig.java, JsonConfigManager.java, ToolsConfigMigration.java
-database/DatabaseManager.java, PlayerRepository.java, RankRepository.java
-manager/PlayerDataManager.java, RankManager.java, RankSnapshot.java, RankVisualManager.java
-listeners/PlayerConnectionListener.java, RankListener.java
-registry/ConfigRegistry.java, CommandRegistry.java
-helpers/Colors.java
-...```
+src/main/java/pl/lokos/tools/
+  basic/       ToolsPlugin
+  commands/    RankCommand, ToolsCommand
+  config/      ToolsConfig, JsonConfigManager, ToolsConfigMigration
+  database/    DatabaseManager, RankRepository, PlayerRepository
+  helpers/     Colors, Messages, RankFormatting, RankValidity
+  listeners/   RankListener, PlayerConnectionListener
+  manager/     RankManager, RankVisualManager, RankSnapshot, TabPanel
+  registry/    ConfigRegistry, CommandRegistry
+  ...
+```
 
-MySQL: `tools_players`, `tools_sessions`, `tools_ranks`, `tools_rank_permissions`, `tools_player_ranks`, `tools_rank_op_restore`. Asynchroniczna obsługa SQL; cache rang widoczny dla chatu jest niemutowalny. Przypisania z czasem wygasają, a wygasłe przypisania są sprawdzane co sekundę. Wszystkie opcje konfiguracyjne mają domyślne wartości w klasach Java, a JSON powstaje dopiero podczas uruchomienia pluginu.
+Domyślne wartości konfiguracji znajdują się **wyłącznie w Javie**. Pliki JSON generowane są przy starcie; późniejsze edycje administratora zostają zachowane. `plugin.yml` zawiera wyłącznie metadane; komendy są rejestrowane w Javie (Paper BasicCommand). Zmiany konfiguracji wymagają pełnego restartu.
 
-## Budowanie i testy
+## Kompilacja i testy
 
-`mvn clean verify` (Java 25) buduje `target/Tools.jar` i uruchamia testy JUnit. [GitHub Actions](https://github.com/LokosPL/Tools/actions/workflows/build.yml) automatycznie publikuje wynik do pobrania.
+```bash
+mvn clean verify
+```
 
-Sprawdź plugin na testowym serwerze Paper z lokalną bazą przed użyciem na produkcji. Nie ma jeszcze gwarancji bezstratnej pracy bez dostępnego MySQL. Nie używaj komendy serwera `/reload`: restartuj cały proces.
+[GitHub Actions](https://github.com/LokosPL/Tools/actions/workflows/build.yml) uruchamia Maven z testami JUnit oraz integracyjnym testem MariaDB tworzenia, nadawania, odczytu i wygasania rang. Artefakt `Tools.jar` jest do pobrania po udanej kompilacji. Testy nie zastępują weryfikacji GUI i uprawnień na uruchomionym serwerze Paper.

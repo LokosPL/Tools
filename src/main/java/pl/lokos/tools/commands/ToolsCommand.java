@@ -41,17 +41,17 @@ public final class ToolsCommand implements BasicCommand {
         CommandSender sender = source.getSender();
         if (args.length == 0 || args[0].equalsIgnoreCase("pomoc") || args[0].equalsIgnoreCase("help")) {
             Messages.title(sender, "NARZĘDZIA SERWERA");
-            Messages.line(sender, "&e/tools status &8- &7Stan połączenia MySQL");
-            Messages.line(sender, "&e/tools ping &8- &7Czas odpowiedzi bazy danych");
-            Messages.line(sender, "&e/tools stats <nick> &8- &7Statystyki gracza");
-            Messages.line(sender, "&e/ranga lista &8- &7Lista dostępnych rang");
+            Messages.line(sender, "&a/tools status &8- &7Stan połączenia MySQL");
+            Messages.line(sender, "&a/tools ping &8- &7Czas odpowiedzi bazy danych");
+            Messages.line(sender, "&a/tools stats <nick> &8- &7Statystyki gracza");
+            Messages.line(sender, "&a/ranga lista &8- &7Lista dostępnych rang");
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "status" -> {
                 String state = database == null ? "Wyłączona" : database.status().displayName();
-                Messages.info(sender, "Baza danych: &e" + state
-                        + "&7 | Graczy online: &e" + (playerData == null ? 0 : playerData.onlineCount()));
+                Messages.info(sender, "Baza danych: &a" + state
+                        + "&7 | Graczy online: &a" + (playerData == null ? 0 : playerData.onlineCount()));
             }
             case "ping" -> {
                 if (repository == null) {
@@ -64,7 +64,7 @@ public final class ToolsCommand implements BasicCommand {
                         Messages.error(sender, "Nie można połączyć się z MySQL. Sprawdź konsolę.");
                         plugin.getLogger().log(Level.WARNING, "Błąd testu MySQL", error);
                     } else {
-                        Messages.success(sender, "Połączenie z bazą działa. Opóźnienie: &e" + delay + " ms");
+                        Messages.success(sender, "Połączenie z bazą działa. Opóźnienie: &a" + delay + " ms");
                     }
                 }));
             }
@@ -87,14 +87,14 @@ public final class ToolsCommand implements BasicCommand {
                         Messages.error(sender, "Nie znaleziono gracza &c&n" + name + "&r&c w bazie.");
                     } else {
                         Messages.title(sender, "STATYSTYKI " + stats.name());
-                        Messages.info(sender, "Wejścia: &e" + stats.joins());
-                        Messages.info(sender, "Czas gry: &e" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
+                        Messages.info(sender, "Wejścia: &a" + stats.joins());
+                        Messages.info(sender, "Czas gry: &a" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
                     }
                 }));
             }
             default -> {
                 Messages.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
-                Messages.hint(sender, "Użyj &e/tools pomoc&7, aby zobaczyć polecenia.");
+                Messages.hint(sender, "Użyj &a/tools pomoc&7, aby zobaczyć polecenia.");
             }
         }
     }

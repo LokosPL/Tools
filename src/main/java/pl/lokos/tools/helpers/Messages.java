@@ -2,23 +2,20 @@ package pl.lokos.tools.helpers;
 
 import org.bukkit.command.CommandSender;
 
-/**
- * Jeden styl wiadomosci. Nie wysylamy prefiksu [Tools] do kazdej linijki.
- * Komunikaty bledow sa czerwone, potwierdzenia zielone, pomoc szara.
- */
+/** Jednolita stylistyka: &c błędy, &a potwierdzenia, &7 treść, &8 separatory. */
 public final class Messages {
     private Messages() {}
 
     public static void success(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&a✔ &a" + value));
+        to.sendMessage(Colors.color("&a&lSUKCES &8» &7" + value));
     }
 
     public static void error(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&c✖ &lBłąd! &c" + value));
+        to.sendMessage(Colors.color("&c&lBŁĄD &8» &c" + value));
     }
 
     public static void info(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&8• &7" + value));
+        to.sendMessage(Colors.color("&a • &7" + value));
     }
 
     public static void line(CommandSender to, String value) {
@@ -26,14 +23,14 @@ public final class Messages {
     }
 
     public static void title(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&8&m          &r &#55BBFF&l" + value + " &8&m          "));
+        to.sendMessage(Colors.color("&8&m----------------&r &a&l" + value + " &8&m----------------"));
     }
 
     public static void usage(CommandSender to, String syntax) {
-        to.sendMessage(Colors.color("&8↳ &7Poprawna składnia: &e&n" + syntax));
+        to.sendMessage(Colors.color("&7Poprawna składnia &8» &a&n" + syntax));
     }
 
     public static void hint(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&8↳ &7" + value));
+        to.sendMessage(Colors.color("&a&lTIP &8» &7" + value));
     }
 }

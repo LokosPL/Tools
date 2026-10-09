@@ -36,6 +36,7 @@ public final class RankListener implements Listener {
         } else {
             event.joinMessage(Colors.color(message
                     .replace("{nick}", event.getPlayer().getName())
+                    .replace("{player}", event.getPlayer().getName())
                     .replace("{ranga}", rank.name())));
         }
         visuals.refresh();

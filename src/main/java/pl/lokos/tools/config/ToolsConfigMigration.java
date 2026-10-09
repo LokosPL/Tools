@@ -11,6 +11,18 @@ public final class ToolsConfigMigration {
     private ToolsConfigMigration() {}
 
     public static void apply(JsonObject root) {
+        // Zmieniamy tylko nieedytowane fabryczne naglowki starego TAB-u.
+        // Wlasne szablony administratora pozostaja nietkniete.
+        JsonElement ranksElement = root.get("ranks");
+        if (ranksElement != null && ranksElement.isJsonObject()) {
+            JsonObject ranks = ranksElement.getAsJsonObject();
+            if (matches(ranks, "tabHeader", "&#4ACBFF&lTOOLS &8| &fSerwer Minecraft")) {
+                ranks.addProperty("tabHeader", "&a&lTOOLS &8| &7ꜱᴇʀᴡᴇʀ ᴍɪɴᴇᴄʀᴀꜰᴛ");
+            }
+            if (matches(ranks, "tabFooter", "&7Online: &#77DD88{online} &8| &#4ACBFF&lMilej gry!")) {
+                ranks.addProperty("tabFooter", "&7ᴏɴʟɪɴᴇ&8: &a{online} &8| &aᴍɪłᴇᴊ ɢʀʏ!");
+            }
+        }
         JsonElement element = root.get("database");
         if (element == null || !element.isJsonObject()) {
             return;

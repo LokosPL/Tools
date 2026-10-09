@@ -38,6 +38,22 @@ class ToolsConfigMigrationTest {
     }
 
     @Test
+    void migratesOnlyDefaultTabTemplates() {
+        JsonObject json = com.google.gson.JsonParser.parseString("""
+                {"ranks":{"tabHeader":"&#4ACBFF&lTOOLS &8| &fSerwer Minecraft",
+                          "tabFooter":"&7Online: &#77DD88{online} &8| &#4ACBFF&lMilej gry!"}}
+                """).getAsJsonObject();
+        ToolsConfigMigration.apply(json);
+        assertTrue(json.getAsJsonObject("ranks").get("tabHeader").getAsString().contains("ꜱᴇʀᴡᴇʀ"));
+        assertTrue(json.getAsJsonObject("ranks").get("tabFooter").getAsString().contains("ᴏɴʟɪɴᴇ"));
+
+        JsonObject custom = com.google.gson.JsonParser.parseString(
+                "{\"ranks\":{\"tabHeader\":\"&aMój serwer\",\"tabFooter\":\"&7Do widzenia!\"}}").getAsJsonObject();
+        ToolsConfigMigration.apply(custom);
+        assertEquals("&aMój serwer", custom.getAsJsonObject("ranks").get("tabHeader").getAsString());
+    }
+
+    @Test
     void repeatedMigrationDoesNotChangeUpgradedSettings() {
         JsonObject json = previousDefaults();
         ToolsConfigMigration.apply(json);
