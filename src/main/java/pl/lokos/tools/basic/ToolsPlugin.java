@@ -14,6 +14,8 @@ import pl.lokos.tools.inventorys.RankMenuFactory;
 import pl.lokos.tools.listeners.RankMenuListener;
 import pl.lokos.tools.manager.RegionBorderPreview;
 import pl.lokos.tools.helpers.Messages;
+import pl.lokos.tools.helpers.ToolsPermissionCatalog;
+import pl.lokos.tools.listeners.ToolsCommandVisibilityListener;
 import pl.lokos.tools.listeners.RegionProtectionListener;
 import pl.lokos.tools.listeners.RegionPlayerListener;
 import pl.lokos.tools.listeners.RegionMenuListener;
@@ -71,6 +73,8 @@ public final class ToolsPlugin extends JavaPlugin {
                 repository = new PlayerRepository(database);
                 this.playerData = new PlayerDataManager(this, repository);
                 this.rankManager = new RankManager(this, new RankRepository(database), configurations.definitions());
+                rankManager.setManagedPermissions(
+                        new ToolsPermissionCatalog(configurations.commands()).managedNodes());
                 this.rankVisuals = new RankVisualManager(this, rankManager, config.ranks());
                 rankManager.setVisuals(rankVisuals);
                 if(config.regions().enabled()) {
@@ -88,7 +92,7 @@ public final class ToolsPlugin extends JavaPlugin {
 
         RankMenuFactory rankMenus=null;
         if(rankManager!=null) {
-            rankMenus=new RankMenuFactory(new NamespacedKey(this,"rank_menu"),rankManager);
+            rankMenus=new RankMenuFactory(new NamespacedKey(this,"rank_menu"),rankManager,configurations.commands());
             getServer().getPluginManager().registerEvents(new RankMenuListener(
                     this,rankManager,rankMenus,configurations.commands().ranga().permission()),this);
         }
@@ -110,6 +114,9 @@ public final class ToolsPlugin extends JavaPlugin {
             regionManager.start();
             getServer().getScheduler().runTaskTimer(this,playerRegions::actionbar,20L,20L);
         }
+
+        getServer().getPluginManager().registerEvents(
+                new ToolsCommandVisibilityListener(configurations.commands(),rankManager),this);
 
         if (rankManager != null) {
             getServer().getPluginManager().registerEvents(
