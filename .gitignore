@@ -1,0 +1,9 @@
+target/
+.idea/
+*.iml
+.gradle/
+build/
+out/
+*.log
+.env
+config.json

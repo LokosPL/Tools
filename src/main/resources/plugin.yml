@@ -1,0 +1,16 @@
+name: Tools
+version: '${project.version}'
+main: pl.lokos.tools.basic.ToolsPlugin
+api-version: '26.3'
+description: Modularne narzedzia dla serwera Minecraft z MySQL
+author: LokosPL
+website: https://github.com/LokosPL/Tools
+commands:
+  tools:
+    description: Informacje, status oraz statystyki bazy danych
+    usage: /tools [help|status|ping|stats <nick>]
+    permission: tools.admin
+permissions:
+  tools.admin:
+    description: Dostep do komend administracyjnych Tools
+    default: op

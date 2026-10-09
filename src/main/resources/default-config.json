@@ -1,0 +1,14 @@
+{
+  "autosaveSeconds": 30,
+  "database": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 3306,
+    "database": "tools",
+    "username": "tools",
+    "password": "${TOOLS_DB_PASSWORD}",
+    "sslMode": "PREFERRED",
+    "poolSize": 6,
+    "connectionTimeoutMs": 5000
+  }
+}
