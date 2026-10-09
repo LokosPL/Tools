@@ -73,12 +73,12 @@ public final class RegionManager {
         Region spawn=mainSpawn();
         if(spawn==null||loc==null||loc.getWorld()==null||!spawn.world().equals(loc.getWorld().getUID()))return false;
         int amount=definitions.regions().settings().spawnProtectionOutside();
-        if(amount<=0 || at(loc)!=null)return false;
+        if(amount<=0)return false;
         return RegionHalo.contains(spawn,loc.getWorld().getUID(),loc.getBlockX(),loc.getBlockZ(),amount);
     }
     public boolean protectedLocation(Location l,RegionFlag flag) {
         Region r=at(l);
-        return r!=null?!index.enabled(r,flag):inHalo(l);
+        return inHalo(l) || (r!=null && !index.enabled(r,flag));
     }
     public CompletableFuture<Void> refresh() {
         RegionsFile file=definitions.regions();
@@ -110,6 +110,15 @@ public final class RegionManager {
     public CompletableFuture<Void> create(Region r) {
         return change(file->{
             new RegionIndex(file.regions()).validateNew(r);
+            Region spawn=file.mainSpawn()==null?null:new RegionIndex(file.regions()).byName(file.mainSpawn());
+            int radius=file.settings().spawnProtectionOutside();
+            if(r.parent()==null && spawn!=null && radius>0 && r.world().equals(spawn.world())){
+                long minX=(long)spawn.minX()-radius,maxX=(long)spawn.maxX()+radius;
+                long minZ=(long)spawn.minZ()-radius,maxZ=(long)spawn.maxZ()+radius;
+                if(r.minX()<=maxX && r.maxX()>=minX && r.minZ()<=maxZ && r.maxZ()>=minZ)
+                    throw new IllegalArgumentException("Region nachodzi na zewnętrzną ochronę spawnu.");
+            }
+
             List<Region> all=new ArrayList<>(file.regions());all.add(r);
             return modified(file,all,file.mainSpawn());
         });
