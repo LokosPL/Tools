@@ -12,11 +12,21 @@ Modułowy plugin **Minecraft Java 26.3 / Paper 26.3** z asynchronicznym zapisem 
 
 **Uwaga:** początkowo `database.enabled=false`, by plugin mógł wystartować przed skonfigurowaniem dostępu do MySQL. Nie przesyłaj swojego prawdziwego `config.json` do GitHuba. MySQL musi być dostępny sieciowo z hosta serwera.
 
+## Konfiguracje tworzone przez kod Java
+
+**Nie ma już `src/main/resources/default-config.json`.** Wszystkie domyślne opcje (`autosaveSeconds`, `commands`, `database`) są polami z wartościami początkowymi w `src/main/java/pl/lokos/tools/config/ToolsConfig.java`.
+
+- `registry/ConfigRegistry.java` ładuje **wszystkie** konfiguracje przy `onEnable()` — zanim zarejestrujemy komendy, listenerów lub MySQL.
+- `config/JsonConfigManager.java` ma uniwersalną metodę `load()` dla dowolnej klasy Java. Gdy nie istnieje `plugins/Tools/config.json`, zostaje wygenerowany z pól Java, a nie skopiowany z resources.
+- Na kolejnych startach dodaje wyłącznie brakujące właściwości z domyślnych wartości Java. **Zachowuje wartości edytowane przez administratora i jego własne klucze**, nie nadpisuje błędnego pliku. Zapis zmian jest atomowy tam, gdzie obsługuje go system plików.
+- Nowa konfiguracja w przyszłości: definiujesz nową klasę Java z wartościami pól, rejestrujesz ją w `ConfigRegistry.loadAll()` i korzystasz z gotowego obiektu. Nie dodajesz żadnego pliku JSON do JAR.
+- Dopiero po załadowaniu konfiguracji plugin rozpoczyna połączenia i rejestruje komendy w Javie (Paper BasicCommand).
+
 ## Uruchamianie i rejestrowanie komend
 
 - `plugin.yml` zawiera **wyłącznie metadane** wymagane przez Paper do załadowania głównej klasy `ToolsPlugin`. Nie zawiera `commands:` ani `permissions:`.
 - Komendy rejestruje klasa `registry/CommandRegistry.java` poprzez **Paper `JavaPlugin#registerCommand` + `BasicCommand`**. Nie korzystamy z `getCommand()` ani starego Bukkit `CommandExecutor`.
-- Podczas `onEnable()` ładowany i walidowany jest **jeden raz** `plugins/Tools/config.json`. Dopiero potem plugin uruchamia MySQL i rejestruje komendy, listenery oraz zadania.
+- Podczas `onEnable()` tworzone/wczytywane i walidowane są wszystkie konfiguracje. Dopiero potem plugin uruchamia MySQL i rejestruje komendy, listenery oraz zadania.
 - Zmiany konfiguracji (np. aliasu, hasła MySQL, liczby sekund autosave) wymagają **pełnego restartu serwera**. Nie czytamy ponownie plików w czasie działania, a `/reload` nie jest zalecany.
 - Jeśli `config.json` powstał w wersji 1.0.0, nowa sekcja `commands` jest **opcjonalna**: Java użyje domyślnych ustawień; aby edytować aliasy/uprawnienia, dopisz ją ręcznie. Plugin **nie nadpisuje istniejącej konfiguracji**.
 - Uprawnienia są deklarowane w Javie: domyślnie `tools.admin` ma dostęp dla OP. Można zmienić identyfikator permisji w JSON; rejestracja Paper uwzględnia ją przy wyświetlaniu i wykonywaniu komend.
@@ -58,12 +68,12 @@ src/main/java/pl/lokos/tools/
   commands/     ToolsCommand (/tools, implementacja Paper BasicCommand)
   enums/        DatabaseStatus
   helpers/      PlayerDataHelper
-  config/       JsonConfigManager, ToolsConfig
+  config/       JsonConfigManager, ToolsConfig (domyślne wartości w Javie)
   utils/        ThreadChecks
   variables/    PluginConstants
   inventorys/   InventoryRegistry (rozszerzalne GUI)
   listeners/    PlayerConnectionListener
-  registry/     CommandRegistry (rejestracja komend w Javie)
+  registry/     CommandRegistry, ConfigRegistry (rejestracja i ładowanie przy starcie)
   tasks/        AutosaveTask
   manager/      PlayerDataManager
   database/     DatabaseManager, PlayerRepository, PlayerSnapshot
@@ -93,6 +103,6 @@ Domyślne uprawnienie: `tools.admin` (OP).
 mvn clean verify
 ```
 
-Projekt zawiera testy JUnit i workflow GitHub Actions. W IntelliJ IDEA otwórz katalog jako Maven Project, ustaw SDK Java 25 i włącz import zależności. Integracyjny test połączenia wymaga osobnej działającej instancji MySQL, której nie dostarcza repozytorium.
+Projekt zawiera testy JUnit obejmujące generowanie/uzupełnianie JSON z Javy i workflow GitHub Actions. W IntelliJ IDEA otwórz katalog jako Maven Project, ustaw SDK Java 25 i włącz import zależności. Integracyjny test połączenia wymaga osobnej działającej instancji MySQL, której nie dostarcza repozytorium.
 
 Nie przechowuj danych dostępowych w kodzie; wykonuj backup MySQL przed migracjami.

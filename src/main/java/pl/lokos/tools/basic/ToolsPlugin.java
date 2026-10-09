@@ -3,7 +3,6 @@ package pl.lokos.tools.basic;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
-import pl.lokos.tools.config.JsonConfigManager;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.database.DatabaseManager;
 import pl.lokos.tools.database.PlayerRepository;
@@ -11,6 +10,7 @@ import pl.lokos.tools.inventorys.InventoryRegistry;
 import pl.lokos.tools.listeners.PlayerConnectionListener;
 import pl.lokos.tools.manager.PlayerDataManager;
 import pl.lokos.tools.registry.CommandRegistry;
+import pl.lokos.tools.registry.ConfigRegistry;
 import pl.lokos.tools.tasks.AutosaveTask;
 
 import java.io.IOException;
@@ -21,16 +21,20 @@ public final class ToolsPlugin extends JavaPlugin {
     private PlayerDataManager playerData;
     private InventoryRegistry inventories;
     private BukkitTask autosaveTask;
+    private ConfigRegistry configurations;
     private ToolsConfig config;
 
     @Override
     public void onEnable() {
-        // Wszystkie ustawienia odczytujemy dokladnie raz na starcie.
-        // Kolejnosc: JSON -> walidacja -> zaleznosci -> komendy -> listenery i taski.
+        // Klasy Java definiuja wartosci domyslne; JSON jest tworzony dopiero
+        // podczas startu serwera. Wszystkie konfiguracje ladujemy PRZED
+        // rejestracja komend, listenerow, baz danych i taskow.
         try {
-            this.config = new JsonConfigManager(getDataFolder().toPath()).load();
+            this.configurations = new ConfigRegistry(getDataFolder().toPath());
+            configurations.loadAll();
+            this.config = configurations.tools();
         } catch (IOException error) {
-            getLogger().severe("Nie mozna odczytac konfiguracji: " + error.getMessage());
+            getLogger().severe("Nie mozna zaladowac konfiguracji: " + error.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -88,5 +92,9 @@ public final class ToolsPlugin extends JavaPlugin {
 
     public ToolsConfig config() {
         return config;
+    }
+
+    public ConfigRegistry configurations() {
+        return configurations;
     }
 }
