@@ -1,0 +1,29 @@
+name: Build Tools
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Maven verify (Java 25)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compile, test and package
+        run: mvn --batch-mode --no-transfer-progress clean verify
+      - name: Upload Tools.jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tools-Paper-26.3
+          path: target/Tools.jar
+          if-no-files-found: error
