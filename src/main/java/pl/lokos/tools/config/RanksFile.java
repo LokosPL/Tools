@@ -29,6 +29,7 @@ public final class RanksFile {
     }
     public void validate(){
         if(settings==null||ranks==null)throw new IllegalArgumentException("Niekompletny Ranks.json");
+        settings.validate();
         for(var item:ranks.entrySet()){
             if(!item.getKey().matches("[\\p{L}0-9_-]{1,24}")||item.getValue()==null)
                 throw new IllegalArgumentException("Błędna definicja rangi: "+item.getKey());

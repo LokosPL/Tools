@@ -100,6 +100,11 @@ public final class ConfigRegistry {
         }finally{Files.deleteIfExists(temporary);}
     }
 
+    /** Komendy już zarejestrowane; można przeładować jedynie ich wygląd/komunikaty. */
+    public void applyCommands(CommandsFile next) {
+        Objects.requireNonNull(next).validate();
+        commands = next;
+    }
     public ToolsConfig tools(){return Objects.requireNonNull(tools);}
     public CommandsFile commands(){return Objects.requireNonNull(commands);}
     public DefinitionFiles definitions(){return Objects.requireNonNull(definitions);}

@@ -292,7 +292,10 @@ public final class RankManager {
         // Uprawnienia Tools są domyślnie zamknięte. Jawne false zapobiega
         // obchodzeniu wyłączenia przez PermissionDefault.TRUE innego pluginu.
         for (String managed : managedPermissions) {
-            attachment.setPermission(managed, ToolsPermissionCatalog.granted(granted,player.isOp(),managed));
+            boolean luckPermsAllowed = plugin.getServer().getPluginManager().isPluginEnabled("LuckPerms")
+                    && player.hasPermission(managed);
+            attachment.setPermission(managed,
+                    ToolsPermissionCatalog.granted(granted,player.isOp(),managed) || luckPermsAllowed);
         }
         for (String permission : granted) {
             if (permission.equals("*")) {

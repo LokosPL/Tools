@@ -5,3 +5,5 @@ api-version: '26.3'
 description: Modularne narzedzia serwera z asynchronicznym MySQL
 author: LokosPL
 website: https://github.com/LokosPL/Tools
+
+softdepend: [LuckPerms]

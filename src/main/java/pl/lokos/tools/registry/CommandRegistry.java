@@ -8,12 +8,16 @@ import pl.lokos.tools.config.CommandsFile;
 import pl.lokos.tools.database.*;
 import pl.lokos.tools.manager.*;
 import pl.lokos.tools.inventorys.RankMenuFactory;
+import pl.lokos.tools.diagnostics.MonitoringService;
+import pl.lokos.tools.config.HotReloadService;
+import pl.lokos.tools.permissions.LuckPermsBridge;
 
 public final class CommandRegistry {
     private final JavaPlugin plugin;
     public CommandRegistry(JavaPlugin plugin){this.plugin=plugin;}
     public void register(CommandsFile config,DatabaseManager database,PlayerRepository repository,
-                         PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus) {
+                         PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus,
+                         MonitoringService monitoring, HotReloadService hotReload, LuckPermsBridge luckPerms) {
         if(ranks!=null && config.ranga().enabled()){
             declare(config.ranga().permission(),PermissionDefault.OP);
             plugin.registerCommand("ranga",config.ranga().description(),config.ranga().aliases(),
@@ -22,7 +26,7 @@ public final class CommandRegistry {
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);
             plugin.registerCommand("tools",config.tools().description(),config.tools().aliases(),
-                    new ToolsCommand(plugin,database,repository,playerData,config.tools().permission()));
+                    new ToolsCommand(plugin,database,repository,playerData,config.tools().permission(), monitoring,hotReload,luckPerms,ranks));
         }
     }
     private void declare(String name,PermissionDefault value){

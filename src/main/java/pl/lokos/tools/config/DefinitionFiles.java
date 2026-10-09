@@ -20,6 +20,13 @@ public final class DefinitionFiles {
         this.folder=folder;this.ranks=ranks;this.regions=regions;
         this.importRanks=importRanks;this.importRegions=importRegions;
     }
+    /** Podmiana wyłącznie ustawień wizualnych po pełnej walidacji. */
+    public synchronized void applyRankSettings(RanksFile updated) {
+        updated.validate();
+        if (!ranks.ranks().equals(updated.ranks()))
+            throw new IllegalArgumentException("Definicje rang zmieniły się w trakcie przeładowania.");
+        ranks = updated;
+    }
     public boolean importRanks(){return !ranks.legacyImported();}
     public boolean importRegions(){return !regions.legacyImported();}
     public RanksFile ranks(){return ranks;}

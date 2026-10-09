@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.helpers.RankFormatting;
@@ -40,6 +41,13 @@ public final class RankListener implements Listener {
                     .replace("{player}", event.getPlayer().getName())
                     .replace("{ranga}", rank.name())));
         }
+        visuals.refresh();
+    }
+
+    @EventHandler
+    public void changeWorld(PlayerChangedWorldEvent event) {
+        // LuckPerms może mieć konteksty zależne od świata: odświeżamy uprawnienia.
+        ranks.apply(event.getPlayer());
         visuals.refresh();
     }
 

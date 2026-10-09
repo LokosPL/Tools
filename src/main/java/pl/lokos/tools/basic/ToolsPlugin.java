@@ -31,6 +31,11 @@ import pl.lokos.tools.manager.RankVisualManager;
 import pl.lokos.tools.listeners.RankListener;
 import pl.lokos.tools.registry.CommandRegistry;
 import pl.lokos.tools.registry.ConfigRegistry;
+import pl.lokos.tools.registry.ServiceRegistry;
+import pl.lokos.tools.registry.PluginServiceFactory;
+import pl.lokos.tools.diagnostics.MonitoringService;
+import pl.lokos.tools.config.HotReloadService;
+import pl.lokos.tools.permissions.LuckPermsBridge;
 import pl.lokos.tools.tasks.AutosaveTask;
 
 import java.io.IOException;
@@ -48,6 +53,11 @@ public final class ToolsPlugin extends JavaPlugin {
     private BukkitTask autosaveTask;
     private ConfigRegistry configurations;
     private ToolsConfig config;
+    private ServiceRegistry services;
+    private MonitoringService monitoring;
+    private HotReloadService reloadService;
+    private RankListener rankListener;
+    private LuckPermsBridge luckPerms;
 
     @Override
     public void onEnable() {
@@ -66,37 +76,46 @@ public final class ToolsPlugin extends JavaPlugin {
         }
 
         this.inventories = new InventoryRegistry();
+        this.services = new ServiceRegistry();
         PlayerRepository repository = null;
-        if (config.database().enabled()) {
-            try {
-                this.database = new DatabaseManager(this, config.database());
-                repository = new PlayerRepository(database);
-                this.playerData = new PlayerDataManager(this, repository);
-                this.rankManager = new RankManager(this, new RankRepository(database), configurations.definitions());
-                rankManager.setManagedPermissions(
-                        new ToolsPermissionCatalog(configurations.commands()).managedNodes());
-                this.rankVisuals = new RankVisualManager(this, rankManager, config.ranks());
-                rankManager.setVisuals(rankVisuals);
-                if(config.regions().enabled()) {
-                    this.regionManager=new RegionManager(this,new RegionRepository(database),rankManager,configurations.definitions());
-                    this.regionTeleports=new RegionTeleportManager(this,regionManager,rankManager,config.regions());
-                }
-            } catch (RuntimeException error) {
-                getLogger().severe("Nie mozna uruchomic MySQL: " + error.getMessage());
-                getServer().getPluginManager().disablePlugin(this);
-                return;
-            }
-        } else {
-            getLogger().warning("MySQL wylaczony. Wlacz enabled w plugins/Tools/MySql.json.");
+        try {
+            PluginServiceFactory.Core core = PluginServiceFactory.create(
+                    this, configurations, config, services);
+            this.database = core.database();
+            repository = core.players();
+            this.playerData = core.playerData();
+            this.rankManager = core.ranks();
+            this.rankVisuals = core.tab();
+            this.regionManager = core.regions();
+            this.regionTeleports = core.teleports();
+            if (database == null)
+                getLogger().warning("Baza jest wyłączona; moduł rang i regionów nie będzie dostępny.");
+        } catch (RuntimeException error) {
+            getLogger().severe("Nie udało się utworzyć serwisów: " + error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
         }
+        this.monitoring = services.register(MonitoringService.class,
+                new MonitoringService(this, database));
+        this.monitoring.configure(17.0, 85);
+        getServer().getScheduler().runTaskTimer(this,
+                monitoring.measured("monitoring", monitoring::check), 200L, 200L);
+        if (rankManager != null) {
+            this.rankListener = new RankListener(rankManager, rankVisuals, config.ranks());
+        }
+        this.reloadService = services.register(HotReloadService.class,
+                new HotReloadService(this, configurations, config, rankVisuals, rankListener));
 
+        this.luckPerms = LuckPermsBridge.discover().orElse(null);
+        if (luckPerms != null) services.register(LuckPermsBridge.class, luckPerms);
         RankMenuFactory rankMenus=null;
         if(rankManager!=null) {
             rankMenus=new RankMenuFactory(new NamespacedKey(this,"rank_menu"),rankManager,configurations.commands());
             getServer().getPluginManager().registerEvents(new RankMenuListener(
                     this,rankManager,rankMenus,configurations.commands().ranga().permission()),this);
         }
-        new CommandRegistry(this).register(configurations.commands(), database, repository, playerData, rankManager,rankMenus);
+        new CommandRegistry(this).register(configurations.commands(), database,
+                repository, playerData, rankManager, rankMenus, monitoring, reloadService, luckPerms);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
@@ -112,7 +131,8 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(
                     new RegionMenuListener(this,menus,regionManager,regionTeleports,borderPreview,configurations.commands().region().permission(),configurations.commands().lokalizacje().permission()),this);
             regionManager.start();
-            getServer().getScheduler().runTaskTimer(this,playerRegions::actionbar,20L,20L);
+            getServer().getScheduler().runTaskTimer(this,
+                    monitoring.measured("regiony.actionbar", playerRegions::actionbar),20L,20L);
         }
 
         getServer().getPluginManager().registerEvents(
@@ -120,13 +140,15 @@ public final class ToolsPlugin extends JavaPlugin {
 
         if (rankManager != null) {
             getServer().getPluginManager().registerEvents(
-                    new RankListener(rankManager, rankVisuals, config.ranks()), this);
+                    rankListener, this);
             rankManager.start();
-            getServer().getScheduler().runTaskTimer(this, rankVisuals::tick, 2L, 2L);
+            getServer().getScheduler().runTaskTimer(this,
+                    monitoring.measured("rangi.napisF5", rankVisuals::tick), 2L, 2L);
             getServer().getScheduler().runTaskTimer(
-                    this, rankVisuals::updateTab,
+                    this, monitoring.measured("rangi.TAB", rankVisuals::updateTab),
                     config.ranks().tabRefreshTicks(), config.ranks().tabRefreshTicks());
-            getServer().getScheduler().runTaskTimer(this, rankManager::expire, 20L, 20L);
+            getServer().getScheduler().runTaskTimer(this,
+                    monitoring.measured("rangi.wygasanie", rankManager::expire), 20L, 20L);
         }
 
         if (playerData != null) {
@@ -135,13 +157,16 @@ public final class ToolsPlugin extends JavaPlugin {
                 playerData.playerJoined(player);
             }
             long interval = config.autosaveSeconds() * 20L;
-            this.autosaveTask = new AutosaveTask(playerData).runTaskTimer(this, interval, interval);
+            this.autosaveTask = getServer().getScheduler().runTaskTimer(this,
+                    monitoring.measured("gracze.zapis", playerData::autosave), interval, interval);
         }
         getLogger().info("Tools zostal wlaczony na Paper 26.3.");
     }
 
     @Override
     public void onDisable() {
+        if (reloadService != null) reloadService.close();
+        if (monitoring != null) monitoring.stop();
         if (autosaveTask != null) {
             autosaveTask.cancel();
         }
@@ -155,7 +180,8 @@ public final class ToolsPlugin extends JavaPlugin {
                     : CompletableFuture.completedFuture(null);
             database.shutdown(pending);
         }
-        getLogger().info("Tools zostal wylaczony.");
+        if (services != null) services.close();
+        getLogger().info("Tools został wyłączony.");
     }
 
     public InventoryRegistry inventories() {
@@ -178,6 +204,7 @@ public final class ToolsPlugin extends JavaPlugin {
         return config;
     }
 
+    public MonitoringService monitoring() { return monitoring; }
     public ConfigRegistry configurations() {
         return configurations;
     }

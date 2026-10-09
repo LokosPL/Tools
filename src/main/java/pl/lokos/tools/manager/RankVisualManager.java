@@ -25,7 +25,7 @@ import java.util.*;
 public final class RankVisualManager {
     private final JavaPlugin plugin;
     private final RankManager ranks;
-    private final ToolsConfig.Ranks config;
+    private volatile ToolsConfig.Ranks config;
     private final Scoreboard scoreboard;
     private final Map<UUID, TextDisplay> selfTags = new HashMap<>();
     private boolean closed;
@@ -35,6 +35,13 @@ public final class RankVisualManager {
         this.ranks = ranks;
         this.config = config;
         this.scoreboard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
+    }
+
+    public void applySettings(ToolsConfig.Ranks next) {
+        ThreadChecks.requirePrimaryThread();
+        Objects.requireNonNull(next).validate();
+        config = next;
+        refresh();
     }
 
     public void refresh() {
