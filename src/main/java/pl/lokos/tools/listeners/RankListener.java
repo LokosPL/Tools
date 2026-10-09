@@ -20,12 +20,17 @@ import pl.lokos.tools.manager.RankVisualManager;
 public final class RankListener implements Listener {
     private final RankManager ranks;
     private final RankVisualManager visuals;
-    private final ToolsConfig.Ranks config;
+    private volatile ToolsConfig.Ranks config;
 
     public RankListener(RankManager ranks, RankVisualManager visuals, ToolsConfig.Ranks config) {
         this.ranks = ranks;
         this.visuals = visuals;
         this.config = config;
+    }
+
+    /** Bezpieczna podmiana wyglądu czatu podczas /tools przeladuj. */
+    public void applySettings(ToolsConfig.Ranks next) {
+        this.config = java.util.Objects.requireNonNull(next);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
