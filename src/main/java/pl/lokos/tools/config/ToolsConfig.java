@@ -12,6 +12,14 @@ public final class ToolsConfig {
     private Ranks ranks = new Ranks();
     private Regions regions = new Regions();
 
+    public void configure(Database mysql, Ranks rankSettings, Regions regionSettings){
+        this.database=java.util.Objects.requireNonNull(mysql);
+        this.ranks=java.util.Objects.requireNonNull(rankSettings);
+        this.regions=java.util.Objects.requireNonNull(regionSettings);
+        this.autosaveSeconds=mysql.autosaveSeconds();
+        validate();
+    }
+
     public int autosaveSeconds() {
         return autosaveSeconds;
     }
@@ -54,7 +62,7 @@ public final class ToolsConfig {
             return tools;
         }
 
-        private void validate() {
+        public void validate() {
             if (tools == null) {
                 throw new IllegalArgumentException("Brakuje sekcji commands.tools.");
             }
@@ -72,7 +80,7 @@ public final class ToolsConfig {
             public List<String> aliases() { return List.copyOf(aliases); }
             public String permission() { return permission; }
 
-            private void validate() {
+            public void validate() {
                 if (description == null || description.isBlank()) {
                     throw new IllegalArgumentException("commands.tools.description nie moze byc pusty.");
                 }
@@ -116,7 +124,7 @@ public final class ToolsConfig {
         public String tabHeader() { return tabHeader; }
         public String tabFooter() { return tabFooter; }
 
-        private void validate() {
+        public void validate() {
             if (defaultPrefix == null || tabHeader == null || tabFooter == null) {
                 throw new IllegalArgumentException("Puste pola konfiguracji rang.");
             }
@@ -143,7 +151,7 @@ public final class ToolsConfig {
         public int teleportSeconds() { return teleportSeconds; }
         public boolean cancelTeleportOnMove() { return cancelTeleportOnMove; }
         public String barTitle() { return barTitle; }
-        private void validate() {
+        public void validate() {
             if (maxRadius < 1 || maxRadius > 30000) throw new IllegalArgumentException("regions.maxRadius: 1-30000.");
             if (teleportSeconds < 1 || teleportSeconds > 30) throw new IllegalArgumentException("regions.teleportSeconds: 1-30.");
             if (barTitle == null || barTitle.length() > 100) throw new IllegalArgumentException("Niepoprawny regions.barTitle.");
@@ -186,7 +194,7 @@ public final class ToolsConfig {
             return password;
         }
 
-        private void validate() {
+        public void validate() {
             if(autosaveSeconds<5 || autosaveSeconds>3600)throw new IllegalArgumentException("autosaveSeconds: 5-3600.");
             if (!enabled) {
                 return;
