@@ -30,9 +30,10 @@ public final class RegionProtectionListener implements Listener {
     private final RegionManager regions;
     private final RegionSelection selection;
     private final NamespacedKey wandKey;
+    private final String adminPermission;
 
-    public RegionProtectionListener(RegionManager regions, RegionSelection selection, NamespacedKey wandKey) {
-        this.regions=regions;this.selection=selection;this.wandKey=wandKey;
+    public RegionProtectionListener(RegionManager regions, RegionSelection selection, NamespacedKey wandKey,String adminPermission) {
+        this.regions=regions;this.selection=selection;this.wandKey=wandKey;this.adminPermission=adminPermission;
     }
 
     private boolean denies(Player player, Location loc, RegionFlag flag) {
@@ -63,7 +64,7 @@ public final class RegionProtectionListener implements Listener {
     public void wand(PlayerInteractEvent e) {
         if (e.getClickedBlock()==null || !isWand(e.getItem())) return;
         Player player=e.getPlayer();
-        if (!player.hasPermission("tools.region.admin")) return;
+        if (!player.hasPermission(adminPermission)) return;
         boolean first=e.getAction()==Action.LEFT_CLICK_BLOCK;
         boolean second=e.getAction()==Action.RIGHT_CLICK_BLOCK;
         if (!first && !second) return;

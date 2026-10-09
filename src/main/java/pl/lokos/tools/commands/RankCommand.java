@@ -70,7 +70,7 @@ public final class RankCommand implements BasicCommand {
                     checkLength("Prefix", prefix, 256);
                     checkLength("Suffix", suffix, 256);
                     perform(sender, () -> ranks.change(() -> repository.create(name, prefix, suffix)),
-                            "Utworzono rangę &e" + name + "&a. &7Następny krok: &a/ranga pozycja " + name + " 1");
+                            "Utworzono rangę &a" + name + "&a. &7Następny krok: &a/ranga pozycja " + name + " 1");
                 }
                 case "dodaj" -> {
                     if (args.length != 3) {
@@ -87,7 +87,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     perform(sender, () -> ranks.change(() -> repository.addPermission(name, permission)),
-                            "Dodano uprawnienie &e" + permission + "&a do rangi &e" + name + "&a.");
+                            "Dodano uprawnienie &a" + permission + "&a do rangi &a" + name + "&a.");
                 }
                 case "pozycja" -> {
                     if (args.length != 3) {
@@ -111,7 +111,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     perform(sender, () -> ranks.change(() -> repository.position(name, position)),
-                            "Ustawiono pozycję &e" + position + "&a rangi &e" + name + "&a. Można już ją nadawać.");
+                            "Ustawiono pozycję &a" + position + "&a rangi &a" + name + "&a. Można już ją nadawać.");
                 }
                 case "wejscie" -> {
                     if (args.length < 3) {
@@ -126,8 +126,8 @@ public final class RankCommand implements BasicCommand {
                     checkLength("Komunikat wejścia", value, 512);
                     final String message = value;
                     perform(sender, () -> ranks.change(() -> repository.joinMessage(name, message)),
-                            message.isBlank() ? "Wyłączono wiadomość wejścia rangi &e" + name + "&a."
-                                    : "Ustawiono wiadomość wejścia rangi &e" + name + "&a.");
+                            message.isBlank() ? "Wyłączono wiadomość wejścia rangi &a" + name + "&a."
+                                    : "Ustawiono wiadomość wejścia rangi &a" + name + "&a.");
                 }
                 case "usun" -> {
                     if (args.length != 2) {
@@ -137,7 +137,7 @@ public final class RankCommand implements BasicCommand {
                     String name = rankName(args[1]);
                     if (!requireRank(sender, name)) return;
                     perform(sender, () -> ranks.change(() -> repository.delete(name)),
-                            "Usunięto rangę &e" + name + "&a i jej przypisania.");
+                            "Usunięto rangę &a" + name + "&a i jej przypisania.");
                 }
                 case "edytuj" -> {
                     if (args.length < 4) {
@@ -159,7 +159,7 @@ public final class RankCommand implements BasicCommand {
                     checkLength("Wartość", value, 256);
                     final String newValue = value;
                     perform(sender, () -> ranks.change(() -> repository.edit(name, field, newValue)),
-                            "Zmieniono &e" + field + "&a rangi &e" + name + "&a.");
+                            "Zmieniono &a" + field + "&a rangi &a" + name + "&a.");
                 }
                 case "nadaj" -> grant(sender, args);
                 case "sprawdz" -> checkGrant(sender, args);
@@ -247,7 +247,7 @@ public final class RankCommand implements BasicCommand {
             Player current = Bukkit.getPlayerExact(nick);
             if (current != null) {
                 RankSnapshot.Rank inCache = ranks.snapshot().forPlayer(current.getUniqueId());
-                Messages.info(sender, "Widoczna na serwerze: &e" + (inCache == null ? "Gracz" : inCache.name()));
+                Messages.info(sender, "Widoczna na serwerze: &a" + (inCache == null ? "Gracz" : inCache.name()));
                 Messages.info(sender, "Gracz jest online: &aTak");
             } else {
                 Messages.info(sender, "Gracz jest offline; uprawnienia zastosują się po wejściu.");
@@ -272,7 +272,7 @@ public final class RankCommand implements BasicCommand {
         if (value.equals("*") || value.equals("na_zawsze") || value.equals("na zawsze") || value.equals("zawsze")) return null;
         if (!value.matches("[1-9][0-9]{0,6}[mhdw]")) {
             throw new IllegalArgumentException("Nieprawidłowy czas: &c&n" + duration
-                    + "&r&c. Dozwolone: &e30m&c, &e12h&c, &e7d&c, &e2w&c, &e*&c lub &ena_zawsze&c.");
+                    + "&r&c. Dozwolone: &a30m&c, &a12h&c, &a7d&c, &a2w&c, &a*&c lub &ana_zawsze&c.");
         }
         long count = Long.parseLong(value.substring(0, value.length() - 1));
         long millis = switch (value.charAt(value.length() - 1)) {
@@ -302,7 +302,7 @@ public final class RankCommand implements BasicCommand {
         }
         int index = 1;
         for (RankSnapshot.Rank rank : all) {
-            String position = rank.position() == null ? "&8nieustawiona" : "&e" + rank.position();
+            String position = rank.position() == null ? "&8nieustawiona" : "&a" + rank.position();
             Messages.line(sender, "&8" + index++ + ". &7" + rank.name()
                     + " &8│ &7Pozycja: " + position
                     + (rank.assignable() ? " &8│ &aGotowa" : " &8│ &cNiegotowa"));
@@ -341,13 +341,13 @@ public final class RankCommand implements BasicCommand {
                 return;
             }
             Messages.title(sender, "RANGA " + rank.name().toUpperCase(Locale.ROOT));
-            Messages.info(sender, "Pozycja: &e" + (rank.position() == null ? "nieustawiona" : rank.position()));
-            Messages.info(sender, "Graczy z rangą: &e" + count);
+            Messages.info(sender, "Pozycja: &a" + (rank.position() == null ? "nieustawiona" : rank.position()));
+            Messages.info(sender, "Graczy z rangą: &a" + count);
             Messages.info(sender, "Prefix: " + rank.prefix() + " &8│ &7Sufix: " + rank.suffix());
             Set<String> permissions = ranks.snapshot().permissions().getOrDefault(name, Set.of());
-            Messages.info(sender, "Uprawnienia: &e"
-                    + (permissions.isEmpty() ? "brak" : permissions.stream().sorted().collect(Collectors.joining("&7, &e"))));
-            Messages.info(sender, "Powitanie: &e"
+            Messages.info(sender, "Uprawnienia: &a"
+                    + (permissions.isEmpty() ? "brak" : permissions.stream().sorted().collect(Collectors.joining("&7, &a"))));
+            Messages.info(sender, "Powitanie: &a"
                     + (rank.joinMessage() == null || rank.joinMessage().isBlank()
                     ? "wyłączone" : rank.joinMessage()));
         }));
@@ -421,7 +421,7 @@ public final class RankCommand implements BasicCommand {
 
     private static void checkLength(String name, String text, int limit) {
         if (text.length() > limit) {
-            throw new IllegalArgumentException(name + " jest za długi. Maksymalnie &e" + limit + "&c znaków.");
+            throw new IllegalArgumentException(name + " jest za długi. Maksymalnie &a" + limit + "&c znaków.");
         }
     }
 

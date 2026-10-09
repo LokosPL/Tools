@@ -62,6 +62,30 @@ public final class RankRepository {
         });
     }
 
+    /** Nowy format: z MySQL czytamy TYLKO przypisania i stany operatora. */
+    public CompletableFuture<RankSnapshot> loadAssignments() {
+        return database.query(c -> {
+            Map<UUID,RankSnapshot.Grant> grants=new HashMap<>();
+            Map<UUID,Boolean> restores=new HashMap<>();
+            try(PreparedStatement p=c.prepareStatement(
+                    "SELECT player_uuid,rank_name,expires_at FROM tools_player_ranks");
+                ResultSet rs=p.executeQuery()){
+                while(rs.next()){
+                    long raw=rs.getLong(3);
+                    Long expiry=rs.wasNull()?null:raw;
+                    grants.put(UUID.fromString(rs.getString(1)),
+                            new RankSnapshot.Grant(rs.getString(2),expiry));
+                }
+            }
+            try(PreparedStatement p=c.prepareStatement(
+                    "SELECT player_uuid,original_op FROM tools_rank_op_restore");
+                ResultSet rs=p.executeQuery()){
+                while(rs.next())restores.put(UUID.fromString(rs.getString(1)),rs.getBoolean(2));
+            }
+            return new RankSnapshot(Map.of(),Map.of(),Map.copyOf(grants),Map.copyOf(restores));
+        });
+    }
+
     public CompletableFuture<Void> create(String name, String prefix, String suffix) {
         return change("INSERT INTO tools_ranks(name,prefix,suffix) VALUES(?,?,?)", name, prefix, suffix);
     }

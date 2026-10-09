@@ -55,7 +55,7 @@ public final class RankManager {
      * nadac rangi w trakcie inicjalizacji i potem nadpisac cache starym widokiem.
      */
     public synchronized void start() {
-        mutationTail = repository.load().thenCompose(legacy -> {
+        mutationTail = (definitions.importRanks()?repository.load():repository.loadAssignments()).thenCompose(legacy -> {
             if(definitions.importRanks()){
                 Map<String,RanksFile.RankEntry> imported=new LinkedHashMap<>(definitions.ranks().ranks());
                 if(imported.isEmpty()){
@@ -79,7 +79,7 @@ public final class RankManager {
     }
 
     public CompletableFuture<Void> refresh() {
-        return repository.load().thenCompose(legacy -> {
+        return repository.loadAssignments().thenCompose(legacy -> {
             Map<String,RankSnapshot.Rank> ranks=new HashMap<>();
             Map<String,Set<String>> permissions=new HashMap<>();
             definitions.ranks().ranks().forEach((name,entry) -> {

@@ -19,11 +19,13 @@ import pl.lokos.tools.region.RegionFlag;
 public final class RegionMenuListener implements Listener {
     private final JavaPlugin plugin;
     private final RegionMenuFactory menus;
+    private final String adminPermission;
     private final RegionManager regions;
     private final RegionTeleportManager teleports;
 
-    public RegionMenuListener(JavaPlugin plugin,RegionMenuFactory menus,RegionManager regions,RegionTeleportManager teleports) {
+    public RegionMenuListener(JavaPlugin plugin,RegionMenuFactory menus,RegionManager regions,RegionTeleportManager teleports,String adminPermission) {
         this.plugin=plugin;
+        this.adminPermission=adminPermission;
         this.menus=menus;this.regions=regions;this.teleports=teleports;
     }
 
@@ -59,7 +61,7 @@ public final class RegionMenuListener implements Listener {
                 }
             }
         } else if(h.view()==RegionMenuFactory.View.EDIT) {
-            if(!player.hasPermission("tools.region.admin")) {
+            if(!player.hasPermission(adminPermission)) {
                 plugin.getServer().getScheduler().runTask(plugin,()->player.closeInventory());
                 Messages.error(player,"Nie masz dostępu do edycji regionów.");return;
             }

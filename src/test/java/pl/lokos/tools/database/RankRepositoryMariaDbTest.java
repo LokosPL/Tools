@@ -63,6 +63,12 @@ class RankRepositoryMariaDbTest {
             repository.expire(expiry + 1).join();
             assertNull(repository.findGrant(player).join());
             assertEquals(0L, repository.count(rank).join());
+
+            // JSON-only rank: no record in tools_ranks. FK must not block grants.
+            String jsonOnly="json"+UUID.randomUUID().toString().substring(0,8);
+            repository.grant(player,jsonOnly,null).join();
+            assertEquals(jsonOnly,repository.loadAssignments().join().grants().get(player).rank());
+            repository.deleteGrants(jsonOnly).join();
         } finally {
             repository.delete(rank).join();
         }

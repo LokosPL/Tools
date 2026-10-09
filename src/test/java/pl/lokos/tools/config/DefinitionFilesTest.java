@@ -24,5 +24,16 @@ class DefinitionFilesTest {
         assertTrue(regionJson.contains("spawn"));
         assertFalse(rankJson.contains("player_uuid"));
         assertFalse(regionJson.contains("tools_player_ranks"));
+        ConfigRegistryHelper.assertJsonReadable(temp);
+        assertFalse(definitions.importRanks());
+        assertFalse(definitions.importRegions());
+    }
+    private static final class ConfigRegistryHelper {
+        static void assertJsonReadable(Path dir) throws Exception {
+            pl.lokos.tools.registry.ConfigRegistry loaded=new pl.lokos.tools.registry.ConfigRegistry(dir);
+            loaded.loadAll();
+            assertTrue(loaded.definitions().ranks().ranks().containsKey("vip"));
+            assertEquals(1,loaded.definitions().regions().regions().size());
+        }
     }
 }

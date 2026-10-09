@@ -88,12 +88,12 @@ public final class ToolsPlugin extends JavaPlugin {
             RegionMenuFactory menus=new RegionMenuFactory(regionManager,menuKey,config.regions().teleportSeconds());
             new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey,configurations.commands());
             getServer().getPluginManager().registerEvents(
-                    new RegionProtectionListener(regionManager,selection,wandKey),this);
+                    new RegionProtectionListener(regionManager,selection,wandKey,configurations.commands().region().permission()),this);
             RegionPlayerListener playerRegions=new RegionPlayerListener(
                     this,regionManager,regionTeleports,config.regions().barTitle());
             getServer().getPluginManager().registerEvents(playerRegions,this);
             getServer().getPluginManager().registerEvents(
-                    new RegionMenuListener(this,menus,regionManager,regionTeleports),this);
+                    new RegionMenuListener(this,menus,regionManager,regionTeleports,configurations.commands().region().permission()),this);
             regionManager.start();
             getServer().getScheduler().runTaskTimer(this,playerRegions::actionbar,20L,20L);
         }
