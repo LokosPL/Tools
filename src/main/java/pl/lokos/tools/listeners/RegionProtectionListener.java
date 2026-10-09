@@ -221,20 +221,47 @@ public final class RegionProtectionListener implements Listener {
     public void interact(PlayerInteractEvent e) {
         if(e.getClickedBlock()==null || isWand(e.getItem())) return;
         if (e.getAction()!=Action.RIGHT_CLICK_BLOCK && e.getAction()!=Action.PHYSICAL) return;
-        if(denies(e.getPlayer(),e.getClickedBlock().getLocation(),RegionFlag.INTERACT))e.setCancelled(true);
+        RegionFlag flag=interactionFlag(e.getClickedBlock().getType());
+        if(denies(e.getPlayer(),e.getClickedBlock().getLocation(),flag)) {
+            e.setCancelled(true);
+            blocked(e.getPlayer());
+        }
     }
+    private static RegionFlag interactionFlag(Material m) {
+        String name=m.name();
+        if(name.contains("CHEST") || name.contains("BARREL") || name.contains("SHULKER_BOX")
+                || name.equals("ENDER_CHEST"))return RegionFlag.CHESTS;
+        if(name.contains("CRAFTING_TABLE") || name.contains("CRAFTER"))return RegionFlag.CRAFTING;
+        if(name.contains("FURNACE") || name.contains("SMOKER") || name.contains("BLAST_FURNACE"))
+            return RegionFlag.FURNACES;
+        if(name.contains("ANVIL") || name.contains("GRINDSTONE") || name.contains("SMITHING_TABLE"))
+            return RegionFlag.ANVILS;
+        if(name.equals("ENCHANTING_TABLE"))return RegionFlag.ENCHANTING;
+        if(name.equals("BREWING_STAND"))return RegionFlag.BREWING;
+        if(name.endsWith("_DOOR") || name.endsWith("_TRAPDOOR") || name.endsWith("_FENCE_GATE"))
+            return RegionFlag.DOORS;
+        if(name.endsWith("_BUTTON"))return RegionFlag.BUTTONS;
+        if(name.equals("LEVER"))return RegionFlag.LEVERS;
+        if(name.endsWith("_PRESSURE_PLATE"))return RegionFlag.PRESSURE_PLATES;
+        if(name.equals("HOPPER"))return RegionFlag.HOPPERS;
+        return RegionFlag.INTERACT;
+    }
+
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void interactEntity(PlayerInteractEntityEvent e) {
-        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),RegionFlag.INTERACT)) e.setCancelled(true);
+        RegionFlag flag=e.getRightClicked() instanceof org.bukkit.entity.ItemFrame
+                ? RegionFlag.ITEM_FRAMES : e.getRightClicked() instanceof org.bukkit.entity.Vehicle
+                ? RegionFlag.VEHICLES : RegionFlag.INTERACT;
+        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),flag))e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void manipulate(PlayerArmorStandManipulateEvent e) {
-        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),RegionFlag.INTERACT))e.setCancelled(true);
+        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),RegionFlag.ARMOR_STANDS))e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void inventories(InventoryMoveItemEvent e) {
-        if(denies(e.getSource().getLocation(),RegionFlag.INTERACT)
-                || denies(e.getDestination().getLocation(),RegionFlag.INTERACT))
+        if(denies(e.getSource().getLocation(),RegionFlag.HOPPERS)
+                || denies(e.getDestination().getLocation(),RegionFlag.HOPPERS))
             e.setCancelled(true);
     }
 
@@ -269,6 +296,29 @@ public final class RegionProtectionListener implements Listener {
             e.getPlayer().sendActionBar(pl.lokos.tools.helpers.Colors.color(
                     "&cʙʀᴀᴋ ᴅᴏꜱᴛᴇ̨ᴘᴜ &8» &7Wymagana wyższa ranga"));
         }
+    }
+
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void drop(PlayerDropItemEvent event){
+        if(denies(event.getPlayer(),event.getPlayer().getLocation(),RegionFlag.ITEMS_DROP))
+            event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void pickup(EntityPickupItemEvent event){
+        if(event.getEntity() instanceof Player p && denies(p,p.getLocation(),RegionFlag.ITEMS_PICKUP))
+            event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void portal(PlayerPortalEvent event){
+        if(denies(event.getPlayer(),event.getFrom(),RegionFlag.PORTALS)
+                || (event.getTo()!=null && denies(event.getPlayer(),event.getTo(),RegionFlag.PORTALS)))
+            event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void launch(ProjectileLaunchEvent event){
+        if(!(event.getEntity().getShooter() instanceof Player player))return;
+        if(event.getEntity() instanceof org.bukkit.entity.EnderPearl
+                && denies(player,player.getLocation(),RegionFlag.ENDER_PEARLS))event.setCancelled(true);
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)

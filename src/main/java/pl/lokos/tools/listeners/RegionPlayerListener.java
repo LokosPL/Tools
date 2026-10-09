@@ -64,8 +64,12 @@ public final class RegionPlayerListener implements Listener {
             if(teleports.busy(player)) continue;
             Region r=regions.visibleAt(player.getLocation());
             if(r!=null) {
-                String inheritance=r.parent()==null?"":" &8• &7podregion";
-                player.sendActionBar(Colors.color(title+"&a"+r.name()+inheritance));
+                String parent=r.parent();
+                String path=parent==null?"&a"+r.name()
+                        :"&a"+parent+" &8→ &a"+r.name();
+                if(regions.inHalo(player.getLocation()))
+                    path="&a"+r.name()+" &8→ &7strefa ochronna";
+                player.sendActionBar(Colors.color(title+path));
             }
         }
     }

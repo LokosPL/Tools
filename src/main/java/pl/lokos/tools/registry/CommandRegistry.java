@@ -7,16 +7,17 @@ import pl.lokos.tools.commands.*;
 import pl.lokos.tools.config.CommandsFile;
 import pl.lokos.tools.database.*;
 import pl.lokos.tools.manager.*;
+import pl.lokos.tools.inventorys.RankMenuFactory;
 
 public final class CommandRegistry {
     private final JavaPlugin plugin;
     public CommandRegistry(JavaPlugin plugin){this.plugin=plugin;}
     public void register(CommandsFile config,DatabaseManager database,PlayerRepository repository,
-                         PlayerDataManager playerData,RankManager ranks) {
+                         PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus) {
         if(ranks!=null && config.ranga().enabled()){
             declare(config.ranga().permission(),PermissionDefault.OP);
             plugin.registerCommand("ranga",config.ranga().description(),config.ranga().aliases(),
-                    new RankCommand(plugin,ranks,config.ranga().permission()));
+                    new RankCommand(plugin,ranks,config.ranga().permission(),menus));
         }
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);

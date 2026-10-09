@@ -1,4 +1,39 @@
-# Tools 1.5.0 — niezależna konfiguracja i bezpieczny spawn
+# Tools 1.6.0 — panele GUI, granularne flagi regionów, płynne etykiety
+
+## Najważniejsze zmiany
+
+- **\`/region edytuj <nazwa>\`** otwiera panel. Dostępne są podstrony **Zabezpieczenia** (wiele stron flag) i **Dostęp rang** (wybór bez komend); kliknięcie zmienia stan i odświeża ekran po atomowym zapisie Regions.json. W GUI wyświetlany jest zarówno stan lokalny, jak i efekt dziedziczenia. Domyślnie nowy region jest chroniony.
+- **Nowe flagi**: skrzynie i beczki (\`skrzynie\`), stoły rzemieślnicze (\`crafting\`), piece, kowadła, zaklinanie, alchemia, drzwi, przyciski, dźwignie, płytki naciskowe, leje, ramki, stojaki, pojazdy, portale, perły, podnoszenie i wyrzucanie przedmiotów. Stara flaga \`interakcje\` pozostaje ustawieniem domyślnym dla szczegółowych czynności, o ile nie ustawiono ich oddzielnie.
+- **\`/ranga\` oraz \`/ranga menu\`** wyświetlają GUI. Wybierz rangę, potem uprawnienia. Lista pochodzi z serwera Bukkit i uwzględnia Tools oraz uprawnienia już użyte w rangach. Przełączanie odbywa się atomowo w Ranks.json. Można nadal dopisać niestandardowe uprawnienie komendą \`/ranga dodaj\`.
+- Ranga **\`gracz\`** jest obecna na liście i nie można jej usunąć lub zmienić jej nazwy. Jej uprawnienia obowiązują graczy bez aktywnego przypisania.
+- **Różdżka** po pomyślnym utworzeniu podregionu znika z ekwipunku, a zaznaczenie jest czyszczone. W razie błędu zapisu nie znika.
+- **Granice regionu**: podgląd cząsteczek w ekranie regionu przez 10 sekund, wysyłany tylko do moderatora i tylko w odległości 48 bloków. Nie tworzy barier ani fake bloków, nie działa w tle.
+- **Actionbar**: \`Lokalizacja » spawn → afk\`, a dla buforu \`spawn → strefa ochronna\`.
+- **Płynność własnego nicku w F5**: interpolacja teleportacji TextDisplay i aktualizacja co 2 ticki; etykiety innych graczy korzystają nadal ze scoreboard.
+- **Commands.json**: \`serverName\` (np. \`"MójSerwer"\`) i \`messagePrefix\` (np. \`"&8[&a{server}&8] "\`). Prefiks można też ustawić na pusty ciąg.
+
+## Konfiguracja nazwy serwera
+
+\`\`\`json
+{
+  "serverName": "MojSerwer",
+  "messagePrefix": "&8[&a{server}&8] "
+}
+\`\`\`
+
+W Commands.json pozostają również pola \`tools\`, \`ranga\`, \`region\`, \`lokalizacje\` z \`enabled\`, \`description\`, \`aliases\` i \`permission\`. Nie zastępuj całego pliku powyższym fragmentem; zmień tylko pola \`serverName\` i \`messagePrefix\`.
+
+Wszystkie definicje rang i regionów są przechowywane w Ranks.json oraz Regions.json; przypisania graczy nadal w MySQL. Po aktualizacji wykonaj pełny restart serwera. Najpierw zrób kopię zapasową JSON i bazy danych.
+
+## Ograniczenia i testy
+
+Przełączniki pokrywają podstawowe zdarzenia Bukkit/Paper, a nie każdą niestandardową mechanikę z innych pluginów. Zdarzenia redstone, kontenery modyfikowane przez inne pluginy i PvP wymagają dodatkowego sprawdzenia na żywym serwerze. Nazwa nad głową w F5 jest wciąż odrębnym TextDisplay i należy ocenić jej płynność na kliencie; interpolacja zmniejsza skoki, ale nie zapewnia pełnego podczepienia modelu.
+
+Zbuduj \`mvn clean verify\`, testy SQL na GitHub Actions uruchamiają MariaDB.
+
+---
+
+## Informacje o wersji 1.5.0
 
 Paper 26.3, Java 25, MySQL/MariaDB (HikariCP), komendy rejestrowane w Java.
 

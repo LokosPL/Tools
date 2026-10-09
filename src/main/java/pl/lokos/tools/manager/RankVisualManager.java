@@ -133,6 +133,7 @@ public final class RankVisualManager {
                 display.setSeeThrough(true);
                 display.setShadowed(false);
                 display.setPersistent(false);
+                display.setTeleportDuration(2);
                 display.setDefaultBackground(false);
             });
             selfTags.put(id, tag);
@@ -155,7 +156,7 @@ public final class RankVisualManager {
                 updateSelfTag(player, ranks.snapshot().forPlayer(player.getUniqueId()));
             } else {
                 Location desired = tagLocation(player);
-                if (tag.getLocation().distanceSquared(desired) > 0.001) tag.teleport(desired);
+                if (tag.getLocation().distanceSquared(desired) > 0.004) tag.teleport(desired);
             }
         }
     }

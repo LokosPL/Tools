@@ -2,97 +2,130 @@ package pl.lokos.tools.listeners;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.*;
+import org.bukkit.event.inventory.*;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.inventorys.RegionMenuFactory;
-import pl.lokos.tools.manager.RegionManager;
-import pl.lokos.tools.manager.RegionTeleportManager;
-import pl.lokos.tools.region.Region;
-import pl.lokos.tools.region.RegionFlag;
+import pl.lokos.tools.manager.*;
+import pl.lokos.tools.region.*;
 
+import java.util.*;
+import java.util.concurrent.CompletionException;
 
-/** Kliknięcia GUI mają sprawdzanego właściciela i pełną autoryzację przy akcji. */
+/** Autoryzacja w kazdym kliknieciu, serializacja mutacji i bezpieczne odswiezenie menu. */
 public final class RegionMenuListener implements Listener {
     private final JavaPlugin plugin;
     private final RegionMenuFactory menus;
     private final String adminPermission;
     private final RegionManager regions;
     private final RegionTeleportManager teleports;
+    private final RegionBorderPreview borders;
+    private final Set<UUID> processing=new HashSet<>();
 
-    public RegionMenuListener(JavaPlugin plugin,RegionMenuFactory menus,RegionManager regions,RegionTeleportManager teleports,String adminPermission) {
-        this.plugin=plugin;
-        this.adminPermission=adminPermission;
-        this.menus=menus;this.regions=regions;this.teleports=teleports;
+    public RegionMenuListener(JavaPlugin plugin,RegionMenuFactory menus,RegionManager regions,
+            RegionTeleportManager teleports,RegionBorderPreview borders,String adminPermission){
+        this.plugin=plugin;this.menus=menus;this.regions=regions;this.teleports=teleports;
+        this.borders=borders;this.adminPermission=adminPermission;
     }
 
     @EventHandler(priority=EventPriority.HIGHEST)
-    public void click(InventoryClickEvent event) {
-        if(!(event.getView().getTopInventory().getHolder() instanceof RegionMenuFactory.Holder h)) return;
-        event.setCancelled(true); // również hotbar, shift-click, drag z inventory gracza
-        if(!(event.getWhoClicked() instanceof Player player) || !h.owner().equals(player.getUniqueId())) return;
-        if(event.getClickedInventory()!=event.getView().getTopInventory()) return;
+    public void click(InventoryClickEvent event){
+        if(!(event.getView().getTopInventory().getHolder() instanceof RegionMenuFactory.Holder holder))return;
+        event.setCancelled(true);
+        if(!(event.getWhoClicked() instanceof Player player)
+                || !holder.owner().equals(player.getUniqueId())
+                || event.getClickedInventory()!=event.getView().getTopInventory()
+                || !regions.ready() || processing.contains(player.getUniqueId()))return;
         String action=menus.action(event.getCurrentItem());
-        if(action==null || action.equals("noop") || !regions.ready()) return;
-        if(h.view()==RegionMenuFactory.View.LOCATIONS) {
-            if(action.startsWith("page:")) {
-                try {
-                    int page=Integer.parseInt(action.substring(5));
-                    plugin.getServer().getScheduler().runTask(plugin,()->{
-                        if(player.isOnline())menus.locations(player,page);
-                    });
-                }
-                catch(NumberFormatException ignored){}
-            } else if(action.startsWith("tp:")) {
+        if(action==null||action.equals("noop"))return;
+        RegionMenuFactory.View view=holder.view();
+        if(view==RegionMenuFactory.View.LOCATIONS){
+            if(action.startsWith("tp:")){
                 String name=action.substring(3);
-                Region region=regions.index().byName(name);
-                if(region==null || region.spawn()==null || !regions.canEnter(player,region)) {
-                    Messages.error(player,"Ta lokalizacja nie jest dostępna.");
-                } else {
-                    plugin.getServer().getScheduler().runTask(plugin,()->{
-                        if(player.isOnline()) {
-                            player.closeInventory();
-                            teleports.start(player,name);
-                        }
-                    });
+                Region r=regions.index().byName(name);
+                if(r==null||r.spawn()==null||!regions.canEnter(player,r)){
+                    Messages.error(player,"Lokalizacja niedostępna.");return;
                 }
+                later(player,()->{player.closeInventory();teleports.start(player,name);});
+            } else if(action.startsWith("page:")){
+                int page=parsePage(action);
+                later(player,()->menus.locations(player,page));
             }
-        } else if(h.view()==RegionMenuFactory.View.EDIT) {
-            if(!player.hasPermission(adminPermission)) {
-                plugin.getServer().getScheduler().runTask(plugin,()->player.closeInventory());
-                Messages.error(player,"Nie masz dostępu do edycji regionów.");return;
+            return;
+        }
+        if(!player.hasPermission(adminPermission)){
+            Messages.error(player,"Nie masz dostępu do edycji regionu.");
+            later(player,player::closeInventory);
+            return;
+        }
+        Region r=regions.index().byName(holder.region());
+        if(r==null){later(player,player::closeInventory);return;}
+        switch(action){
+            case "flags" -> later(player,()->menus.flags(player,r.name(),0));
+            case "ranks" -> later(player,()->menus.rankAccess(player,r.name(),0));
+            case "back" -> later(player,()->menus.edit(player,r.name()));
+            case "close" -> later(player,player::closeInventory);
+            case "border" -> {
+                borders.preview(player,r);
+                later(player,player::closeInventory);
             }
-            if(action.startsWith("flag:")) {
-                Region region=regions.index().byName(h.region());
-                if(region==null) {plugin.getServer().getScheduler().runTask(plugin,()->player.closeInventory());return;}
-                RegionFlag flag=RegionFlag.valueOf(action.substring(5));
-                Boolean current=region.flags().get(flag);
-                Boolean next=current==null?true:current?false:null;
-                regions.flag(region.name(),flag,next).whenComplete((none,error)-> {
-                    player.getServer().getScheduler().runTask(plugin,()-> {
-                                if(!player.isOnline())return;
-                                if(!(player.getOpenInventory().getTopInventory().getHolder() instanceof RegionMenuFactory.Holder now)
-                                        || now.view()!=RegionMenuFactory.View.EDIT
-                                        || !region.name().equals(now.region()))return;
-                                if(error!=null) {
-                                    Messages.error(player,"Nie udało się zapisać reguły w MySQL.");
-                                    player.closeInventory();
-                                } else {
-                                    menus.edit(player,region.name());
-                                }
-                            });
-                });
+            default -> {
+                if(action.startsWith("page:")){
+                    int next=parsePage(action);
+                    later(player,()->{
+                        if(view==RegionMenuFactory.View.FLAGS)menus.flags(player,r.name(),next);
+                        else if(view==RegionMenuFactory.View.RANKS)menus.rankAccess(player,r.name(),next);
+                    });
+                }else if(view==RegionMenuFactory.View.FLAGS && action.startsWith("flag:")){
+                    RegionFlag flag;
+                    try {flag=RegionFlag.valueOf(action.substring(5));}
+                    catch(IllegalArgumentException e){return;}
+                    Boolean before=r.flags().get(flag);
+                    Boolean after=before==null?true:before?false:null;
+                    processing.add(player.getUniqueId());
+                    regions.flag(r.name(),flag,after).whenComplete((v,error)->finish(player,holder,error,
+                            ()->menus.flags(player,r.name(),holder.page())));
+                }else if(view==RegionMenuFactory.View.RANKS && action.startsWith("rank:")){
+                    String rank=action.substring(5);
+                    if(!rank.equals("wszyscy") && !regions.ranks().snapshot().ranks().containsKey(rank)){
+                        Messages.error(player,"Wybrana ranga już nie istnieje.");return;
+                    }
+                    processing.add(player.getUniqueId());
+                    regions.entryRank(r.name(),rank.equals("wszyscy")?null:rank)
+                            .whenComplete((v,error)->finish(player,holder,error,
+                                    ()->menus.rankAccess(player,r.name(),holder.page())));
+                }
             }
         }
     }
 
+    private void finish(Player player,RegionMenuFactory.Holder previous,Throwable error,Runnable refresh){
+        if(!plugin.isEnabled())return;
+        plugin.getServer().getScheduler().runTask(plugin,()->{
+            processing.remove(player.getUniqueId());
+            if(!player.isOnline())return;
+            if(error!=null){
+                Throwable root=error;
+                while(root instanceof CompletionException && root.getCause()!=null)root=root.getCause();
+                Messages.error(player,"Nie zapisano ustawienia: "+root.getMessage());
+                return;
+            }
+            if(player.getOpenInventory().getTopInventory().getHolder()==previous)refresh.run();
+        });
+    }
+    private void later(Player p,Runnable action){
+        plugin.getServer().getScheduler().runTask(plugin,()->{
+            if(p.isOnline())action.run();
+        });
+    }
+    private static int parsePage(String action){
+        try{return Math.max(0,Math.min(10000,Integer.parseInt(action.substring(5))));}
+        catch(NumberFormatException e){return 0;}
+    }
     @EventHandler(priority=EventPriority.HIGHEST)
-    public void drag(InventoryDragEvent event) {
-        if(!(event.getView().getTopInventory().getHolder() instanceof RegionMenuFactory.Holder))return;
-        if(event.getRawSlots().stream().anyMatch(slot->slot<event.getView().getTopInventory().getSize()))
+    public void drag(InventoryDragEvent event){
+        if(event.getView().getTopInventory().getHolder() instanceof RegionMenuFactory.Holder
+                && event.getRawSlots().stream().anyMatch(s->s<event.getView().getTopInventory().getSize()))
             event.setCancelled(true);
     }
 }

@@ -130,7 +130,19 @@ public final class RegionCommand implements BasicCommand {
                 parent.name(),null,Map.of(),null);
         regions.index().validateNew(child);
         perform(sender,()->regions.create(child),"Utworzono podregion &a"+name+
-                "&7 w regionie &a"+parent.name()+"&7.");
+                "&7 w regionie &a"+parent.name()+"&7.",()-> {
+                    Player player=(Player)sender;
+                    selection.clear(player.getUniqueId());
+                    for(int slot=0;slot<player.getInventory().getSize();slot++){
+                        ItemStack item=player.getInventory().getItem(slot);
+                        if(item!=null && item.hasItemMeta()
+                                && Byte.valueOf((byte)1).equals(item.getItemMeta().getPersistentDataContainer()
+                                    .get(wandKey,PersistentDataType.BYTE))){
+                            player.getInventory().setItem(slot,null);
+                            break;
+                        }
+                    }
+                });
     }
     private void protection(CommandSender sender,String[] args) {
         if(args.length!=3) {
@@ -255,11 +267,14 @@ public final class RegionCommand implements BasicCommand {
         Messages.line(sender," ");
     }
     private void perform(CommandSender sender,Supplier<CompletableFuture<Void>> action,String success) {
+        perform(sender,action,success,()->{});
+    }
+    private void perform(CommandSender sender,Supplier<CompletableFuture<Void>> action,String success,Runnable onSuccess) {
         try {
             action.get().whenComplete((v,error)->{
                 if(!plugin.isEnabled())return;
                 Bukkit.getScheduler().runTask(plugin,()-> {
-                    if(error==null)Messages.success(sender,success);
+                    if(error==null){Messages.success(sender,success);onSuccess.run();}
                     else {
                         Throwable cause=error;
                         while(cause instanceof CompletionException && cause.getCause()!=null)cause=cause.getCause();

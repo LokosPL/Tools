@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.RankFormatting;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.manager.RankSnapshot;
 import pl.lokos.tools.manager.RankVisualManager;
@@ -55,8 +56,8 @@ public final class RankListener implements Listener {
         RankSnapshot.Rank rank = snapshot.forPlayer(event.getPlayer().getUniqueId());
         String prefix = rank == null ? config.defaultPrefix() : rank.prefix();
         String suffix = rank == null ? "" : rank.suffix();
-        Component rankText = Colors.color("&7" + prefix);
-        Component endText = Colors.color("&7" + suffix);
+        Component rankText = Colors.color("&7" + RankFormatting.prefix(prefix));
+        Component endText = Colors.color("&7" + RankFormatting.suffix(suffix));
         event.renderer((sender, displayName, message, viewer) ->
                 rankText.append(Component.text(sender.getName(), NamedTextColor.GRAY))
                         .append(endText)

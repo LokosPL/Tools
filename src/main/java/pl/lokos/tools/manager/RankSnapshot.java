@@ -33,6 +33,6 @@ public record RankSnapshot(
 
     public Set<String> permissionsFor(UUID uuid) {
         Rank rank = forPlayer(uuid);
-        return rank == null ? Set.of() : permissions.getOrDefault(rank.name(), Set.of());
+        return rank == null ? permissions.getOrDefault("gracz",Set.of()) : permissions.getOrDefault(rank.name(), Set.of());
     }
 }

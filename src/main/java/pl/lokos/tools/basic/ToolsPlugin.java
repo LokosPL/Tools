@@ -10,6 +10,10 @@ import pl.lokos.tools.database.PlayerRepository;
 import pl.lokos.tools.database.RankRepository;
 import pl.lokos.tools.database.RegionRepository;
 import pl.lokos.tools.inventorys.RegionMenuFactory;
+import pl.lokos.tools.inventorys.RankMenuFactory;
+import pl.lokos.tools.listeners.RankMenuListener;
+import pl.lokos.tools.manager.RegionBorderPreview;
+import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.listeners.RegionProtectionListener;
 import pl.lokos.tools.listeners.RegionPlayerListener;
 import pl.lokos.tools.listeners.RegionMenuListener;
@@ -37,6 +41,7 @@ public final class ToolsPlugin extends JavaPlugin {
     private RankVisualManager rankVisuals;
     private RegionManager regionManager;
     private RegionTeleportManager regionTeleports;
+    private RegionBorderPreview borderPreview;
     private InventoryRegistry inventories;
     private BukkitTask autosaveTask;
     private ConfigRegistry configurations;
@@ -51,6 +56,7 @@ public final class ToolsPlugin extends JavaPlugin {
             this.configurations = new ConfigRegistry(getDataFolder().toPath());
             configurations.loadAll();
             this.config = configurations.tools();
+            Messages.configure(configurations.commands().messagePrefix());
         } catch (IOException error) {
             getLogger().severe("Nie mozna zaladowac konfiguracji: " + error.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -80,12 +86,19 @@ public final class ToolsPlugin extends JavaPlugin {
             getLogger().warning("MySQL wylaczony. Wlacz enabled w plugins/Tools/MySql.json.");
         }
 
-        new CommandRegistry(this).register(configurations.commands(), database, repository, playerData, rankManager);
+        RankMenuFactory rankMenus=null;
+        if(rankManager!=null) {
+            rankMenus=new RankMenuFactory(new NamespacedKey(this,"rank_menu"),rankManager);
+            getServer().getPluginManager().registerEvents(new RankMenuListener(
+                    this,rankManager,rankMenus,configurations.commands().ranga().permission()),this);
+        }
+        new CommandRegistry(this).register(configurations.commands(), database, repository, playerData, rankManager,rankMenus);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
             RegionSelection selection=new RegionSelection();
-            RegionMenuFactory menus=new RegionMenuFactory(regionManager,menuKey,config.regions().teleportSeconds());
+            this.borderPreview=new RegionBorderPreview(this);
+            RegionMenuFactory menus=new RegionMenuFactory(regionManager,rankManager,menuKey,config.regions().teleportSeconds());
             new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey,configurations.commands());
             getServer().getPluginManager().registerEvents(
                     new RegionProtectionListener(regionManager,selection,wandKey,configurations.commands().region().permission()),this);
@@ -93,7 +106,7 @@ public final class ToolsPlugin extends JavaPlugin {
                     this,regionManager,regionTeleports,config.regions().barTitle());
             getServer().getPluginManager().registerEvents(playerRegions,this);
             getServer().getPluginManager().registerEvents(
-                    new RegionMenuListener(this,menus,regionManager,regionTeleports,configurations.commands().region().permission()),this);
+                    new RegionMenuListener(this,menus,regionManager,regionTeleports,borderPreview,configurations.commands().region().permission()),this);
             regionManager.start();
             getServer().getScheduler().runTaskTimer(this,playerRegions::actionbar,20L,20L);
         }
@@ -102,7 +115,7 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(
                     new RankListener(rankManager, rankVisuals, config.ranks()), this);
             rankManager.start();
-            getServer().getScheduler().runTaskTimer(this, rankVisuals::tick, 4L, 4L);
+            getServer().getScheduler().runTaskTimer(this, rankVisuals::tick, 2L, 2L);
             getServer().getScheduler().runTaskTimer(
                     this, rankVisuals::updateTab,
                     config.ranks().tabRefreshTicks(), config.ranks().tabRefreshTicks());
@@ -126,6 +139,7 @@ public final class ToolsPlugin extends JavaPlugin {
             autosaveTask.cancel();
         }
         if(regionTeleports!=null) regionTeleports.cancelAll();
+        if(borderPreview!=null) borderPreview.shutdown();
         if(regionManager!=null) regionManager.shutdown();
         if (rankManager != null) rankManager.stop();
         if (database != null) {

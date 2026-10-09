@@ -57,6 +57,7 @@ public final class RegionManager {
         firstLoad.exceptionally(error->{plugin.getLogger().log(Level.SEVERE,"Nie załadowano Regions.json",error);return null;});
         return firstLoad;
     }
+    public RankManager ranks(){return ranks;}
     public boolean ready(){return loaded;}
     public RegionIndex index(){return index;}
     public Region at(Location at) {

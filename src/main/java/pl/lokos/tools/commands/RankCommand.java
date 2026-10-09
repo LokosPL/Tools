@@ -13,6 +13,7 @@ import pl.lokos.tools.helpers.RankValidity;
 import java.time.ZoneId;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.manager.RankSnapshot;
+import pl.lokos.tools.inventorys.RankMenuFactory;
 
 import java.text.Normalizer;
 import java.util.*;
@@ -24,18 +25,20 @@ import java.util.stream.Collectors;
 public final class RankCommand implements BasicCommand {
     private static final List<String> ACTIONS = List.of(
             "stworz", "dodaj", "pozycja", "wejscie", "usun",
-            "nadaj", "edytuj", "info", "lista", "sprawdz");
+            "nadaj", "edytuj", "info", "lista", "sprawdz", "menu", "pomoc");
 
     private final JavaPlugin plugin;
     private final RankManager ranks;
     private final RankRepository repository;
     private final String commandPermission;
+    private final RankMenuFactory menus;
 
-    public RankCommand(JavaPlugin plugin, RankManager ranks, String permission) {
+    public RankCommand(JavaPlugin plugin, RankManager ranks, String permission,RankMenuFactory menus) {
         this.plugin = plugin;
         this.ranks = ranks;
         this.repository = ranks.repository();
         this.commandPermission=permission;
+        this.menus=menus;
     }
 
     @Override
@@ -47,10 +50,13 @@ public final class RankCommand implements BasicCommand {
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (args.length == 0) {
-            help(sender);
+            if(sender instanceof Player p)menus.list(p,0);
+            else help(sender);
             return;
         }
         String operation = args[0].toLowerCase(Locale.ROOT);
+        if(operation.equals("pomoc")){help(sender);return;}
+        if(operation.equals("menu")){if(sender instanceof Player p)menus.list(p,0);else help(sender);return;}
         try {
             switch (operation) {
                 case "stworz" -> {
@@ -140,6 +146,11 @@ public final class RankCommand implements BasicCommand {
                             "Usunięto rangę &a" + name + "&a i jej przypisania.");
                 }
                 case "edytuj" -> {
+                    if(args.length==2 && sender instanceof Player player){
+                        String name=rankName(args[1]);
+                        if(requireRank(sender,name))menus.details(player,name);
+                        return;
+                    }
                     if (args.length < 4) {
                         errorUsage(sender, "Wybierz pole do zmiany: prefix, sufix lub nazwa.",
                                 "/ranga edytuj <ranga> <prefix|sufix|nazwa> <wartość>");

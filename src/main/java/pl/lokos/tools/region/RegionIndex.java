@@ -54,6 +54,7 @@ public final class RegionIndex {
     }
 
     public boolean enabled(Region region, RegionFlag flag) {
+        Region original=region;
         Set<String> seen = new HashSet<>();
         while (region != null) {
             if (!seen.add(region.name())) return false;
@@ -61,7 +62,10 @@ public final class RegionIndex {
             if (setting != null) return setting;
             region = region.parent() == null ? null : regions.get(region.parent());
         }
-        return false; // Korzen chroniony domyslnie; tylko jawna flaga zmienia zachowanie.
+        // Starsza flaga interakcje pozostaje domyslna dla nowych, szczegolowych typow.
+        if(flag.category().equals("Interakcje") && flag!=RegionFlag.INTERACT)
+            return enabled(original,RegionFlag.INTERACT);
+        return false;
     }
 
     public String requiredRank(Region region) {

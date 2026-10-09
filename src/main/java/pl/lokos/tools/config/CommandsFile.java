@@ -4,6 +4,11 @@ import java.util.*;
 
 /** Kazda komenda ma identyczny zestaw opcji; tylko Java rejestruje komendy. */
 public final class CommandsFile {
+    private String serverName="TOOLS";
+    private String messagePrefix="&8[&a{server}&8] ";
+    public String serverName(){return serverName;}
+    public String messagePrefix(){return messagePrefix.replace("{server}",serverName);}
+
     public static final class Entry {
         private boolean enabled;
         private String description;
@@ -34,6 +39,10 @@ public final class CommandsFile {
     public Entry region(){return region;}
     public Entry lokalizacje(){return lokalizacje;}
     public void validate(){
+        if(serverName==null||serverName.isBlank()||serverName.length()>32)
+            throw new IllegalArgumentException("serverName powinno mieć 1-32 znaki");
+        if(messagePrefix==null||messagePrefix.length()>128)
+            throw new IllegalArgumentException("Niepoprawne messagePrefix");
         if(tools==null||ranga==null||region==null||lokalizacje==null)throw new IllegalArgumentException("Niekompletne Commands.json");
         tools.validate("tools");ranga.validate("ranga");region.validate("region");lokalizacje.validate("lokalizacje");
         Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje"));

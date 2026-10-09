@@ -66,10 +66,11 @@ public final class RankManager {
                                 legacy.permissions().getOrDefault(item.getKey(),Set.of())));
                     }
                 }
+                ensureDefault(imported);
                 definitions.saveRanks(RanksFile.from(imported,definitions.ranks().settings()));
                 plugin.getLogger().info("Rangi gotowe w Ranks.json: "+imported.size());
             }
-            return refresh();
+            return ensureDefault().thenCompose(v->refresh());
         }).whenComplete((ignored, error) -> {
             if (error != null) {
                 plugin.getLogger().log(Level.SEVERE,
@@ -143,6 +144,29 @@ public final class RankManager {
         return operation;
     }
 
+    private static void ensureDefault(Map<String,RanksFile.RankEntry> map){
+        map.putIfAbsent("gracz",new RanksFile.RankEntry(
+                "&8[&7Gracz&8]","",9999,"",Set.of()));
+    }
+    private CompletableFuture<Void> ensureDefault(){
+        if(definitions.ranks().ranks().containsKey("gracz"))return CompletableFuture.completedFuture(null);
+        return CompletableFuture.runAsync(()->{
+            Map<String,RanksFile.RankEntry> changed=new LinkedHashMap<>(definitions.ranks().ranks());
+            ensureDefault(changed);
+            definitions.saveRanks(RanksFile.from(changed,definitions.ranks().settings()));
+        });
+    }
+    public CompletableFuture<Void> togglePermission(String name,String permission){
+        return updateDefinitions(map->{
+            RanksFile.RankEntry r=require(map,name);
+            Set<String> perms=new HashSet<>(r.permissions());
+            if(!perms.add(permission))perms.remove(permission);
+            map.put(name,new RanksFile.RankEntry(
+                    r.prefix(),r.suffix(),r.position(),r.joinMessage(),perms));
+            return map;
+        });
+    }
+
     private CompletableFuture<Void> updateDefinitions(Function<Map<String,RanksFile.RankEntry>,
             Map<String,RanksFile.RankEntry>> update) {
         return change(() -> CompletableFuture.runAsync(() -> {
@@ -185,6 +209,8 @@ public final class RankManager {
         });
     }
     public CompletableFuture<Void> edit(String name,String field,String value) {
+        if(name.equals("gracz")&&field.equals("nazwa"))return CompletableFuture.failedFuture(
+                new IllegalArgumentException("Nie można zmienić nazwy rangi podstawowej."));
         if(field.equals("nazwa")){
             return change(() -> {
                 Map<String,RanksFile.RankEntry> map=new LinkedHashMap<>(definitions.ranks().ranks());
@@ -207,6 +233,8 @@ public final class RankManager {
         });
     }
     public CompletableFuture<Void> delete(String name) {
+        if(name.equals("gracz"))return CompletableFuture.failedFuture(
+                new IllegalArgumentException("Nie można usunąć rangi podstawowej Gracz."));
         return change(() -> {
             Map<String,RanksFile.RankEntry> map=new LinkedHashMap<>(definitions.ranks().ranks());
             require(map,name);
