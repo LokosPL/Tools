@@ -24,7 +24,7 @@ public final class RegionCommandRegistry {
                             commands.region().permission()));
         }
         if(commands.lokalizacje().enabled()){
-            permit(commands.lokalizacje().permission(),PermissionDefault.TRUE);
+            permit(commands.lokalizacje().permission(),PermissionDefault.FALSE);
             plugin.registerCommand("lokalizacje",commands.lokalizacje().description(),
                     commands.lokalizacje().aliases(),
                     new LocationsCommand(regions,menus,commands.lokalizacje().permission()));

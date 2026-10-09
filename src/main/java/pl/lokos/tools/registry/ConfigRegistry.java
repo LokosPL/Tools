@@ -55,7 +55,12 @@ public final class ConfigRegistry {
         }
         ToolsConfig.Database mysql=json.load("MySql.json",ToolsConfig.Database.class,
                 ToolsConfig.Database::new,ToolsConfig.Database::validate);
-        commands=json.load("Commands.json",CommandsFile.class,CommandsFile::new,CommandsFile::validate);
+        commands=json.load("Commands.json",CommandsFile.class,CommandsFile::new,
+                CommandsFile::validate, root -> {
+                    if(root.has("messagePrefix") && root.get("messagePrefix").isJsonPrimitive()
+                            && "&8[&a{server}&8] ".equals(root.get("messagePrefix").getAsString()))
+                        root.addProperty("messagePrefix", "");
+                });
         RanksFile ranks=json.load("Ranks.json",RanksFile.class,RanksFile::new,RanksFile::validate);
         RegionsFile regions=json.load("Regions.json",RegionsFile.class,RegionsFile::new,RegionsFile::validate,
                 root -> {

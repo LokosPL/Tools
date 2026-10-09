@@ -20,7 +20,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public final class RankCommand implements BasicCommand {
     private static final List<String> ACTIONS = List.of(
@@ -75,7 +74,7 @@ public final class RankCommand implements BasicCommand {
                     }
                     checkLength("Prefix", prefix, 256);
                     checkLength("Suffix", suffix, 256);
-                    perform(sender, () -> ranks.change(() -> repository.create(name, prefix, suffix)),
+                    perform(sender, () -> ranks.create(name, prefix, suffix),
                             "Utworzono rangę &a" + name + "&a. &7Następny krok: &a/ranga pozycja " + name + " 1");
                 }
                 case "dodaj" -> {
@@ -92,7 +91,7 @@ public final class RankCommand implements BasicCommand {
                                 "/ranga dodaj <ranga> <np. essentials.fly lub *>");
                         return;
                     }
-                    perform(sender, () -> ranks.change(() -> repository.addPermission(name, permission)),
+                    perform(sender, () -> ranks.addPermission(name, permission),
                             "Dodano uprawnienie &a" + permission + "&a do rangi &a" + name + "&a.");
                 }
                 case "pozycja" -> {
@@ -116,7 +115,7 @@ public final class RankCommand implements BasicCommand {
                                 "/ranga pozycja " + name + " <1-9998>");
                         return;
                     }
-                    perform(sender, () -> ranks.change(() -> repository.position(name, position)),
+                    perform(sender, () -> ranks.position(name, position),
                             "Ustawiono pozycję &a" + position + "&a rangi &a" + name + "&a. Można już ją nadawać.");
                 }
                 case "wejscie" -> {
@@ -131,7 +130,7 @@ public final class RankCommand implements BasicCommand {
                     if (value.equalsIgnoreCase("brak")) value = "";
                     checkLength("Komunikat wejścia", value, 512);
                     final String message = value;
-                    perform(sender, () -> ranks.change(() -> repository.joinMessage(name, message)),
+                    perform(sender, () -> ranks.joinMessage(name, message),
                             message.isBlank() ? "Wyłączono wiadomość wejścia rangi &a" + name + "&a."
                                     : "Ustawiono wiadomość wejścia rangi &a" + name + "&a.");
                 }
@@ -142,7 +141,7 @@ public final class RankCommand implements BasicCommand {
                     }
                     String name = rankName(args[1]);
                     if (!requireRank(sender, name)) return;
-                    perform(sender, () -> ranks.change(() -> repository.delete(name)),
+                    perform(sender, () -> ranks.delete(name),
                             "Usunięto rangę &a" + name + "&a i jej przypisania.");
                 }
                 case "edytuj" -> {
@@ -169,7 +168,7 @@ public final class RankCommand implements BasicCommand {
                     else value = value.replace('_', ' ');
                     checkLength("Wartość", value, 256);
                     final String newValue = value;
-                    perform(sender, () -> ranks.change(() -> repository.edit(name, field, newValue)),
+                    perform(sender, () -> ranks.edit(name, field, newValue),
                             "Zmieniono &a" + field + "&a rangi &a" + name + "&a.");
                 }
                 case "nadaj" -> grant(sender, args);
@@ -355,9 +354,11 @@ public final class RankCommand implements BasicCommand {
             Messages.info(sender, "Pozycja: &a" + (rank.position() == null ? "nieustawiona" : rank.position()));
             Messages.info(sender, "Graczy z rangą: &a" + count);
             Messages.info(sender, "Prefix: " + rank.prefix() + " &8│ &7Sufix: " + rank.suffix());
-            Set<String> permissions = ranks.snapshot().permissions().getOrDefault(name, Set.of());
-            Messages.info(sender, "Uprawnienia: &a"
-                    + (permissions.isEmpty() ? "brak" : permissions.stream().sorted().collect(Collectors.joining("&7, &a"))));
+            Set<String> granted = ranks.snapshot().permissions().getOrDefault(name, Set.of());
+            List<String> available = menus.permissions().stream().filter(granted::contains).toList();
+            Messages.info(sender, "Funkcje Tools: &a"
+                    + (available.isEmpty() ? "brak" : String.join("&7, &a",available)));
+            Messages.hint(sender, "Zarządzaj dostępem: &a/ranga edytuj " + name);
             Messages.info(sender, "Powitanie: &a"
                     + (rank.joinMessage() == null || rank.joinMessage().isBlank()
                     ? "wyłączone" : rank.joinMessage()));

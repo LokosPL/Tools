@@ -105,6 +105,7 @@ public final class ToolsCommand implements BasicCommand {
 
     @Override
     public Collection<String> suggest(CommandSourceStack source, String[] args) {
+        if (!source.getSender().hasPermission(permission)) return List.of();
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
             return List.of("pomoc", "status", "ping", "stats").stream()

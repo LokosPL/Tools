@@ -6,6 +6,8 @@ import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.ToolsPermissionCatalog;
+import pl.lokos.tools.config.CommandsFile;
 import pl.lokos.tools.manager.*;
 import java.util.*;
 
@@ -29,10 +31,10 @@ public final class RankMenuFactory {
     }
     private final NamespacedKey key;
     private final RankManager ranks;
-    private static final List<String> FEATURED=List.of(
-            "tools.lokalizacje","tools.lokalizacje.instant","tools.region.bypass",
-            "tools.region.admin","tools.ranga.admin","tools.admin","*");
-    public RankMenuFactory(NamespacedKey key,RankManager ranks){this.key=key;this.ranks=ranks;}
+    private final ToolsPermissionCatalog catalog;
+    public RankMenuFactory(NamespacedKey key, RankManager ranks, CommandsFile commands){
+        this.key=key;this.ranks=ranks;this.catalog=new ToolsPermissionCatalog(commands);
+    }
 
     private ItemStack item(Material type,String name,String action,String... lore) {
         ItemStack item=new ItemStack(type);
@@ -98,32 +100,50 @@ public final class RankMenuFactory {
                 name.equals("gracz")?"&cRangi Gracz nie można usunąć.":"&7/ranga usun "+name));
         inv.setItem(48,item(Material.OAK_DOOR,"&7Wróć","back"));
     }
-    public List<String> permissions(){
-        Set<String> all=new TreeSet<>(FEATURED);
-        Bukkit.getPluginManager().getPermissions().forEach(p->all.add(p.getName()));
-        ranks.snapshot().permissions().values().forEach(all::addAll);
-        return List.copyOf(all);
-    }
+    public List<String> permissions(){return catalog.suggestions();}
+
     public void permissions(Player p,String name,int page) {
         if(!ranks.snapshot().ranks().containsKey(name))return;
-        List<String> list=permissions();
-        int max=Math.max(0,(list.size()-1)/36),current=Math.min(Math.max(0,page),max);
+        List<ToolsPermissionCatalog.Feature> entries=catalog.features();
+        int max=Math.max(0,(entries.size()-1)/36),current=Math.min(Math.max(0,page),max);
         Inventory inv=inventory(p,View.PERMISSIONS,name,current,"&8ᴜᴘʀᴀᴡɴɪᴇɴɪᴀ &8• &a"+name);
         Set<String> granted=ranks.snapshot().permissions().getOrDefault(name,Set.of());
-        for(int i=current*36;i<Math.min(list.size(),(current+1)*36);i++){
-            String permission=list.get(i);
+        for(int i=current*36;i<Math.min(entries.size(),(current+1)*36);i++){
+            ToolsPermissionCatalog.Feature feature=entries.get(i);
+            String permission=feature.permission();
             boolean active=granted.contains(permission);
+            List<String> tooltip=new ArrayList<>();
+            tooltip.add("&8────────────────────────");
+            tooltip.add("&7Stan: "+(active?"&aWłączone":"&cWyłączone"));
+            tooltip.add("&8 ");
+            tooltip.add("&7Działanie:");
+            for(String line:wrap(feature.description(),42))tooltip.add("&7"+line);
+            for(String line:wrap(feature.details(),42))tooltip.add("&7"+line);
+            tooltip.add("&8 ");
+            tooltip.add("&8Uprawnienie: &7"+permission);
+            tooltip.add("&aKliknij, aby przełączyć");
             inv.setItem(9+i-current*36,item(active?Material.LIME_DYE:Material.RED_DYE,
-                    (active?"&a":"&c")+permission,"toggle:"+permission,
-                    "&8──────────────────────",
-                    "&7Status: "+(active?"&aNadane":"&cWyłączone"),
-                    permission.equals("*")?"&cPełne uprawnienia serwera":"&7Zarejestrowane uprawnienie pluginu",
-                    "&8 ",
-                    "&aKliknij, aby zmienić"));
+                    (active?"&a":"&c")+feature.name(),"toggle:"+permission,
+                    tooltip.toArray(String[]::new)));
         }
-        footer(inv,current,max,"Uprawnienia: "+granted.size());
+        footer(inv,current,max,"Funkcje Tools: "+entries.size());
         inv.setItem(48,item(Material.OAK_DOOR,"&7Wróć","back"));
     }
+    private static List<String> wrap(String value,int limit) {
+        List<String> out=new ArrayList<>();
+        StringBuilder line=new StringBuilder();
+        for(String word:value.split("\\s+")){
+            if(line.length()>0 && line.length()+1+word.length()>limit){
+                out.add(line.toString());
+                line.setLength(0);
+            }
+            if(line.length()>0)line.append(' ');
+            line.append(word);
+        }
+        if(!line.isEmpty())out.add(line.toString());
+        return out;
+    }
+
     private void footer(Inventory inv,int current,int max,String label){
         if(current>0)inv.setItem(45,item(Material.ARROW,"&aPoprzednia strona","page:"+(current-1)));
         if(current<max)inv.setItem(53,item(Material.ARROW,"&aNastępna strona","page:"+(current+1)));

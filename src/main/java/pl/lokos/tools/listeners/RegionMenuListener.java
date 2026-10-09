@@ -17,15 +17,16 @@ public final class RegionMenuListener implements Listener {
     private final JavaPlugin plugin;
     private final RegionMenuFactory menus;
     private final String adminPermission;
+    private final String locationsPermission;
     private final RegionManager regions;
     private final RegionTeleportManager teleports;
     private final RegionBorderPreview borders;
     private final Set<UUID> processing=new HashSet<>();
 
     public RegionMenuListener(JavaPlugin plugin,RegionMenuFactory menus,RegionManager regions,
-            RegionTeleportManager teleports,RegionBorderPreview borders,String adminPermission){
+            RegionTeleportManager teleports,RegionBorderPreview borders,String adminPermission,String locationsPermission){
         this.plugin=plugin;this.menus=menus;this.regions=regions;this.teleports=teleports;
-        this.borders=borders;this.adminPermission=adminPermission;
+        this.borders=borders;this.adminPermission=adminPermission;this.locationsPermission=locationsPermission;
     }
 
     @EventHandler(priority=EventPriority.HIGHEST)
@@ -40,6 +41,11 @@ public final class RegionMenuListener implements Listener {
         if(action==null||action.equals("noop"))return;
         RegionMenuFactory.View view=holder.view();
         if(view==RegionMenuFactory.View.LOCATIONS){
+            if(!ToolsCommandVisibilityListener.allowed(player,regions.ranks(),locationsPermission)) {
+                Messages.unknown(player);
+                later(player,player::closeInventory);
+                return;
+            }
             if(action.startsWith("tp:")){
                 String name=action.substring(3);
                 Region r=regions.index().byName(name);

@@ -106,7 +106,7 @@ public final class ToolsPlugin extends JavaPlugin {
                     this,regionManager,regionTeleports,config.regions().barTitle());
             getServer().getPluginManager().registerEvents(playerRegions,this);
             getServer().getPluginManager().registerEvents(
-                    new RegionMenuListener(this,menus,regionManager,regionTeleports,borderPreview,configurations.commands().region().permission()),this);
+                    new RegionMenuListener(this,menus,regionManager,regionTeleports,borderPreview,configurations.commands().region().permission(),configurations.commands().lokalizacje().permission()),this);
             regionManager.start();
             getServer().getScheduler().runTaskTimer(this,playerRegions::actionbar,20L,20L);
         }

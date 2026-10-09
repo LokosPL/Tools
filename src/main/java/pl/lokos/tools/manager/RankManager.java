@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.RankRepository;
 import pl.lokos.tools.config.DefinitionFiles;
 import pl.lokos.tools.config.RanksFile;
+import pl.lokos.tools.helpers.ToolsPermissionCatalog;
 import java.util.function.Function;
 import pl.lokos.tools.utils.ThreadChecks;
 
@@ -26,6 +27,7 @@ public final class RankManager {
     private final DefinitionFiles definitions;
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
     private final Set<UUID> opPending = new HashSet<>();
+    private Set<String> managedPermissions = Set.of();
     private volatile RankSnapshot snapshot = RankSnapshot.empty();
     private boolean stopping;
     private boolean expirePending;
@@ -40,6 +42,11 @@ public final class RankManager {
 
     public void setVisuals(RankVisualManager visuals) {
         this.visuals = visuals;
+    }
+
+    /** Lista komend Tools kontrolowanych przez plugin; wywołana przed start(). */
+    public void setManagedPermissions(Set<String> names) {
+        this.managedPermissions=Set.copyOf(names);
     }
 
     public RankSnapshot snapshot() {
@@ -281,7 +288,13 @@ public final class RankManager {
             catch (IllegalArgumentException ignored) { }
         }
         PermissionAttachment attachment = player.addAttachment(plugin);
-        for (String permission : snapshot.permissionsFor(uuid)) {
+        Set<String> granted = snapshot.permissionsFor(uuid);
+        // Uprawnienia Tools są domyślnie zamknięte. Jawne false zapobiega
+        // obchodzeniu wyłączenia przez PermissionDefault.TRUE innego pluginu.
+        for (String managed : managedPermissions) {
+            attachment.setPermission(managed, ToolsPermissionCatalog.granted(granted,player.isOp(),managed));
+        }
+        for (String permission : granted) {
             if (permission.equals("*")) {
                 for (Permission available : plugin.getServer().getPluginManager().getPermissions()) {
                     attachment.setPermission(available.getName(), true);
@@ -291,6 +304,8 @@ public final class RankManager {
             }
         }
         attachments.put(uuid, attachment);
+        // Odśwież listę komend Brigadiera po każdej zmianie rangi.
+        player.updateCommands();
 
         boolean all = snapshot.permissionsFor(uuid).contains("*");
         Boolean original = snapshot.opRestores().get(uuid);

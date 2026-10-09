@@ -288,6 +288,7 @@ public final class RegionCommand implements BasicCommand {
     }
 
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args) {
+        if (!source.getSender().hasPermission(commandPermission)) return List.of();
         if(args.length<=1) return match(ACTIONS,args.length==0?"":args[0]);
         String command=args[0].toLowerCase(Locale.ROOT);
         if(args.length==2) {

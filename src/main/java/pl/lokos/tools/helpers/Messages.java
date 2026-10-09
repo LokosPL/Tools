@@ -13,6 +13,10 @@ public final class Messages {
         to.sendMessage(Colors.color(format("&a&lSUKCES &8-> &7" + value)));
     }
 
+    public static void unknown(CommandSender to) {
+        to.sendMessage(Colors.color("&c&lBŁĄD &8-> &cNieznana komenda."));
+    }
+
     public static void error(CommandSender to, String value) {
         to.sendMessage(Colors.color(format("&c&lBŁĄD &8-> &c" + value)));
     }

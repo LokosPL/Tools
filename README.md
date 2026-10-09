@@ -1,3 +1,16 @@
+## Poprawka 1.6.2 — prywatne uprawnienia Tools i widoczność komend
+
+- GUI \`/ranga\` pokazuje wyłącznie zdefiniowane funkcje Tools z czytelnymi polskimi nazwami i opisami; nie zbiera już uprawnień Bukkit, vanilla ani innych pluginów. Ręcznie wpisane uprawnienia innych pluginów w Ranks.json pozostają nienaruszone, ale nie są wyświetlane w panelu ani automatycznie podpowiadane w \`/ranga dodaj\`.
+- \`tools.lokalizacje\` **nie jest już domyślnym uprawnieniem wszystkich graczy**. Aby zwykły gracz otworzył \`/lokalizacje\`, nadaj tę funkcję jego randze w GUI. Dla \`gracz\` kliknij \`/ranga\` → \`gracz\` → \`Uprawnienia\` → \`Menu lokalizacji\`.
+- \`/tools\`, \`/ranga\`, \`/region\`, \`/lokalizacje\` i aliasy podpowiadają się wyłącznie osobom mającym dostęp. Ukryte są też przy ręcznym wpisaniu: \`BŁĄD -> Nieznana komenda.\`
+- Po zmianie uprawnień klient natychmiast otrzymuje odświeżoną listę komend (Paper/Brigadier).
+- Domyślny prefix wiadomości jest pusty. Istniejący fabryczny \`&8[&a{server}&8] \` zostanie automatycznie usunięty z Commands.json przy starcie; własne, zmienione ręcznie prefixy pozostaną bez zmian.
+- Naprawiono niezgodność: \`/ranga stworz\`, \`/ranga dodaj\`, \`/ranga pozycja\`, \`/ranga wejscie\`, \`/ranga edytuj\`, \`/ranga usun\` zapisują definicje w **Ranks.json**, nie w starej tabeli SQL. Nadania graczom pozostają w MySQL.
+
+**Ważne przy aktualizacji:** dla nowych serwerów zwykły gracz bez uprawnienia \`tools.lokalizacje\` NIE otworzy GUI lokalizacji. Jeśli wcześniej każdy mógł używać tej komendy, nadaj tę funkcję randze \`gracz\`. OP oraz ranga z \`*\` zachowują pełny dostęp. System uprawnień innych pluginów nadal działa niezależnie; Tools ukrywa tylko własne niedostępne komendy.
+
+---
+
 ## Poprawka 1.6.1 — GUI regionów i gęste granice
 
 - **Naprawiono NullPointerException** w `RegionMenuListener.click` przy zmianie ustawienia na „dziedziczenie”. Flagi przełączają się kolejno: **dziedziczenie → dozwolone → zabronione → dziedziczenie** bez próby rozpakowania `null` do `boolean`.

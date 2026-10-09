@@ -5,7 +5,7 @@ import java.util.*;
 /** Kazda komenda ma identyczny zestaw opcji; tylko Java rejestruje komendy. */
 public final class CommandsFile {
     private String serverName="TOOLS";
-    private String messagePrefix="&8[&a{server}&8] ";
+    private String messagePrefix="";
     public String serverName(){return serverName;}
     public String messagePrefix(){return messagePrefix.replace("{server}",serverName);}
 
