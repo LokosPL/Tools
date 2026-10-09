@@ -44,8 +44,9 @@ public final class RankRepository {
                  ResultSet rs = sql.executeQuery()) {
                 while (rs.next()) {
                     long expires = rs.getLong(3);
+                    Long expiresAt = rs.wasNull() ? null : expires;
                     grants.put(UUID.fromString(rs.getString(1)), new RankSnapshot.Grant(
-                            rs.getString(2), rs.wasNull() ? null : expires));
+                            rs.getString(2), expiresAt));
                 }
             }
             try (PreparedStatement sql = c.prepareStatement("SELECT player_uuid, original_op FROM tools_rank_op_restore");
@@ -126,8 +127,10 @@ public final class RankRepository {
                 statement.setString(1, uuid.toString());
                 try (ResultSet result = statement.executeQuery()) {
                     if (!result.next()) return null;
+                    String rankName = result.getString(1);
                     long time = result.getLong(2);
-                    return new RankSnapshot.Grant(result.getString(1), result.wasNull() ? null : time);
+                    Long expiresAt = result.wasNull() ? null : time;
+                    return new RankSnapshot.Grant(rankName, expiresAt);
                 }
             }
         });
