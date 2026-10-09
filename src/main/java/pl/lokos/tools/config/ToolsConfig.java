@@ -146,7 +146,7 @@ public final class ToolsConfig {
         private int teleportSeconds = 5;
         private int spawnProtectionOutside = 50;
         private boolean cancelTeleportOnMove = true;
-        private String barTitle = "&aᴏʙꜱᴢᴀʀ &8» &7";
+        private String barTitle = "&7ʟᴏᴋᴀʟɪᴢᴀᴄᴊᴀ &8» ";
         public boolean enabled() { return enabled; }
         public int maxRadius() { return maxRadius; }
         public int teleportSeconds() { return teleportSeconds; }

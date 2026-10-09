@@ -124,16 +124,16 @@ public final class RegionMenuFactory {
         Region region=regions.index().byName(name);
         if(region==null)return;
         List<RegionFlag> flags=List.of(RegionFlag.values());
-        int maximum=Math.max(0,(flags.size()-1)/28);
+        int maximum=Math.max(0,(flags.size()-1)/21);
         int current=Math.max(0,Math.min(page,maximum));
         Inventory inventory=open(player,View.FLAGS,name,current,"&8ᴢᴀꜱᴀᴅʏ &8• &a"+name+" &8["+ (current+1)+"]");
         List<Integer> slots=slots();
-        for(int i=current*28;i<Math.min(flags.size(),(current+1)*28);i++){
+        for(int i=current*21;i<Math.min(flags.size(),(current+1)*21);i++){
             RegionFlag f=flags.get(i);
             Boolean state=region.flags().get(f);
             boolean effective=regions.index().enabled(region,f);
             String mode=state==null?"&7Dziedziczenie":state?"&aDozwolone":"&cZabronione";
-            inventory.setItem(slots.get(i-current*28),item(state==null?Material.LIGHT_GRAY_DYE:
+            inventory.setItem(slots.get(i-current*21),item(state==null?Material.LIGHT_GRAY_DYE:
                     state?Material.LIME_DYE:Material.RED_DYE,
                     (effective?"&a":"&c")+f.label(),"flag:"+f.name(),
                     "&8──────────────────────",
@@ -165,7 +165,7 @@ public final class RegionMenuFactory {
         for(int i=current*27;i<Math.min(all.size(),(current+1)*27);i++){
             RankSnapshot.Rank r=all.get(i);
             inventory.setItem(positions.get(slotIndex++),item(
-                    name.equals(r.name())?Material.EMERALD:Material.NAME_TAG,
+                    r.name().equals(region.entryRank())?Material.EMERALD:Material.NAME_TAG,
                     "&a"+r.name(),"rank:"+r.name(),
                     "&7Pozycja: &a"+r.position(),
                     "&7Gracze tej rangi i wyższych",

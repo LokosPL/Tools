@@ -13,6 +13,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.*;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -191,7 +192,10 @@ public final class RegionProtectionListener implements Listener {
         if(event.getEntity().getPersistentDataContainer().has(wandKey,PersistentDataType.BYTE)
                 && Byte.valueOf((byte)2).equals(event.getEntity().getPersistentDataContainer()
                         .get(wandKey,PersistentDataType.BYTE)))return;
-        if(denies(event.getTo(),RegionFlag.MOBS))event.getEntity().remove();
+        if(event.getFrom().getBlockX()==event.getTo().getBlockX()
+                && event.getFrom().getBlockZ()==event.getTo().getBlockZ())return;
+        if(!denies(event.getFrom(),RegionFlag.MOBS)
+                && denies(event.getTo(),RegionFlag.MOBS))event.getEntity().remove();
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void chunkLoad(org.bukkit.event.world.ChunkLoadEvent event) {
@@ -209,13 +213,17 @@ public final class RegionProtectionListener implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void hangingPlace(HangingPlaceEvent e) {
-        if(denies(e.getPlayer(),e.getEntity().getLocation(),RegionFlag.BUILD))e.setCancelled(true);
+        RegionFlag flag=e.getEntity() instanceof org.bukkit.entity.ItemFrame
+                ? RegionFlag.ITEM_FRAMES : RegionFlag.BUILD;
+        if(denies(e.getPlayer(),e.getEntity().getLocation(),flag))e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void hangingBreak(HangingBreakEvent e) {
         if(e instanceof HangingBreakByEntityEvent byEntity
                 && byEntity.getRemover() instanceof Player player && regions.bypass(player))return;
-        if(denies(e.getEntity().getLocation(),RegionFlag.BREAK))e.setCancelled(true);
+        RegionFlag flag=e.getEntity() instanceof org.bukkit.entity.ItemFrame
+                ? RegionFlag.ITEM_FRAMES : RegionFlag.BREAK;
+        if(denies(e.getEntity().getLocation(),flag))e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void interact(PlayerInteractEvent e) {
@@ -263,6 +271,18 @@ public final class RegionProtectionListener implements Listener {
         if(denies(e.getSource().getLocation(),RegionFlag.HOPPERS)
                 || denies(e.getDestination().getLocation(),RegionFlag.HOPPERS))
             e.setCancelled(true);
+    }
+
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void crafting(CraftItemEvent event){
+        if(event.getWhoClicked() instanceof Player player &&
+                denies(player,player.getLocation(),RegionFlag.CRAFTING))event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void vehicleDestroy(org.bukkit.event.vehicle.VehicleDestroyEvent event){
+        Player p=event.getAttacker() instanceof Player player?player:null;
+        if(denies(p,event.getVehicle().getLocation(),RegionFlag.VEHICLES))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)

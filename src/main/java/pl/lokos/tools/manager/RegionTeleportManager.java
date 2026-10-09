@@ -40,7 +40,7 @@ public final class RegionTeleportManager {
         cancel(player,false);
         // Każdy gracz z nadaną, aktywną rangą ma teleportację bez odliczania.
         if(player.hasPermission("tools.lokalizacje.instant") || player.isOp()
-                || (ranks!=null && ranks.snapshot().forPlayer(player.getUniqueId())!=null)) {
+                || (ranks!=null && hasAssignedRank(player))) {
             teleportNow(player,name,target);
             return;
         }
@@ -77,6 +77,14 @@ public final class RegionTeleportManager {
         };
         BukkitTask task=job.runTaskTimer(plugin,0L,20L);
         pending.put(player.getUniqueId(),new Pending(task,origin));
+    }
+
+    private boolean hasAssignedRank(Player player){
+        var snapshot=ranks.snapshot();
+        var grant=snapshot.grants().get(player.getUniqueId());
+        return grant!=null && grant.active(System.currentTimeMillis())
+                && !grant.rank().equals("gracz")
+                && snapshot.ranks().containsKey(grant.rank());
     }
 
     private void teleportNow(Player player,String name,Location target){

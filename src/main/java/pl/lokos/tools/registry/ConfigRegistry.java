@@ -57,7 +57,15 @@ public final class ConfigRegistry {
                 ToolsConfig.Database::new,ToolsConfig.Database::validate);
         commands=json.load("Commands.json",CommandsFile.class,CommandsFile::new,CommandsFile::validate);
         RanksFile ranks=json.load("Ranks.json",RanksFile.class,RanksFile::new,RanksFile::validate);
-        RegionsFile regions=json.load("Regions.json",RegionsFile.class,RegionsFile::new,RegionsFile::validate);
+        RegionsFile regions=json.load("Regions.json",RegionsFile.class,RegionsFile::new,RegionsFile::validate,
+                root -> {
+                    if(root.has("settings") && root.get("settings").isJsonObject()){
+                        JsonObject options=root.getAsJsonObject("settings");
+                        if(options.has("barTitle") && options.get("barTitle").getAsString()
+                                .equals("&aᴏʙꜱᴢᴀʀ &8» &7"))
+                            options.addProperty("barTitle","&7ʟᴏᴋᴀʟɪᴢᴀᴄᴊᴀ &8» ");
+                    }
+                });
         tools=new ToolsConfig();
         tools.configure(mysql,ranks.settings(),regions.settings());
         definitions=new DefinitionFiles(pluginDirectory,ranks,regions,firstRanks,firstRegions);

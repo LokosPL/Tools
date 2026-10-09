@@ -28,7 +28,9 @@ public record RankSnapshot(
 
     public Rank forPlayer(UUID uuid) {
         Grant grant = grants.get(uuid);
-        return grant == null || !grant.active(System.currentTimeMillis()) ? null : ranks.get(grant.rank());
+        Rank assigned=grant == null || !grant.active(System.currentTimeMillis())
+                ? null : ranks.get(grant.rank());
+        return assigned!=null ? assigned : ranks.get("gracz");
     }
 
     public Set<String> permissionsFor(UUID uuid) {
