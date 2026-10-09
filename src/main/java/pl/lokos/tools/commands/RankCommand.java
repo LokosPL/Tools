@@ -58,11 +58,15 @@ public final class RankCommand implements BasicCommand {
                     String name = rankName(args[1]);
                     String prefix = displayValue(args[2]);
                     String suffix = displayValue(args[3]);
+                    if (ranks.snapshot().ranks().containsKey(name)) {
+                        Messages.error(sender, "Ranga &c&n" + name + "&r&c już istnieje.");
+                        Messages.hint(sender, "Jeśli chcesz ją zmienić, użyj &e/ranga edytuj " + name + " prefix <tekst>");
+                        return;
+                    }
                     checkLength("Prefix", prefix, 256);
                     checkLength("Suffix", suffix, 256);
                     perform(sender, () -> ranks.change(() -> repository.create(name, prefix, suffix)),
-                            "Utworzono rangę &e" + name + "&a.");
-                    Messages.hint(sender, "Po utworzeniu ustaw jej pozycję, np. &e/ranga pozycja " + name + " 1");
+                            "Utworzono rangę &e" + name + "&a. &7Następny krok: &e/ranga pozycja " + name + " 1");
                 }
                 case "dodaj" -> {
                     if (args.length != 3) {
@@ -71,6 +75,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     String name = rankName(args[1]);
+                    if (!requireRank(sender, name)) return;
                     String permission = args[2].toLowerCase(Locale.ROOT);
                     if (!permission.equals("*") && !permission.matches("[a-z0-9_.:-]{1,128}")) {
                         errorUsage(sender, "Niepoprawne uprawnienie: &c&n" + args[2] + "&r&c.",
@@ -87,6 +92,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     String name = rankName(args[1]);
+                    if (!requireRank(sender, name)) return;
                     int position;
                     try {
                         position = Integer.parseInt(args[2]);
@@ -110,6 +116,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     String name = rankName(args[1]);
+                    if (!requireRank(sender, name)) return;
                     String value = join(args, 2).replace('_', ' ');
                     if (value.equalsIgnoreCase("brak")) value = "";
                     checkLength("Komunikat wejścia", value, 512);
@@ -124,6 +131,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     String name = rankName(args[1]);
+                    if (!requireRank(sender, name)) return;
                     perform(sender, () -> ranks.change(() -> repository.delete(name)),
                             "Usunięto rangę &e" + name + "&a i jej przypisania.");
                 }
@@ -134,6 +142,7 @@ public final class RankCommand implements BasicCommand {
                         return;
                     }
                     String name = rankName(args[1]);
+                    if (!requireRank(sender, name)) return;
                     String field = args[2].toLowerCase(Locale.ROOT);
                     if (!Set.of("prefix", "sufix", "nazwa").contains(field)) {
                         errorUsage(sender, "Nieznane pole: &c&n" + args[2] + "&r&c.",
@@ -229,7 +238,7 @@ public final class RankCommand implements BasicCommand {
             String position = rank.position() == null ? "&8nieustawiona" : "&e" + rank.position();
             Messages.line(sender, "&8" + index++ + ". &7" + rank.name()
                     + " &8│ &7Pozycja: " + position
-                    + (rank.assignable() ? " &8│ &aAktywna" : " &8│ &cNiegotowa"));
+                    + (rank.assignable() ? " &8│ &aGotowa" : " &8│ &cNiegotowa"));
         }
         Messages.hint(sender, "Szczegóły: &e/ranga info <nazwa>");
     }
@@ -299,6 +308,13 @@ public final class RankCommand implements BasicCommand {
 
     private void onMain(Runnable callback) {
         if (plugin.isEnabled()) plugin.getServer().getScheduler().runTask(plugin, callback);
+    }
+
+    private boolean requireRank(CommandSender sender, String name) {
+        if (ranks.snapshot().ranks().containsKey(name)) return true;
+        Messages.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
+        Messages.hint(sender, "Dostępne rangi sprawdzisz przez &e/ranga lista");
+        return false;
     }
 
     private void errorUsage(CommandSender sender, String error, String usage) {
