@@ -119,7 +119,7 @@ public final class DatabaseManager {
         return hikari;
     }
 
-    private static void createSchema(Connection connection) throws SQLException {
+    static void createSchema(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS tools_players (

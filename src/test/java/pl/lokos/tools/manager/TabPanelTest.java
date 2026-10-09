@@ -36,6 +36,21 @@ class TabPanelTest {
     }
 
     @Test
+    void wideTabRemainsLargeEvenWithOneOnlinePlayer() {
+        var single = new TabPanel.Stats("LokosPL", "właściciel", 1, 20,
+                35, 3, 1, 72000, 19.6);
+        String header = PlainTextComponentSerializer.plainText().serialize(TabPanel.header(SETTINGS, single));
+        String footer = PlainTextComponentSerializer.plainText().serialize(
+                TabPanel.footer(SETTINGS, single, List.of(new TabPanel.TopPlayer("LokosPL", 3))));
+        assertTrue(header.lines().count() >= 10);
+        assertTrue(footer.lines().count() >= 10);
+        assertTrue(header.lines().anyMatch(line -> line.length() >= 105), "Header powinien miec szerokosc kilku kolumn");
+        assertTrue(footer.lines().anyMatch(line -> line.length() >= 105), "Footer powinien miec szerokosc kilku kolumn");
+        assertTrue(header.contains("1/20"));
+        assertTrue(footer.contains("TOP ZABÓJSTW"));
+    }
+
+    @Test
     void playtimeShowsMinutesHoursDays() {
         assertEquals("0min", TabPanel.playtime(0));
         assertEquals("1g 0min", TabPanel.playtime(72_000));

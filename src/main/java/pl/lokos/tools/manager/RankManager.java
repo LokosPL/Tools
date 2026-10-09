@@ -45,10 +45,16 @@ public final class RankManager {
         return repository;
     }
 
-    public void start() {
-        refresh().exceptionally(error -> {
-            plugin.getLogger().log(Level.SEVERE, "Nie udalo sie pobrac rang z MySQL.", error);
-            return null;
+    /**
+     * Pierwszy odczyt bazy jest elementem kolejki operacji. Nie mozna
+     * nadac rangi w trakcie inicjalizacji i potem nadpisac cache starym widokiem.
+     */
+    public synchronized void start() {
+        mutationTail = refresh().whenComplete((ignored, error) -> {
+            if (error != null) {
+                plugin.getLogger().log(Level.SEVERE,
+                        "Nie udało się pobrać początkowych rang z bazy MySQL.", error);
+            }
         });
     }
 
@@ -59,15 +65,43 @@ public final class RankManager {
     private CompletableFuture<Void> installSnapshot(RankSnapshot next) {
         CompletableFuture<Void> result = new CompletableFuture<>();
         if (stopping || !plugin.isEnabled()) {
-            result.complete(null);
+            result.completeExceptionally(new IllegalStateException("Plugin został wyłączony."));
             return result;
         }
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            snapshot = next;
-            for (Player player : Bukkit.getOnlinePlayers()) apply(player);
-            if (visuals != null) visuals.refresh();
-            result.complete(null);
-        });
+        try {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                try {
+                    snapshot = next;
+                    Throwable problem = null;
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        try {
+                            apply(player);
+                        } catch (RuntimeException error) {
+                            plugin.getLogger().log(Level.SEVERE,
+                                    "Nie zaktualizowano uprawnień gracza " + player.getName(), error);
+                            problem = error;
+                        }
+                    }
+                    if (visuals != null) {
+                        try {
+                            visuals.refresh();
+                        } catch (RuntimeException error) {
+                            plugin.getLogger().log(Level.SEVERE,
+                                    "Nie udało się odświeżyć TAB-u po zmianie rangi.", error);
+                            if (problem == null) problem = error;
+                        }
+                    }
+                    if (problem == null) result.complete(null);
+                    else result.completeExceptionally(new IllegalStateException(
+                            "Ranga zapisana w MySQL, ale aktualizacja uprawnień lub TAB-u nie powiodła się.", problem));
+                } catch (Throwable error) {
+                    result.completeExceptionally(error);
+                    plugin.getLogger().log(Level.SEVERE, "Błąd aktualizacji rang.", error);
+                }
+            });
+        } catch (RuntimeException error) {
+            result.completeExceptionally(error);
+        }
         return result;
     }
 

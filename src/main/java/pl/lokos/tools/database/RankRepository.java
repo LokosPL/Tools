@@ -13,9 +13,9 @@ import java.util.concurrent.CompletableFuture;
  * Nazwy są walidowane przez komende i dodatkowo parametryzowane w JDBC.
  */
 public final class RankRepository {
-    private final DatabaseManager database;
+    private final DatabaseExecutor database;
 
-    public RankRepository(DatabaseManager database) {
+    public RankRepository(DatabaseExecutor database) {
         this.database = database;
     }
 

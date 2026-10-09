@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public final class RankCommand implements BasicCommand {
     private static final List<String> ACTIONS = List.of(
             "stworz", "dodaj", "pozycja", "wejscie", "usun",
-            "nadaj", "edytuj", "info", "lista");
+            "nadaj", "edytuj", "info", "lista", "sprawdz");
 
     private final JavaPlugin plugin;
     private final RankManager ranks;
@@ -158,6 +158,7 @@ public final class RankCommand implements BasicCommand {
                             "Zmieniono &e" + field + "&a rangi &e" + name + "&a.");
                 }
                 case "nadaj" -> grant(sender, args);
+                case "sprawdz" -> checkGrant(sender, args);
                 case "lista" -> list(sender, args);
                 case "info" -> showInfo(sender, args);
                 default -> {
@@ -201,6 +202,61 @@ public final class RankCommand implements BasicCommand {
                         + "&r&c nie został znaleziony w bazie. Musi najpierw wejść na serwer.");
             return ranks.change(() -> repository.grant(uuid, name, expires));
         }), "Nadano rangę &e" + name + "&a graczowi &e" + target + "&a na czas &e" + duration + "&a.");
+    }
+
+    private void checkGrant(CommandSender sender, String[] args) {
+        if (args.length != 2) {
+            errorUsage(sender, "Podaj nick gracza.", "/ranga sprawdz <nick>");
+            return;
+        }
+        String nick = args[1];
+        Player online = Bukkit.getPlayerExact(nick);
+        CompletableFuture<UUID> lookup = online != null
+                ? CompletableFuture.completedFuture(online.getUniqueId())
+                : repository.findPlayer(nick);
+
+        lookup.thenCompose(uuid -> {
+            if (uuid == null) {
+                return CompletableFuture.<RankSnapshot.Grant>failedFuture(
+                        new IllegalArgumentException("Nie znaleziono gracza " + nick + "."));
+            }
+            return repository.findGrant(uuid);
+        }).whenComplete((grant, error) -> onMain(() -> {
+            if (error != null) {
+                Messages.error(sender, "Nie można sprawdzić rangi. " + readableError(error));
+                return;
+            }
+            Messages.title(sender, "RANGA GRACZA " + nick);
+            if (grant == null || !grant.active(System.currentTimeMillis())) {
+                Messages.info(sender, "Aktywna ranga: &eGracz &8(brak nadanej rangi)");
+            } else {
+                Messages.info(sender, "Zapisana w MySQL: &a" + grant.rank());
+                Messages.info(sender, "Ważność: &e" +
+                        (grant.expiresAt() == null ? "na zawsze" :
+                                new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                                        .format(new java.util.Date(grant.expiresAt()))));
+            }
+            Player current = Bukkit.getPlayerExact(nick);
+            if (current != null) {
+                RankSnapshot.Rank inCache = ranks.snapshot().forPlayer(current.getUniqueId());
+                Messages.info(sender, "Widoczna na serwerze: &e" + (inCache == null ? "Gracz" : inCache.name()));
+                Messages.info(sender, "Gracz jest online: &aTak");
+            } else {
+                Messages.info(sender, "Gracz jest offline; uprawnienia zastosują się po wejściu.");
+            }
+        }));
+    }
+
+    private static String readableError(Throwable original) {
+        Throwable cause = original;
+        while ((cause instanceof CompletionException
+                || cause instanceof java.util.concurrent.ExecutionException)
+                && cause.getCause() != null) cause = cause.getCause();
+        if (cause instanceof IllegalArgumentException) return cause.getMessage();
+        if (cause instanceof java.sql.SQLException sql) {
+            return "Błąd MySQL (kod " + sql.getErrorCode() + ", stan " + sql.getSQLState() + ").";
+        }
+        return "Zobacz konsolę serwera.";
     }
 
     public static Long parseTime(String duration) {
@@ -296,7 +352,9 @@ public final class RankCommand implements BasicCommand {
                     if (cause instanceof IllegalArgumentException) {
                         Messages.error(sender, cause.getMessage());
                     } else {
-                        Messages.error(sender, "Nie wykonano operacji. Sprawdź nazwę rangi lub dane w bazie MySQL.");
+                        Messages.error(sender, cause instanceof IllegalStateException
+                                ? cause.getMessage()
+                                : "Nie wykonano operacji. " + readableError(cause));
                         plugin.getLogger().warning("Błąd operacji rang: " + cause.getMessage());
                     }
                 }
@@ -332,6 +390,7 @@ public final class RankCommand implements BasicCommand {
         Messages.line(sender, "&e/ranga edytuj &7<ranga> <prefix|sufix|nazwa> <wartość>");
         Messages.line(sender, "&e/ranga info &7<ranga> &8• &e/ranga lista");
         Messages.line(sender, "&e/ranga usun &7<ranga>");
+        Messages.line(sender, "&e/ranga sprawdz &7<nick> &8- &7odczyt przypisania z MySQL");
     }
 
     public static String rankName(String raw) {
@@ -363,7 +422,7 @@ public final class RankCommand implements BasicCommand {
         if (args.length == 1) return filter(ACTIONS, args[0]);
         String action = args[0].toLowerCase(Locale.ROOT);
         if (args.length == 2) {
-            if (action.equals("nadaj"))
+            if (action.equals("nadaj") || action.equals("sprawdz"))
                 return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
             if (Set.of("dodaj", "pozycja", "wejscie", "usun", "edytuj", "info").contains(action))
                 return filter(ranks.snapshot().ranks().keySet(), args[1]);

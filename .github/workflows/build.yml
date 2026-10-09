@@ -8,10 +8,27 @@ on:
 
 jobs:
   build:
-    name: Maven verify (Java 25)
+    name: Maven + MariaDB tests (Java 25)
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci_test_password
+          MARIADB_DATABASE: tools_integration
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=15
+    env:
+      TOOLS_IT_DB_URL: jdbc:mysql://127.0.0.1:3306/tools_integration
+      TOOLS_IT_DB_USER: root
+      TOOLS_IT_DB_PASS: ci_test_password
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -19,7 +36,7 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - name: Compile, test and package
+      - name: Compile, test and package (including real MariaDB)
         run: mvn --batch-mode --no-transfer-progress clean verify
       - name: Upload Tools.jar
         uses: actions/upload-artifact@v4

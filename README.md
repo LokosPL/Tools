@@ -1,6 +1,29 @@
-# Tools 1.2.0 — rozbudowany TAB i system rang Paper 26.3
+# Tools 1.3.0 — duża tablista i zweryfikowane nadawanie rang
 
 Modułowy plugin Java 25 / Paper 26.3 z MySQL (HikariCP), konfiguracją definiowaną w Java i zapisywaną do JSON dopiero przy uruchomieniu.
+
+## Poprawki Tools 1.3.0
+
+**Duża tablista:** zamiast kilku krótkich linii plugin generuje szeroki panel z trzema kolumnami (serwer, profil, statystyki), ozdobnymi separatorami, sekcją graczy i rozbudowaną stopką. Panel nie zwęża się już, gdy na serwerze przebywa tylko jedna osoba. Nie tworzy fałszywych profili i działa bez ProtocolLib. Szerokość w grze zależy także od skali interfejsu Minecraft; przy bardzo dużej skali klient może obciąć boki.
+
+**Nadawanie rang:** odświeżanie stanu początkowego zostało zsynchronizowane z kolejką operacji; po zapisie MySQL sprawdzana jest rzeczywiście zapisana ranga i czas wygaśnięcia. Odczyt rang i uprawnień może teraz sygnalizować problem zamiast pozostawać bez odpowiedzi. Błędy odświeżenia TAB-u i uprawnień są logowane oddzielnie od zapisu.
+
+**Nowa komenda diagnostyczna:**
+```text
+/ranga sprawdz LokosPL
+```
+Pokazuje rangę zapisaną w MySQL, jej czas ważności oraz aktualną rangę widoczną na serwerze. W razie problemu prześlij zrzut wyniku i fragment konsoli.
+
+**Testy bazy:** workflow GitHub Actions uruchamia usługę MariaDB i testuje rzeczywiste utworzenie rangi, ustawienie pozycji, nadanie na zawsze (SQL NULL), ponowne nadanie czasowe, odczyt rangi, wygaśnięcie i usunięcie. Test obejmuje samą warstwę SQL i model danych, ale nie zastępuje testu uprawnień w działającym serwerze Minecraft.
+
+Aby nadać rangę:
+```text
+/ranga stworz właściciel &c&lWłaściciel_ &7
+/ranga pozycja właściciel 1
+/ranga nadaj LokosPL właściciel *
+/ranga sprawdz LokosPL
+```
+Nie można nadawać rang bez przypisanej pozycji.
 
 ## Instalacja
 
@@ -56,7 +79,7 @@ Dostęp do komend: `tools.ranga.admin` (domyślnie OP). Komendy rejestrowane są
 
 ## Rozbudowana tablista — styl inspirowany podanym zrzutem
 
-Panel TAB używa wbudowanych możliwości Paper, bez wymogu ProtocolLib ani fałszywych kont graczy. Rozbudowany, kolorowy nagłówek i stopka obejmują:
+Panel TAB używa wbudowanych możliwości Paper, bez wymogu ProtocolLib ani fałszywych kont graczy. **Wersja 1.3.0 wymusza szeroki, trzykolumnowy układ nagłówka i stopki niezależnie od liczby graczy online.** Rozbudowany, kolorowy nagłówek i stopka obejmują:
 
 - **Serwer:** liczba graczy online / maksymalna pojemność, bieżący TPS (średnia 1 min).
 - **Twój profil:** twoja ranga i bieżący ping w milisekundach.
