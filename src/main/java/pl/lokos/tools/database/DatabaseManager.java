@@ -23,10 +23,10 @@ public final class DatabaseManager {
     }
 
     private final JavaPlugin plugin;
-    private final HikariDataSource source;
+    private volatile HikariDataSource source;
     private final ThreadPoolExecutor executor;
     private final AtomicReference<DatabaseStatus> status = new AtomicReference<>(DatabaseStatus.STARTING);
-    private final CompletableFuture<Void> ready;
+    private final CompletableFuture<Void> ready = new CompletableFuture<>();
 
     public DatabaseManager(JavaPlugin plugin, ToolsConfig.Database config) {
         this.plugin = plugin;
@@ -39,6 +39,61 @@ public final class DatabaseManager {
                     return worker;
                 }, new ThreadPoolExecutor.AbortPolicy());
 
+        // Wszystkie operacje sieciowe i SQL na pracowniku, poza tickiem Paper.
+        executor.execute(() -> initialize(config));
+    }
+
+    private void initialize(ToolsConfig.Database config) {
+        try {
+            if (config.createDatabaseIfMissing()) {
+                createDatabase(config);
+            }
+
+            HikariDataSource pool = new HikariDataSource(newHikariConfig(config));
+            source = pool;
+            try (Connection connection = pool.getConnection()) {
+                createSchema(connection);
+            }
+
+            if (status.compareAndSet(DatabaseStatus.STARTING, DatabaseStatus.READY)) {
+                ready.complete(null);
+                plugin.getLogger().info("MySQL polaczony (" + config.host() + ":" + config.port()
+                        + ", baza " + config.database() + "), tabele gotowe.");
+            } else {
+                ready.completeExceptionally(new IllegalStateException("Plugin jest zamykany."));
+            }
+        } catch (Throwable error) {
+            status.compareAndSet(DatabaseStatus.STARTING, DatabaseStatus.FAILED);
+            ready.completeExceptionally(error);
+            plugin.getLogger().severe("Nie udalo sie uruchomic MySQL "
+                    + config.host() + ":" + config.port() + " / " + config.database()
+                    + ": " + error.getMessage());
+        } finally {
+            if (status.get() != DatabaseStatus.READY) {
+                HikariDataSource pool = source;
+                if (pool != null) {
+                    pool.close();
+                    source = null;
+                }
+            }
+        }
+    }
+
+    private static void createDatabase(ToolsConfig.Database config) throws SQLException {
+        // ToolsConfig validates database name to [a-zA-Z0-9_]+.
+        String url = "jdbc:mysql://" + config.host() + ":" + config.port() + "/"
+                + "?sslMode=" + config.sslMode()
+                + "&connectTimeout=" + config.connectionTimeoutMs()
+                + "&socketTimeout=10000";
+        try (Connection connection = java.sql.DriverManager.getConnection(
+                url, config.username(), config.resolvedPassword());
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE DATABASE IF NOT EXISTS `" + config.database()
+                    + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        }
+    }
+
+    private static HikariConfig newHikariConfig(ToolsConfig.Database config) {
         HikariConfig hikari = new HikariConfig();
         hikari.setPoolName("Tools-MySQL");
         hikari.setJdbcUrl("jdbc:mysql://" + config.host() + ":" + config.port() + "/" + config.database());
@@ -61,20 +116,7 @@ public final class DatabaseManager {
         hikari.addDataSourceProperty("tcpKeepAlive", "true");
         hikari.addDataSourceProperty("connectTimeout", Integer.toString(config.connectionTimeoutMs()));
         hikari.addDataSourceProperty("socketTimeout", "10000");
-        this.source = new HikariDataSource(hikari);
-        this.ready = runRaw(connection -> {
-            createSchema(connection);
-            return null;
-        });
-        this.ready.whenComplete((ignored, error) -> {
-            if (error == null) {
-                status.compareAndSet(DatabaseStatus.STARTING, DatabaseStatus.READY);
-                plugin.getLogger().info("MySQL: polaczono i przygotowano tabele.");
-            } else {
-                status.set(DatabaseStatus.FAILED);
-                plugin.getLogger().severe("Inicjalizacja MySQL nie powiodla sie: " + error.getMessage());
-            }
-        });
+        return hikari;
     }
 
     private static void createSchema(Connection connection) throws SQLException {
@@ -114,7 +156,12 @@ public final class DatabaseManager {
         CompletableFuture<T> future = new CompletableFuture<>();
         try {
             executor.execute(() -> {
-                try (Connection connection = source.getConnection()) {
+                HikariDataSource activeSource = source;
+                if (activeSource == null) {
+                    future.completeExceptionally(new IllegalStateException("Pula MySQL nie jest dostepna."));
+                    return;
+                }
+                try (Connection connection = activeSource.getConnection()) {
                     future.complete(operation.run(connection));
                 } catch (Throwable error) {
                     future.completeExceptionally(error);
@@ -142,7 +189,11 @@ public final class DatabaseManager {
             Thread.currentThread().interrupt();
             executor.shutdownNow();
         }
-        source.close();
+        HikariDataSource activeSource = source;
+        if (activeSource != null) {
+            activeSource.close();
+            source = null;
+        }
         status.set(DatabaseStatus.CLOSED);
     }
 }
