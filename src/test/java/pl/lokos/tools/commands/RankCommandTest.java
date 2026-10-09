@@ -15,6 +15,15 @@ class RankCommandTest {
     }
 
     @Test
+    void acceptsPolishRankNamesAndNormalizesCase() {
+        assertEquals("właściciel", RankCommand.rankName("Właściciel"));
+        assertEquals("zażółć_gęślą", RankCommand.rankName("Zażółć_Gęślą"));
+        assertEquals("vip", RankCommand.rankName("VIP"));
+        assertThrows(IllegalArgumentException.class, () -> RankCommand.rankName("VIP Gracz"));
+        assertThrows(IllegalArgumentException.class, () -> RankCommand.rankName("1234567890123456789012345"));
+    }
+
+    @Test
     void rejectsInvalidDuration() {
         assertThrows(IllegalArgumentException.class, () -> RankCommand.parseTime("10x"));
         assertThrows(IllegalArgumentException.class, () -> RankCommand.parseTime("-3d"));

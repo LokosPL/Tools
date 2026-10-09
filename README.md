@@ -1,4 +1,4 @@
-# Tools 1.1.0 — system rang Paper 26.3
+# Tools 1.1.1 — system rang Paper 26.3
 
 Modułowy plugin Java 25 / Paper 26.3 z MySQL (HikariCP), konfiguracją definiowaną w Java i zapisywaną do JSON dopiero przy uruchomieniu.
 
@@ -22,6 +22,12 @@ We wszystkich wiadomościach Tools, prefixach, suffixach, komunikatach rang oraz
 
 Kolory interpretuje centralnie `helpers/Colors.java` z użyciem Adventure Component. Przykład: `&#FFBB00&l[PREMIUM] &f`. Nie używamy kodu sekcji w plikach konfiguracyjnych.
 
+## Wygląd czatu, TAB-u i nazwy nad głową
+
+Nick gracza jest **zawsze szary** (`&7`) — w TAB-ie, na czacie i w nicku nad głową (również przy etykiecie F5). Treść wiadomości czatu jest zawsze szara; kolory wpisane przez gracza nie są interpretowane. Kolorowy prefix rangi można nadal ustawić przez `&` albo `&#RRGGBB`; po nim nick automatycznie wraca do szarości. Prefix bez ustawionego koloru domyślnie będzie szary.
+
+Komunikaty pluginu **nie zawierają powtarzanego prefiksu [Tools]**. Potwierdzenie pojawia się na zielono, błędy na czerwono wraz z podkreślonym błędnym argumentem lub poprawną składnią.
+
 ## Rangi / komendy
 
 | Komenda | Znaczenie |
@@ -38,9 +44,10 @@ Kolory interpretuje centralnie `helpers/Colors.java` z użyciem Adventure Compon
 | `/ranga edytuj premium sufix &7*` | Edytuje suffix |
 | `/ranga edytuj premium nazwa vip` | Zmienia nazwę |
 | `/ranga info [premium]` | Lista rang lub szczegóły i liczba graczy |
+| `/ranga lista` | Wyświetla wszystkie rangi według pozycji, z informacją o możliwości nadania |
 | `/ranga usun premium` | Usuwa rangę, jej uprawnienia i przypisania |
 
-Podkreślenie w parametrach prefix/suffix dla `stworz` służy jako spacja. W poleceniach `edytuj` i `wejscie` możesz podać tekst z odstępami. Nazwy rang: 1–24 znaków (a-z, 0-9, `_`, `-`).
+Podkreślenie w parametrach prefix/suffix dla `stworz` służy jako spacja. W poleceniach `edytuj` i `wejscie` możesz podać tekst z odstępami. Nazwy rang: 1–24 znaków — także polskie litery (`Właściciel`, `Zażółć`), cyfry, `_`, `-`. Nazwy są zapisywane małymi literami, by komendy nie rozróżniały wielkości znaków.
 
 Dostęp do komend: `tools.ranga.admin` (domyślnie OP). Komendy rejestrowane są w **Javie**, bez wpisów w `plugin.yml`. Podpowiedzi w grze obejmują nazwy rang, online nicki, uprawnienia zarejestrowane na serwerze oraz przykładowe czasy. Nadawanie graczom offline działa dla tych, którzy już kiedyś weszli na serwer (UUID z bazy `tools_players`).
 
@@ -49,7 +56,7 @@ Dostęp do komend: `tools.ranga.admin` (domyślnie OP). Komendy rejestrowane są
 ## Wyświetlanie
 
 - **TAB:** kolory prefixu + nick + suffix. Gracze są sortowani według pola `position` (mniejsza liczba oznacza wyższą rangę); rangi bez przypisania są niżej. Nagłówek i stopka mają HEX.
-- **Czat:** `[PREFIX] NICK » WIADOMOSC` w kolorach Adventure. Zawartość czatu gracza nie jest interpretowana jako kody kolorów.
+- **Czat:** `[PREFIX] NICK » WIADOMOŚĆ` — prefix ma własny kolor, nick i tekst są szare. Zawartość czatu gracza nie jest interpretowana jako kody kolorów.
 - **Wejście:** komunikat wyświetla się wyłącznie, gdy w randze jest ustawiony tekst; użyj `{nick}` i `{ranga}`. W przeciwnym wypadku nie ma komunikatu wejścia.
 - **Nick nad głową:** system teamów scoreboard dla innych graczy; **własny nick w F5** przez osobny `TextDisplay`, widoczny tylko dla siebie. W pliku `config.json` można wyłączyć `ranks.selfNameTag`.
 

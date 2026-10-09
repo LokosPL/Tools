@@ -3,6 +3,7 @@ package pl.lokos.tools.listeners;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -53,12 +54,12 @@ public final class RankListener implements Listener {
         RankSnapshot.Rank rank = snapshot.forPlayer(event.getPlayer().getUniqueId());
         String prefix = rank == null ? config.defaultPrefix() : rank.prefix();
         String suffix = rank == null ? "" : rank.suffix();
-        Component rankText = Colors.color(prefix);
-        Component endText = Colors.color(suffix);
+        Component rankText = Colors.color("&7" + prefix);
+        Component endText = Colors.color("&7" + suffix);
         event.renderer((sender, displayName, message, viewer) ->
-                rankText.append(Component.text(sender.getName(), NamedTextColor.WHITE))
+                rankText.append(Component.text(sender.getName(), NamedTextColor.GRAY))
                         .append(endText)
-                        .append(Colors.color(" &8» &f"))
-                        .append(message));
+                        .append(Colors.color(" &8» &7"))
+                        .append(Component.text(PlainTextComponentSerializer.plainText().serialize(message), NamedTextColor.GRAY)));
     }
 }

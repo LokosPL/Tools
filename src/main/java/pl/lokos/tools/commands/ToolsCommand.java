@@ -6,10 +6,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.DatabaseManager;
 import pl.lokos.tools.database.PlayerRepository;
+import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.helpers.PlayerDataHelper;
-import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.PlayerDataManager;
-import pl.lokos.tools.variables.PluginConstants;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,70 +39,82 @@ public final class ToolsCommand implements BasicCommand {
     @Override
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
-        if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
-            Colors.send(sender, PluginConstants.PREFIX + "Komendy: /tools status, /tools ping, /tools stats <nick>");
+        if (args.length == 0 || args[0].equalsIgnoreCase("pomoc") || args[0].equalsIgnoreCase("help")) {
+            Messages.title(sender, "NARZĘDZIA SERWERA");
+            Messages.line(sender, "&e/tools status &8- &7Stan połączenia MySQL");
+            Messages.line(sender, "&e/tools ping &8- &7Czas odpowiedzi bazy danych");
+            Messages.line(sender, "&e/tools stats <nick> &8- &7Statystyki gracza");
+            Messages.line(sender, "&e/ranga lista &8- &7Lista dostępnych rang");
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "status" -> {
-                String state = database == null ? "Wylaczona" : database.status().displayName();
-                Colors.send(sender, PluginConstants.PREFIX + "MySQL: &e" + state +
-                        "&7 | sesje online: &e" + (playerData == null ? 0 : playerData.onlineCount()));
+                String state = database == null ? "Wyłączona" : database.status().displayName();
+                Messages.info(sender, "Baza danych: &e" + state
+                        + "&7 | Graczy online: &e" + (playerData == null ? 0 : playerData.onlineCount()));
             }
             case "ping" -> {
                 if (repository == null) {
-                    Colors.send(sender, PluginConstants.PREFIX + "&cMySQL jest wylaczony w config.json.");
+                    Messages.error(sender, "Baza MySQL jest wyłączona w konfiguracji.");
                     return;
                 }
-                Colors.send(sender, PluginConstants.PREFIX + "Sprawdzam MySQL...");
-                repository.ping().whenComplete((latency, error) -> respond(sender, () -> {
+                Messages.info(sender, "Sprawdzanie połączenia z MySQL...");
+                repository.ping().whenComplete((delay, error) -> respond(() -> {
                     if (error != null) {
-                        Colors.send(sender, PluginConstants.PREFIX + "&cBlad polaczenia MySQL. Zobacz logi.");
-                        plugin.getLogger().log(Level.WARNING, "MySQL ping failed", error);
+                        Messages.error(sender, "Nie można połączyć się z MySQL. Sprawdź konsolę.");
+                        plugin.getLogger().log(Level.WARNING, "Błąd testu MySQL", error);
                     } else {
-                        Colors.send(sender, PluginConstants.PREFIX + "MySQL odpowiada: &a" + latency + " ms");
+                        Messages.success(sender, "Połączenie z bazą działa. Opóźnienie: &e" + delay + " ms");
                     }
                 }));
             }
             case "stats" -> {
                 if (args.length != 2) {
-                    Colors.send(sender, PluginConstants.PREFIX + "Uzycie: /tools stats <nick>");
+                    Messages.error(sender, "Brakuje nicku gracza.");
+                    Messages.usage(sender, "/tools stats <nick>");
                     return;
                 }
                 if (repository == null) {
-                    Colors.send(sender, PluginConstants.PREFIX + "&cMySQL jest wylaczony.");
+                    Messages.error(sender, "Baza MySQL jest wyłączona.");
                     return;
                 }
                 String name = args[1];
-                repository.findByName(name).whenComplete((stats, error) -> respond(sender, () -> {
+                repository.findByName(name).whenComplete((stats, error) -> respond(() -> {
                     if (error != null) {
-                        Colors.send(sender, PluginConstants.PREFIX + "&cNie udalo sie pobrac statystyk.");
-                        plugin.getLogger().log(Level.WARNING, "MySQL statistics query failed", error);
+                        Messages.error(sender, "Nie udało się pobrać statystyk.");
+                        plugin.getLogger().log(Level.WARNING, "Błąd statystyk MySQL", error);
                     } else if (stats == null) {
-                        Colors.send(sender, PluginConstants.PREFIX + "Brak danych dla " + name + ".");
+                        Messages.error(sender, "Nie znaleziono gracza &c&n" + name + "&r&c w bazie.");
                     } else {
-                        Colors.send(sender, PluginConstants.PREFIX + "&b" + stats.name() +
-                                "&7 | wejscia: &e" + stats.joins() +
-                                "&7 | czas gry: &e" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
+                        Messages.title(sender, "STATYSTYKI " + stats.name());
+                        Messages.info(sender, "Wejścia: &e" + stats.joins());
+                        Messages.info(sender, "Czas gry: &e" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
                     }
                 }));
             }
-            default -> Colors.send(sender, PluginConstants.PREFIX + "Nieznana komenda. /tools help");
+            default -> {
+                Messages.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
+                Messages.hint(sender, "Użyj &e/tools pomoc&7, aby zobaczyć polecenia.");
+            }
         }
     }
 
-    private void respond(CommandSender sender, Runnable callback) {
-        if (plugin.isEnabled()) {
-            plugin.getServer().getScheduler().runTask(plugin, callback);
-        }
+    private void respond(Runnable callback) {
+        if (plugin.isEnabled()) plugin.getServer().getScheduler().runTask(plugin, callback);
     }
 
     @Override
     public Collection<String> suggest(CommandSourceStack source, String[] args) {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
-            return List.of("help", "status", "ping", "stats").stream()
+            return List.of("pomoc", "status", "ping", "stats").stream()
                     .filter(option -> option.startsWith(prefix)).toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("stats")) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return plugin.getServer().getOnlinePlayers().stream()
+                    .map(player -> player.getName())
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).toList();
         }
         return List.of();
     }

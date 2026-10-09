@@ -47,13 +47,15 @@ public final class RankVisualManager {
         int index = 0;
         for (RankSnapshot.Rank rank : sorted) {
             Team team = scoreboard.registerNewTeam(String.format(Locale.ROOT, "r%04d", index++));
-            team.prefix(Colors.color(rank.prefix()));
-            team.suffix(Colors.color(rank.suffix()));
+            team.prefix(Colors.color("&7" + rank.prefix()));
+            team.color(NamedTextColor.GRAY);
+            team.suffix(Colors.color("&7" + rank.suffix()));
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
             teams.put(rank.name(), team);
         }
         Team common = scoreboard.registerNewTeam("r9999");
         common.prefix(Colors.color(config.defaultPrefix()));
+        common.color(NamedTextColor.GRAY);
         common.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
 
         List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
@@ -82,8 +84,8 @@ public final class RankVisualManager {
     private Component label(Player player, RankSnapshot.Rank rank) {
         String prefix = rank == null ? config.defaultPrefix() : rank.prefix();
         String suffix = rank == null ? "" : rank.suffix();
-        return Colors.color(prefix).append(Component.text(player.getName(), NamedTextColor.WHITE))
-                .append(Colors.color(suffix));
+        return Colors.color("&7" + prefix).append(Component.text(player.getName(), NamedTextColor.GRAY))
+                .append(Colors.color("&7" + suffix));
     }
 
     private void updateSelfTag(Player player, RankSnapshot.Rank rank) {
@@ -141,7 +143,7 @@ public final class RankVisualManager {
         selfTags.clear();
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.setScoreboard(Objects.requireNonNull(Bukkit.getScoreboardManager()).getMainScoreboard());
-            player.playerListName(Component.text(player.getName()));
+            player.playerListName(Component.text(player.getName(), NamedTextColor.GRAY));
         }
     }
 }

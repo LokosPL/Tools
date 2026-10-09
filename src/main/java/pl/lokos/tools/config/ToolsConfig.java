@@ -93,7 +93,7 @@ public final class ToolsConfig {
     public static final class Ranks {
         private boolean enabled = true;
         private boolean selfNameTag = true;
-        private String defaultPrefix = "&8[&7Gracz&8] &f";
+        private String defaultPrefix = "&8[&7Gracz&8] &7";
         private String tabHeader = "&#4ACBFF&lTOOLS &8| &fSerwer Minecraft";
         private String tabFooter = "&7Online: &#77DD88{online} &8| &#4ACBFF&lMilej gry!";
 
