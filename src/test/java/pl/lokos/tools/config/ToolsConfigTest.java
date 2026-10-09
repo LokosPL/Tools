@@ -15,7 +15,10 @@ class ToolsConfigTest {
         ToolsConfig config = gson.fromJson("{}", ToolsConfig.class);
         assertDoesNotThrow(config::validate);
         assertEquals(30, config.autosaveSeconds());
-        assertFalse(config.database().enabled());
+        assertTrue(config.database().enabled());
+        assertEquals("root", config.database().username());
+        assertEquals("", config.database().password());
+        assertTrue(config.database().createDatabaseIfMissing());
         assertTrue(config.commands().tools().enabled());
         assertEquals("tools.admin", config.commands().tools().permission());
         assertEquals(List.of(), config.commands().tools().aliases());
