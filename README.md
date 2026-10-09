@@ -1,3 +1,14 @@
+## Poprawka 1.6.1 — GUI regionów i gęste granice
+
+- **Naprawiono NullPointerException** w `RegionMenuListener.click` przy zmianie ustawienia na „dziedziczenie”. Flagi przełączają się kolejno: **dziedziczenie → dozwolone → zabronione → dziedziczenie** bez próby rozpakowania `null` do `boolean`.
+- **Gęstszy podgląd granic**: cząsteczki koloru miętowo-zielonego co **1,5 bloku**, w **trzech warstwach wysokości**. Pokazywane tylko graczowi uruchamiającemu podgląd, przez **10 sekund**, w odległości **36 bloków**. Punktów jest maksymalnie **140** na cykl, więc koszt nie zależy od rozmiaru regionu.
+- Jeśli granica leży dalej niż 36 bloków od gracza, pojawia się wskazówka, aby podejść bliżej — zamiast pozornie pustego podglądu.
+- Dodano testy przełączania trzech stanów i wyliczania gęstych punktów na granicy.
+
+Po podmianie JAR-a wykonaj pełny restart serwera. Zmiana nie wymaga kasowania żadnych plików JSON ani danych MySQL.
+
+---
+
 # Tools 1.6.0 — panele GUI, granularne flagi regionów, płynne etykiety
 
 ## Najważniejsze zmiany

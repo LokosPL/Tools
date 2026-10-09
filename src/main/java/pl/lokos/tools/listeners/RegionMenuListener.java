@@ -81,7 +81,7 @@ public final class RegionMenuListener implements Listener {
                     try {flag=RegionFlag.valueOf(action.substring(5));}
                     catch(IllegalArgumentException e){return;}
                     Boolean before=r.flags().get(flag);
-                    Boolean after=before==null?true:before?false:null;
+                    Boolean after=RegionFlagCycle.next(before);
                     processing.add(player.getUniqueId());
                     regions.flag(r.name(),flag,after).whenComplete((v,error)->finish(player,holder,error,
                             ()->menus.flags(player,r.name(),holder.page())));
