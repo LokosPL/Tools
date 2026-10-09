@@ -1,10 +1,14 @@
 package pl.lokos.tools.config;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public final class ToolsConfig {
     private int autosaveSeconds = 30;
     private Database database = new Database();
+    private Commands commands = new Commands();
 
     public int autosaveSeconds() {
         return autosaveSeconds;
@@ -14,6 +18,10 @@ public final class ToolsConfig {
         return database;
     }
 
+    public Commands commands() {
+        return commands;
+    }
+
     public void validate() {
         if (autosaveSeconds < 5 || autosaveSeconds > 3600) {
             throw new IllegalArgumentException("autosaveSeconds musi miec wartosc 5-3600.");
@@ -21,7 +29,58 @@ public final class ToolsConfig {
         if (database == null) {
             throw new IllegalArgumentException("Brakuje sekcji database.");
         }
+        if (commands == null) {
+            throw new IllegalArgumentException("Brakuje sekcji commands.");
+        }
         database.validate();
+        commands.validate();
+    }
+
+    public static final class Commands {
+        private Tools tools = new Tools();
+
+        public Tools tools() {
+            return tools;
+        }
+
+        private void validate() {
+            if (tools == null) {
+                throw new IllegalArgumentException("Brakuje sekcji commands.tools.");
+            }
+            tools.validate();
+        }
+
+        public static final class Tools {
+            private boolean enabled = true;
+            private String description = "Informacje, status i statystyki Tools";
+            private List<String> aliases = List.of();
+            private String permission = "tools.admin";
+
+            public boolean enabled() { return enabled; }
+            public String description() { return description; }
+            public List<String> aliases() { return List.copyOf(aliases); }
+            public String permission() { return permission; }
+
+            private void validate() {
+                if (description == null || description.isBlank()) {
+                    throw new IllegalArgumentException("commands.tools.description nie moze byc pusty.");
+                }
+                if (permission == null || !permission.matches("[a-z0-9_.-]+")) {
+                    throw new IllegalArgumentException("Nieprawidlowy commands.tools.permission.");
+                }
+                if (aliases == null) {
+                    throw new IllegalArgumentException("Brakuje commands.tools.aliases.");
+                }
+                Set<String> used = new HashSet<>();
+                for (String alias : aliases) {
+                    if (alias == null || !alias.matches("[a-zA-Z0-9_-]+")
+                            || alias.equalsIgnoreCase("tools")
+                            || !used.add(alias.toLowerCase(Locale.ROOT))) {
+                        throw new IllegalArgumentException("Nieprawidlowy lub powtorzony alias komendy Tools: " + alias);
+                    }
+                }
+            }
+        }
     }
 
     public static final class Database {

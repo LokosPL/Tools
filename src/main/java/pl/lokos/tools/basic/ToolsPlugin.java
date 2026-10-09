@@ -21,12 +21,14 @@ public final class ToolsPlugin extends JavaPlugin {
     private PlayerDataManager playerData;
     private InventoryRegistry inventories;
     private BukkitTask autosaveTask;
+    private ToolsConfig config;
 
     @Override
     public void onEnable() {
-        final ToolsConfig config;
+        // Wszystkie ustawienia odczytujemy dokladnie raz na starcie.
+        // Kolejnosc: JSON -> walidacja -> zaleznosci -> komendy -> listenery i taski.
         try {
-            config = new JsonConfigManager(getDataFolder().toPath()).load();
+            this.config = new JsonConfigManager(getDataFolder().toPath()).load();
         } catch (IOException error) {
             getLogger().severe("Nie mozna odczytac konfiguracji: " + error.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -40,12 +42,6 @@ public final class ToolsPlugin extends JavaPlugin {
                 this.database = new DatabaseManager(this, config.database());
                 repository = new PlayerRepository(database);
                 this.playerData = new PlayerDataManager(this, repository);
-                getServer().getPluginManager().registerEvents(new PlayerConnectionListener(playerData), this);
-                for (var player : Bukkit.getOnlinePlayers()) {
-                    playerData.playerJoined(player);
-                }
-                long interval = config.autosaveSeconds() * 20L;
-                this.autosaveTask = new AutosaveTask(playerData).runTaskTimer(this, interval, interval);
             } catch (RuntimeException error) {
                 getLogger().severe("Nie mozna uruchomic MySQL: " + error.getMessage());
                 getServer().getPluginManager().disablePlugin(this);
@@ -54,7 +50,17 @@ public final class ToolsPlugin extends JavaPlugin {
         } else {
             getLogger().warning("MySQL wylaczony. Wlacz database.enabled w plugins/Tools/config.json.");
         }
-        new CommandRegistry(this).register(database, repository, playerData);
+
+        new CommandRegistry(this).register(config.commands(), database, repository, playerData);
+
+        if (playerData != null) {
+            getServer().getPluginManager().registerEvents(new PlayerConnectionListener(playerData), this);
+            for (var player : Bukkit.getOnlinePlayers()) {
+                playerData.playerJoined(player);
+            }
+            long interval = config.autosaveSeconds() * 20L;
+            this.autosaveTask = new AutosaveTask(playerData).runTaskTimer(this, interval, interval);
+        }
         getLogger().info("Tools zostal wlaczony na Paper 26.3.");
     }
 
@@ -78,5 +84,9 @@ public final class ToolsPlugin extends JavaPlugin {
 
     public PlayerDataManager playerData() {
         return playerData;
+    }
+
+    public ToolsConfig config() {
+        return config;
     }
 }

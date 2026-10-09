@@ -1,5 +1,13 @@
 {
   "autosaveSeconds": 30,
+  "commands": {
+    "tools": {
+      "enabled": true,
+      "description": "Informacje, status i statystyki Tools",
+      "aliases": [],
+      "permission": "tools.admin"
+    }
+  },
   "database": {
     "enabled": false,
     "host": "127.0.0.1",

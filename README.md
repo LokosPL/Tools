@@ -12,11 +12,28 @@ Modułowy plugin **Minecraft Java 26.3 / Paper 26.3** z asynchronicznym zapisem 
 
 **Uwaga:** początkowo `database.enabled=false`, by plugin mógł wystartować przed skonfigurowaniem dostępu do MySQL. Nie przesyłaj swojego prawdziwego `config.json` do GitHuba. MySQL musi być dostępny sieciowo z hosta serwera.
 
+## Uruchamianie i rejestrowanie komend
+
+- `plugin.yml` zawiera **wyłącznie metadane** wymagane przez Paper do załadowania głównej klasy `ToolsPlugin`. Nie zawiera `commands:` ani `permissions:`.
+- Komendy rejestruje klasa `registry/CommandRegistry.java` poprzez **Paper `JavaPlugin#registerCommand` + `BasicCommand`**. Nie korzystamy z `getCommand()` ani starego Bukkit `CommandExecutor`.
+- Podczas `onEnable()` ładowany i walidowany jest **jeden raz** `plugins/Tools/config.json`. Dopiero potem plugin uruchamia MySQL i rejestruje komendy, listenery oraz zadania.
+- Zmiany konfiguracji (np. aliasu, hasła MySQL, liczby sekund autosave) wymagają **pełnego restartu serwera**. Nie czytamy ponownie plików w czasie działania, a `/reload` nie jest zalecany.
+- Jeśli `config.json` powstał w wersji 1.0.0, nowa sekcja `commands` jest **opcjonalna**: Java użyje domyślnych ustawień; aby edytować aliasy/uprawnienia, dopisz ją ręcznie. Plugin **nie nadpisuje istniejącej konfiguracji**.
+- Uprawnienia są deklarowane w Javie: domyślnie `tools.admin` ma dostęp dla OP. Można zmienić identyfikator permisji w JSON; rejestracja Paper uwzględnia ją przy wyświetlaniu i wykonywaniu komend.
+
 ### Przykładowy config.json
 
 ```json
 {
   "autosaveSeconds": 30,
+  "commands": {
+    "tools": {
+      "enabled": true,
+      "description": "Informacje, status i statystyki Tools",
+      "aliases": ["narzedzia"],
+      "permission": "tools.admin"
+    }
+  },
   "database": {
     "enabled": true,
     "host": "127.0.0.1",
@@ -37,8 +54,8 @@ W środowisku produkcyjnym przy konfiguracji poprawnego certyfikatu MySQL zaleca
 
 ```
 src/main/java/pl/lokos/tools/
-  basic/        ToolsPlugin (cykl życia)
-  commands/     ToolsCommand (/tools)
+  basic/        ToolsPlugin (cykl życia i uruchamianie konfiguracji)
+  commands/     ToolsCommand (/tools, implementacja Paper BasicCommand)
   enums/        DatabaseStatus
   helpers/      PlayerDataHelper
   config/       JsonConfigManager, ToolsConfig
@@ -46,7 +63,7 @@ src/main/java/pl/lokos/tools/
   variables/    PluginConstants
   inventorys/   InventoryRegistry (rozszerzalne GUI)
   listeners/    PlayerConnectionListener
-  registry/     CommandRegistry
+  registry/     CommandRegistry (rejestracja komend w Javie)
   tasks/        AutosaveTask
   manager/      PlayerDataManager
   database/     DatabaseManager, PlayerRepository, PlayerSnapshot
@@ -68,7 +85,7 @@ src/main/java/pl/lokos/tools/
 | `/tools ping` | Pomiar odpowiedzi SQL |
 | `/tools stats <nick>` | Liczba wejść i zapisany czas gry |
 
-Wymagane uprawnienie: `tools.admin` (domyślnie OP).
+Domyślne uprawnienie: `tools.admin` (OP).
 
 ## Rozwój i testy
 
