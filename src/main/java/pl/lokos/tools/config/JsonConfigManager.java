@@ -36,12 +36,21 @@ public final class JsonConfigManager {
 
     public <T> T load(String fileName, Class<T> type, Supplier<T> defaultsFactory,
                       Consumer<T> validator) throws IOException {
+        return load(fileName, type, defaultsFactory, validator, target -> { });
+    }
+
+    /**
+     * Migrator dostaje kopie pliku JSON. Wynik zapisujemy tylko po walidacji.
+     */
+    public <T> T load(String fileName, Class<T> type, Supplier<T> defaultsFactory,
+                      Consumer<T> validator, Consumer<JsonObject> migration) throws IOException {
         if (fileName == null || !fileName.matches("[a-zA-Z0-9_-]+\\.json")) {
             throw new IllegalArgumentException("Nieprawidlowa nazwa pliku konfiguracyjnego.");
         }
         Objects.requireNonNull(type);
         Objects.requireNonNull(defaultsFactory);
         Objects.requireNonNull(validator);
+        Objects.requireNonNull(migration);
         Files.createDirectories(dataDirectory);
         Path file = dataDirectory.resolve(fileName);
         try {
@@ -65,7 +74,9 @@ public final class JsonConfigManager {
 
             // Dodajemy nowe opcje z Java bez nadpisywania ustawien na dysku.
             JsonObject merged = existing.deepCopy();
-            boolean changed = mergeMissing(javaDefaults, merged);
+            migration.accept(merged);
+            boolean changed = !merged.equals(existing);
+            changed |= mergeMissing(javaDefaults, merged);
             T config = Objects.requireNonNull(GSON.fromJson(merged, type), "Pusta konfiguracja.");
             validator.accept(config);
 
