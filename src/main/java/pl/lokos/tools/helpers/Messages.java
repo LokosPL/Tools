@@ -7,11 +7,11 @@ public final class Messages {
     private Messages() {}
 
     public static void success(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&a&lSUKCES &8» &7" + value));
+        to.sendMessage(Colors.color("&a&lSUKCES &8-> &7" + value));
     }
 
     public static void error(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&c&lBŁĄD &8» &c" + value));
+        to.sendMessage(Colors.color("&c&lBŁĄD &8-> &c" + value));
     }
 
     public static void info(CommandSender to, String value) {
@@ -23,14 +23,14 @@ public final class Messages {
     }
 
     public static void title(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&8&m----------------&r &a&l" + value + " &8&m----------------"));
+        to.sendMessage(Colors.color("&a&l" + value + " &8----------------"));
     }
 
     public static void usage(CommandSender to, String syntax) {
-        to.sendMessage(Colors.color("&7Poprawna składnia &8» &a&n" + syntax));
+        to.sendMessage(Colors.color("&8Składnia: &7" + syntax));
     }
 
     public static void hint(CommandSender to, String value) {
-        to.sendMessage(Colors.color("&a&lTIP &8» &7" + value));
+        to.sendMessage(Colors.color("&a&lTIP &8-> &7" + value));
     }
 }

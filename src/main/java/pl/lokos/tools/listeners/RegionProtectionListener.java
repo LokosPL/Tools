@@ -113,6 +113,7 @@ public final class RegionProtectionListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void ignite(BlockIgniteEvent e) {
+        if (e.getPlayer()!=null && regions.bypass(e.getPlayer())) return;
         if (denies(e.getBlock().getLocation(),RegionFlag.FIRE)) e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -121,7 +122,10 @@ public final class RegionProtectionListener implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void dispense(BlockDispenseEvent e) {
-        if(denies(e.getBlock().getLocation(),RegionFlag.INTERACT))
+        Location origin=e.getBlock().getLocation();
+        Location destination=e.getBlock().getBlockData() instanceof org.bukkit.block.data.Directional facing
+                ? e.getBlock().getRelative(facing.getFacing()).getLocation() : origin;
+        if(denies(origin,RegionFlag.INTERACT) || denies(destination,RegionFlag.FLUIDS))
             e.setCancelled(true);
     }
 
@@ -171,7 +175,12 @@ public final class RegionProtectionListener implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void mobs(CreatureSpawnEvent e) {
-        if(denies(e.getLocation(),RegionFlag.MOBS)) e.setCancelled(true);
+        if(!denies(e.getLocation(),RegionFlag.MOBS)) return;
+        if(e.getSpawnReason()==CreatureSpawnEvent.SpawnReason.SPAWNER_EGG) {
+            boolean adminNearby=e.getLocation().getNearbyPlayers(5.0).stream().anyMatch(regions::bypass);
+            if(adminNearby) return;
+        }
+        e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void entityBlocks(EntityChangeBlockEvent e) {
