@@ -70,7 +70,7 @@ public final class ToolsPlugin extends JavaPlugin {
                     new RankListener(rankManager, rankVisuals, config.ranks()), this);
             rankManager.start();
             getServer().getScheduler().runTaskTimer(this, rankVisuals::tick, 4L, 4L);
-            getServer().getScheduler().runTaskTimer(this, rankManager::expire, 200L, 200L);
+            getServer().getScheduler().runTaskTimer(this, rankManager::expire, 20L, 20L);
         }
 
         if (playerData != null) {

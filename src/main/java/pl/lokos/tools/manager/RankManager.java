@@ -24,6 +24,7 @@ public final class RankManager {
     private final Set<UUID> opPending = new HashSet<>();
     private volatile RankSnapshot snapshot = RankSnapshot.empty();
     private boolean stopping;
+    private boolean expirePending;
     private RankVisualManager visuals;
     private CompletableFuture<Void> mutationTail = CompletableFuture.completedFuture(null);
 
@@ -80,10 +81,27 @@ public final class RankManager {
     }
 
     public void expire() {
-        if (stopping) return;
-        change(() -> repository.expire(System.currentTimeMillis())).exceptionally(error -> {
-            plugin.getLogger().log(Level.WARNING, "Nie udalo sie odswiezyc wygaslych rang.", error);
-            return null;
+        if (stopping || expirePending) return;
+        long now = System.currentTimeMillis();
+        boolean due = snapshot.grants().values().stream()
+                .anyMatch(grant -> grant.expiresAt() != null && grant.expiresAt() <= now);
+        if (!due) return;
+
+        // Natychmiast blokujemy uprawnienia wygaslych rang na glownym watku.
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            RankSnapshot.Grant grant = snapshot.grants().get(player.getUniqueId());
+            if (grant != null && !grant.active(now)) apply(player);
+        }
+        if (visuals != null) visuals.refresh();
+
+        expirePending = true;
+        change(() -> repository.expire(now)).whenComplete((unused, error) -> {
+            if (!plugin.isEnabled()) return;
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                expirePending = false;
+                if (error != null) plugin.getLogger().log(Level.WARNING,
+                        "Nie udalo sie odswiezyc wygaslych rang.", error);
+            });
         });
     }
 

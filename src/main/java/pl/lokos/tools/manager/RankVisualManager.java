@@ -59,7 +59,7 @@ public final class RankVisualManager {
         List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
         players.sort(Comparator.comparingInt((Player p) -> priority(snapshot.forPlayer(p.getUniqueId())))
                 .thenComparing(Player::getName, String.CASE_INSENSITIVE_ORDER));
-        int order = 0;
+        int order = 1;
         for (Player player : players) {
             RankSnapshot.Rank rank = snapshot.forPlayer(player.getUniqueId());
             teams.getOrDefault(rank == null ? "" : rank.name(), common).addEntry(player.getName());

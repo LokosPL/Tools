@@ -95,6 +95,7 @@ public final class RankCommand implements BasicCommand {
                     String name = rankName(args[1]);
                     String field = args[2].toLowerCase(Locale.ROOT);
                     String value = join(args, 3);
+                    if (!field.equals("nazwa")) value = value.replace('_', ' ');
                     if (field.equals("nazwa")) value = rankName(value);
                     if (value.length() > 256) throw new IllegalArgumentException("Wartosc jest za dluga.");
                     final String newValue = value;

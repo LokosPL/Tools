@@ -5,12 +5,12 @@ public enum DatabaseStatus {
 
     public String displayName() {
         return switch (this) {
-            case DISABLED -> "Wylaczona";
+            case DISABLED -> "Wyłączona";
             case STARTING -> "Uruchamianie";
             case READY -> "Gotowe";
-            case FAILED -> "Blad";
+            case FAILED -> "Błąd";
             case CLOSING -> "Zamykanie";
-            case CLOSED -> "Zamknieta";
+            case CLOSED -> "Zamknięta";
         };
     }
 }
