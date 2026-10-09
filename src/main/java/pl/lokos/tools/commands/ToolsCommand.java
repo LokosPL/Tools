@@ -7,6 +7,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.DatabaseManager;
 import pl.lokos.tools.database.PlayerRepository;
 import pl.lokos.tools.helpers.PlayerDataHelper;
+import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.PlayerDataManager;
 import pl.lokos.tools.variables.PluginConstants;
 
@@ -40,54 +41,54 @@ public final class ToolsCommand implements BasicCommand {
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
-            sender.sendMessage(PluginConstants.PREFIX + "Komendy: /tools status, /tools ping, /tools stats <nick>");
+            Colors.send(sender, PluginConstants.PREFIX + "Komendy: /tools status, /tools ping, /tools stats <nick>");
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "status" -> {
-                String state = database == null ? "DISABLED" : database.status().name();
-                sender.sendMessage(PluginConstants.PREFIX + "MySQL: §e" + state +
-                        "§7 | sesje online: §e" + (playerData == null ? 0 : playerData.onlineCount()));
+                String state = database == null ? "Wylaczona" : database.status().displayName();
+                Colors.send(sender, PluginConstants.PREFIX + "MySQL: &e" + state +
+                        "&7 | sesje online: &e" + (playerData == null ? 0 : playerData.onlineCount()));
             }
             case "ping" -> {
                 if (repository == null) {
-                    sender.sendMessage(PluginConstants.PREFIX + "§cMySQL jest wylaczony w config.json.");
+                    Colors.send(sender, PluginConstants.PREFIX + "&cMySQL jest wylaczony w config.json.");
                     return;
                 }
-                sender.sendMessage(PluginConstants.PREFIX + "Sprawdzam MySQL...");
+                Colors.send(sender, PluginConstants.PREFIX + "Sprawdzam MySQL...");
                 repository.ping().whenComplete((latency, error) -> respond(sender, () -> {
                     if (error != null) {
-                        sender.sendMessage(PluginConstants.PREFIX + "§cBlad polaczenia MySQL. Zobacz logi.");
+                        Colors.send(sender, PluginConstants.PREFIX + "&cBlad polaczenia MySQL. Zobacz logi.");
                         plugin.getLogger().log(Level.WARNING, "MySQL ping failed", error);
                     } else {
-                        sender.sendMessage(PluginConstants.PREFIX + "MySQL odpowiada: §a" + latency + " ms");
+                        Colors.send(sender, PluginConstants.PREFIX + "MySQL odpowiada: &a" + latency + " ms");
                     }
                 }));
             }
             case "stats" -> {
                 if (args.length != 2) {
-                    sender.sendMessage(PluginConstants.PREFIX + "Uzycie: /tools stats <nick>");
+                    Colors.send(sender, PluginConstants.PREFIX + "Uzycie: /tools stats <nick>");
                     return;
                 }
                 if (repository == null) {
-                    sender.sendMessage(PluginConstants.PREFIX + "§cMySQL jest wylaczony.");
+                    Colors.send(sender, PluginConstants.PREFIX + "&cMySQL jest wylaczony.");
                     return;
                 }
                 String name = args[1];
                 repository.findByName(name).whenComplete((stats, error) -> respond(sender, () -> {
                     if (error != null) {
-                        sender.sendMessage(PluginConstants.PREFIX + "§cNie udalo sie pobrac statystyk.");
+                        Colors.send(sender, PluginConstants.PREFIX + "&cNie udalo sie pobrac statystyk.");
                         plugin.getLogger().log(Level.WARNING, "MySQL statistics query failed", error);
                     } else if (stats == null) {
-                        sender.sendMessage(PluginConstants.PREFIX + "Brak danych dla " + name + ".");
+                        Colors.send(sender, PluginConstants.PREFIX + "Brak danych dla " + name + ".");
                     } else {
-                        sender.sendMessage(PluginConstants.PREFIX + "§b" + stats.name() +
-                                "§7 | wejscia: §e" + stats.joins() +
-                                "§7 | czas gry: §e" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
+                        Colors.send(sender, PluginConstants.PREFIX + "&b" + stats.name() +
+                                "&7 | wejscia: &e" + stats.joins() +
+                                "&7 | czas gry: &e" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
                     }
                 }));
             }
-            default -> sender.sendMessage(PluginConstants.PREFIX + "Nieznana komenda. /tools help");
+            default -> Colors.send(sender, PluginConstants.PREFIX + "Nieznana komenda. /tools help");
         }
     }
 

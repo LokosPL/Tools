@@ -4,6 +4,8 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.commands.ToolsCommand;
+import pl.lokos.tools.commands.RankCommand;
+import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.database.DatabaseManager;
 import pl.lokos.tools.database.PlayerRepository;
@@ -19,8 +21,17 @@ public final class CommandRegistry {
     // Wywoluj wylacznie podczas onEnable(), po zaladowaniu i walidacji konfiguracji.
     // Rejestracja Paper BasicCommand nie wymaga sekcji commands w plugin.yml.
     public void register(ToolsConfig.Commands configuration,
-                         DatabaseManager database, PlayerRepository repository, PlayerDataManager playerData) {
+                         DatabaseManager database, PlayerRepository repository,
+                         PlayerDataManager playerData, RankManager ranks) {
         ToolsConfig.Commands.Tools tools = configuration.tools();
+        if (ranks != null) {
+            if (plugin.getServer().getPluginManager().getPermission("tools.ranga.admin") == null) {
+                plugin.getServer().getPluginManager().addPermission(
+                        new Permission("tools.ranga.admin", PermissionDefault.OP));
+            }
+            plugin.registerCommand("ranga", "Zarzadzanie rangami serwera", java.util.List.of(),
+                    new RankCommand(plugin, ranks));
+        }
         if (!tools.enabled()) {
             plugin.getLogger().info("Komenda /tools wylaczona w config.json.");
             return;

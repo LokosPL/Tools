@@ -141,6 +141,40 @@ public final class DatabaseManager {
                       KEY idx_tools_session_player (player_uuid)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                     """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_ranks (
+                      name VARCHAR(24) NOT NULL PRIMARY KEY,
+                      prefix VARCHAR(256) NOT NULL DEFAULT '',
+                      suffix VARCHAR(256) NOT NULL DEFAULT '',
+                      position SMALLINT NULL,
+                      join_message VARCHAR(512) NOT NULL DEFAULT ''
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_rank_permissions (
+                      rank_name VARCHAR(24) NOT NULL,
+                      permission VARCHAR(128) NOT NULL,
+                      PRIMARY KEY (rank_name, permission),
+                      FOREIGN KEY (rank_name) REFERENCES tools_ranks(name)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_player_ranks (
+                      player_uuid CHAR(36) NOT NULL PRIMARY KEY,
+                      rank_name VARCHAR(24) NOT NULL,
+                      expires_at BIGINT NULL,
+                      KEY idx_rank_expiry (expires_at),
+                      FOREIGN KEY (rank_name) REFERENCES tools_ranks(name)
+                        ON UPDATE CASCADE ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_rank_op_restore (
+                      player_uuid CHAR(36) NOT NULL PRIMARY KEY,
+                      original_op BOOLEAN NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
         }
     }
 

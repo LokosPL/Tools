@@ -9,6 +9,7 @@ public final class ToolsConfig {
     private int autosaveSeconds = 30;
     private Database database = new Database();
     private Commands commands = new Commands();
+    private Ranks ranks = new Ranks();
 
     public int autosaveSeconds() {
         return autosaveSeconds;
@@ -20,6 +21,10 @@ public final class ToolsConfig {
 
     public Commands commands() {
         return commands;
+    }
+
+    public Ranks ranks() {
+        return ranks;
     }
 
     public void validate() {
@@ -34,6 +39,8 @@ public final class ToolsConfig {
         }
         database.validate();
         commands.validate();
+        if (ranks == null) throw new IllegalArgumentException("Brakuje sekcji ranks.");
+        ranks.validate();
     }
 
     public static final class Commands {
@@ -79,6 +86,29 @@ public final class ToolsConfig {
                         throw new IllegalArgumentException("Nieprawidlowy lub powtorzony alias komendy Tools: " + alias);
                     }
                 }
+            }
+        }
+    }
+
+    public static final class Ranks {
+        private boolean enabled = true;
+        private boolean selfNameTag = true;
+        private String defaultPrefix = "&8[&7Gracz&8] &f";
+        private String tabHeader = "&#4ACBFF&lTOOLS &8| &fSerwer Minecraft";
+        private String tabFooter = "&7Online: &#77DD88{online} &8| &#4ACBFF&lMilej gry!";
+
+        public boolean enabled() { return enabled; }
+        public boolean selfNameTag() { return selfNameTag; }
+        public String defaultPrefix() { return defaultPrefix; }
+        public String tabHeader() { return tabHeader; }
+        public String tabFooter() { return tabFooter; }
+
+        private void validate() {
+            if (defaultPrefix == null || tabHeader == null || tabFooter == null) {
+                throw new IllegalArgumentException("Puste pola konfiguracji rang.");
+            }
+            if (defaultPrefix.length() > 256 || tabHeader.length() > 1024 || tabFooter.length() > 1024) {
+                throw new IllegalArgumentException("Tekst tablisty lub prefixu za dlugi.");
             }
         }
     }
