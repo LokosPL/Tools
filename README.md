@@ -1,56 +1,21 @@
 # Tools
 
-Modułowy plugin **Minecraft Java 26.3 / Paper 26.3** z asynchronicznym zapisem sesji do MySQL. Wymaga **Java 25**. Projekt startowy do dalszej rozbudowy w IntelliJ IDEA.
+Modułowy plugin Minecraft Java **Paper 26.3 / Java 25**. Wszystkie domyślne konfiguracje i komendy definiowane są w kodzie Java. Plugin obsługuje MySQL asynchronicznie przez HikariCP.
 
-## Instalacja
+## Laragon / HeidiSQL — domyślne połączenie
 
-1. Pobierz **Tools.jar** z [GitHub Actions](https://github.com/LokosPL/Tools/actions/workflows/build.yml) → najnowsze udane uruchomienie → **Artifacts: Tools-Paper-26.3**. Alternatywnie skompiluj: `mvn clean verify` (Java 25), wynik: `target/Tools.jar`.
-2. Umieść JAR w katalogu `plugins/` serwera **Paper 26.3**, uruchom serwer, aby utworzyć `plugins/Tools/config.json`.
-3. Utwórz pustą bazę MySQL 8.0+ z kodowaniem `utf8mb4` (wymagane uprawnienia CREATE TABLE, INSERT, SELECT, UPDATE), np. `CREATE DATABASE tools CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`.
-4. Ustaw w `config.json` host, port, bazę, użytkownika oraz `"enabled": true`. Hasło wpisz w `"password"` albo najlepiej zostaw `"${TOOLS_DB_PASSWORD}"` i ustaw zmienną środowiskową `TOOLS_DB_PASSWORD` dla procesu serwera.
-5. Zrestartuj serwer. Sprawdź: `/tools status`, `/tools ping`, `/tools stats <nick>`.
-
-**Uwaga:** początkowo `database.enabled=false`, by plugin mógł wystartować przed skonfigurowaniem dostępu do MySQL. Nie przesyłaj swojego prawdziwego `config.json` do GitHuba. MySQL musi być dostępny sieciowo z hosta serwera.
-
-## Konfiguracje tworzone przez kod Java
-
-**Nie ma już `src/main/resources/default-config.json`.** Wszystkie domyślne opcje (`autosaveSeconds`, `commands`, `database`) są polami z wartościami początkowymi w `src/main/java/pl/lokos/tools/config/ToolsConfig.java`.
-
-- `registry/ConfigRegistry.java` ładuje **wszystkie** konfiguracje przy `onEnable()` — zanim zarejestrujemy komendy, listenerów lub MySQL.
-- `config/JsonConfigManager.java` ma uniwersalną metodę `load()` dla dowolnej klasy Java. Gdy nie istnieje `plugins/Tools/config.json`, zostaje wygenerowany z pól Java, a nie skopiowany z resources.
-- Na kolejnych startach dodaje wyłącznie brakujące właściwości z domyślnych wartości Java. **Zachowuje wartości edytowane przez administratora i jego własne klucze**, nie nadpisuje błędnego pliku. Zapis zmian jest atomowy tam, gdzie obsługuje go system plików.
-- Nowa konfiguracja w przyszłości: definiujesz nową klasę Java z wartościami pól, rejestrujesz ją w `ConfigRegistry.loadAll()` i korzystasz z gotowego obiektu. Nie dodajesz żadnego pliku JSON do JAR.
-- Dopiero po załadowaniu konfiguracji plugin rozpoczyna połączenia i rejestruje komendy w Javie (Paper BasicCommand).
-
-## Uruchamianie i rejestrowanie komend
-
-- `plugin.yml` zawiera **wyłącznie metadane** wymagane przez Paper do załadowania głównej klasy `ToolsPlugin`. Nie zawiera `commands:` ani `permissions:`.
-- Komendy rejestruje klasa `registry/CommandRegistry.java` poprzez **Paper `JavaPlugin#registerCommand` + `BasicCommand`**. Nie korzystamy z `getCommand()` ani starego Bukkit `CommandExecutor`.
-- Podczas `onEnable()` tworzone/wczytywane i walidowane są wszystkie konfiguracje. Dopiero potem plugin uruchamia MySQL i rejestruje komendy, listenery oraz zadania.
-- Zmiany konfiguracji (np. aliasu, hasła MySQL, liczby sekund autosave) wymagają **pełnego restartu serwera**. Nie czytamy ponownie plików w czasie działania, a `/reload` nie jest zalecany.
-- Jeśli `config.json` powstał w wersji 1.0.0, nowa sekcja `commands` jest **opcjonalna**: Java użyje domyślnych ustawień; aby edytować aliasy/uprawnienia, dopisz ją ręcznie. Plugin **nie nadpisuje istniejącej konfiguracji**.
-- Uprawnienia są deklarowane w Javie: domyślnie `tools.admin` ma dostęp dla OP. Można zmienić identyfikator permisji w JSON; rejestracja Paper uwzględnia ją przy wyświetlaniu i wykonywaniu komend.
-
-### Przykładowy config.json
+Wersja **1.0.3-SNAPSHOT** ma wpisane w `config/ToolsConfig.java` ustawienia lokalnego MySQL widoczne na zrzucie HeidiSQL:
 
 ```json
 {
-  "autosaveSeconds": 30,
-  "commands": {
-    "tools": {
-      "enabled": true,
-      "description": "Informacje, status i statystyki Tools",
-      "aliases": ["narzedzia"],
-      "permission": "tools.admin"
-    }
-  },
   "database": {
     "enabled": true,
+    "createDatabaseIfMissing": true,
     "host": "127.0.0.1",
     "port": 3306,
     "database": "tools",
-    "username": "tools",
-    "password": "${TOOLS_DB_PASSWORD}",
+    "username": "root",
+    "password": "",
     "sslMode": "PREFERRED",
     "poolSize": 6,
     "connectionTimeoutMs": 5000
@@ -58,51 +23,58 @@ Modułowy plugin **Minecraft Java 26.3 / Paper 26.3** z asynchronicznym zapisem 
 }
 ```
 
-W środowisku produkcyjnym przy konfiguracji poprawnego certyfikatu MySQL zalecane `sslMode: VERIFY_IDENTITY`. Unikaj `DISABLED` dla połączeń zdalnych.
+To preset **lokalnej bazy deweloperskiej** na tym samym komputerze, na którym działa Paper. **Nie wystawiaj konta root bez hasła do sieci!** W produkcji utwórz dedykowanego użytkownika z minimalnymi uprawnieniami i ustaw mocne hasło.
 
-## Architektura
+**Ważne:** puste pole hasła w HeidiSQL nie dowodzi, że konto root naprawdę działa bez hasła. Jeżeli MySQL wymaga hasła, wpisz je tylko w lokalnym `plugins/Tools/config.json` (nie publikuj w GitHub). Alternatywnie ustaw `"password": "${TOOLS_DB_PASSWORD}"` i zmienną środowiskową procesu serwera.
 
-```
+### Uruchomienie
+
+1. Uruchom **Laragon → Start All**, żeby wystartować lokalny MySQL lub MariaDB.
+2. Wgraj `Tools.jar` do `plugins/` i uruchom serwer **Paper 26.3** na **Java 25**.
+3. Plugin wygeneruje `plugins/Tools/config.json` **z domyślnych wartości zapisanych w Javie**. Jeśli plik już istnieje ze starym, niezmienionym presetem MySQL 1.0.2, jego sekcja `database` zostanie jednorazowo zmigrowana. Jeśli zmieniałeś ustawienia bazy samodzielnie, nie będą nadpisywane.
+4. Asynchronicznie zostanie wykonane `CREATE DATABASE IF NOT EXISTS tools` i przygotowanie tabel `tools_players` oraz `tools_sessions`. Użytkownik DB potrzebuje uprawnień CREATE DATABASE oraz CREATE TABLE (lub przygotuj bazę i tabele wcześniej).
+5. Zobacz konsolę Paper i wpisz jako OP: `/tools status`, `/tools ping`, `/tools stats <nick>`. Status `STARTING` oznacza inicjalizację w tle, `READY` udane połączenie, a `FAILED` błąd konfiguracji lub serwera MySQL.
+
+Jeśli serwer Paper działa na **innym komputerze** niż Laragon, adres `127.0.0.1` wskazuje host Minecraft, a nie komputer HeidiSQL — podaj w configu poprawny adres sieciowy bazy, skonfiguruj firewall i uprawnienia MySQL. Nie otwieraj MySQL bezpośrednio do publicznego Internetu.
+
+## Konfiguracja i architektura
+
+```text
 src/main/java/pl/lokos/tools/
-  basic/        ToolsPlugin (cykl życia i uruchamianie konfiguracji)
-  commands/     ToolsCommand (/tools, implementacja Paper BasicCommand)
+  basic/        ToolsPlugin (start)
+  commands/     ToolsCommand (Paper BasicCommand)
+  config/       ToolsConfig, ToolsConfigMigration, JsonConfigManager
+  database/     DatabaseManager, PlayerRepository, PlayerSnapshot
   enums/        DatabaseStatus
   helpers/      PlayerDataHelper
-  config/       JsonConfigManager, ToolsConfig (domyślne wartości w Javie)
+  inventorys/   InventoryRegistry
+  listeners/    PlayerConnectionListener
+  manager/      PlayerDataManager
+  registry/     ConfigRegistry, CommandRegistry
+  tasks/        AutosaveTask
   utils/        ThreadChecks
   variables/    PluginConstants
-  inventorys/   InventoryRegistry (rozszerzalne GUI)
-  listeners/    PlayerConnectionListener
-  registry/     CommandRegistry, ConfigRegistry (rejestracja i ładowanie przy starcie)
-  tasks/        AutosaveTask
-  manager/      PlayerDataManager
-  database/     DatabaseManager, PlayerRepository, PlayerSnapshot
 ```
 
-- **JDBC i MySQL poza głównym wątkiem**: dedykowana kolejka z ograniczoną pojemnością 4096 operacji, 1-2 pracowników oraz HikariCP z pulą do 6 połączeń (konfigurowalne).
-- **Bezpieczne ponowienia czasu gry**: każda sesja posiada losowy UUID; w SQL zapisujemy największy dotychczasowy czas tej sesji (`GREATEST`), więc ponowny zapis tego samego snapshotu nie podwaja czasu.
-- **Automatyczne tworzenie tabel**: `tools_players` (UUID, nazwa, wejścia, pierwszy/ostatni kontakt) i `tools_sessions` (UUID sesji, UUID gracza, czas).
-- **Zapis danych**: wejście rejestrowane natychmiast asynchronicznie, sesja co 30 s (konfigurowalne), wyjście gracza oraz zamknięcie serwera. Nie czytamy obiektów Bukkit we wątkach JDBC.
-- **Retry**: nieudane zapisy aktywnych/poprzednich sesji ponawiane w kolejnym autosave, dopóki proces serwera działa. Błąd połączenia przy tworzeniu tabel ujawnia status `FAILED` (wymaga naprawy DB i restartu pluginu).
-- **Ograniczenie**: gdy serwer ulegnie awarii przed zapisem lub baza pozostaje nieosiągalna podczas zamykania, dane z ostatnich sekund mogą zostać utracone. To nie jest trwały lokalny WAL/offline-spool ani architektura wieloserwerowa.
+- `plugin.yml` zawiera tylko metadane. Komendy rejestrowane są przez Paper w klasach Java, bez sekcji `commands` w YAML.
+- Wartości domyślne konfiguracji określają **klasy Java**, nie pliki JSON w `resources`. `JsonConfigManager` tworzy/uzupełnia brakujące klucze, zachowuje ręcznie zmienione ustawienia i weryfikuje dane przed zapisem.
+- `ConfigRegistry` wczytuje wszystko przy `onEnable()`, zanim zostaną zarejestrowane komendy i listenery.
+- MySQL jest inicjalizowany na osobnym wątku; HikariCP utrzymuje pulę połączeń, a sesje są zapisywane co określoną liczbę sekund oraz przy wyjściu i zamknięciu serwera.
+- Brak trwałego offline-spool: przy awarii bazy lub procesu serwera możliwa jest utrata ostatnich niezapisanych sekund.
 
 ## Komendy
 
 | Komenda | Funkcja |
 | --- | --- |
 | `/tools help` | Pomoc |
-| `/tools status` | Stan MySQL i liczba sesji online |
-| `/tools ping` | Pomiar odpowiedzi SQL |
-| `/tools stats <nick>` | Liczba wejść i zapisany czas gry |
+| `/tools status` | Stan MySQL i liczba sesji |
+| `/tools ping` | Pomiar czasu zapytania SQL |
+| `/tools stats <nick>` | Wejścia i czas gry |
 
-Domyślne uprawnienie: `tools.admin` (OP).
+Domyślne uprawnienie `tools.admin` (OP).
 
-## Rozwój i testy
+## Maven / GitHub Actions
 
-```bash
-mvn clean verify
-```
+`mvn clean verify` (Java 25) uruchamia testy i generuje `target/Tools.jar`. Gotowe buildy: [GitHub Actions](https://github.com/LokosPL/Tools/actions/workflows/build.yml).
 
-Projekt zawiera testy JUnit obejmujące generowanie/uzupełnianie JSON z Javy i workflow GitHub Actions. W IntelliJ IDEA otwórz katalog jako Maven Project, ustaw SDK Java 25 i włącz import zależności. Integracyjny test połączenia wymaga osobnej działającej instancji MySQL, której nie dostarcza repozytorium.
-
-Nie przechowuj danych dostępowych w kodzie; wykonuj backup MySQL przed migracjami.
+Testy jednostkowe obejmują generowanie JSON, migrację starych domyślnych ustawień i ich walidację. Kompilacja GitHub nie potwierdza dostępności lokalnej bazy Laragon: tę sprawdź komendą `/tools ping` po uruchomieniu serwera Minecraft.
