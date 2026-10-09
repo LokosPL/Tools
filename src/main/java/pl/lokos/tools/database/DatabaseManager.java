@@ -2,6 +2,10 @@ package pl.lokos.tools.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.flywaydb.core.Flyway;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicLong;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.enums.DatabaseStatus;
@@ -25,6 +29,13 @@ public final class DatabaseManager implements DatabaseExecutor {
     }
 
     private final JavaPlugin plugin;
+    private final DatabaseType backend;
+    private final SqlDialect sqlDialect;
+    private final LongAdder queryCount = new LongAdder();
+    private final LongAdder failedCount = new LongAdder();
+    private final AtomicLong slowestQueryMs = new AtomicLong();
+    private volatile long lastQueryMs;
+    private final long startedAt = System.currentTimeMillis();
     private volatile HikariDataSource source;
     private final ThreadPoolExecutor executor;
     private final AtomicReference<DatabaseStatus> status = new AtomicReference<>(DatabaseStatus.STARTING);
@@ -32,6 +43,8 @@ public final class DatabaseManager implements DatabaseExecutor {
 
     public DatabaseManager(JavaPlugin plugin, ToolsConfig.Database config) {
         this.plugin = plugin;
+        this.backend = DatabaseType.parse(config.type());
+        this.sqlDialect = new SqlDialect(backend);
         this.executor = new ThreadPoolExecutor(
                 Math.min(2, config.poolSize()), Math.min(2, config.poolSize()),
                 0L, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(4096),
@@ -47,15 +60,30 @@ public final class DatabaseManager implements DatabaseExecutor {
 
     private void initialize(ToolsConfig.Database config) {
         try {
-            if (config.createDatabaseIfMissing()) {
+            if (config.createDatabaseIfMissing() && !backend.sqlite()) {
                 createDatabase(config);
             }
 
             HikariDataSource pool = new HikariDataSource(newHikariConfig(config));
             source = pool;
-            try (Connection connection = pool.getConnection()) {
-                createSchema(connection);
+            if (backend.sqlite()) {
+                try (Connection sqlite = pool.getConnection();
+                     Statement stmt = sqlite.createStatement()) {
+                    stmt.execute("PRAGMA journal_mode=WAL");
+                }
             }
+            Flyway flyway = Flyway.configure(getClass().getClassLoader())
+                    .dataSource(pool)
+                    .baselineOnMigrate(true)
+                    .baselineVersion("1")
+                    .locations("classpath:db/migration/" + (backend.sqlite() ? "sqlite" : "mysql"))
+                    .validateMigrationNaming(true)
+                    .load();
+            flyway.migrate();
+            plugin.getLogger().info("Migracje schematu: wersja "
+                    + java.util.Arrays.stream(flyway.info().applied())
+                    .map(info -> info.getVersion() == null ? "" : info.getVersion().toString())
+                    .reduce((a,b) -> b).orElse("brak"));
 
             if (status.compareAndSet(DatabaseStatus.STARTING, DatabaseStatus.READY)) {
                 ready.complete(null);
@@ -95,13 +123,29 @@ public final class DatabaseManager implements DatabaseExecutor {
         }
     }
 
-    private static HikariConfig newHikariConfig(ToolsConfig.Database config) {
+    private HikariConfig newHikariConfig(ToolsConfig.Database config) {
         HikariConfig hikari = new HikariConfig();
         hikari.setPoolName("Tools-MySQL");
-        hikari.setJdbcUrl("jdbc:mysql://" + config.host() + ":" + config.port() + "/" + config.database());
-        hikari.setUsername(config.username());
-        hikari.setPassword(config.resolvedPassword());
-        hikari.setMaximumPoolSize(config.poolSize());
+        if (backend.sqlite()) {
+            Path databasePath = plugin.getDataFolder().toPath().resolve(config.sqliteFile()).toAbsolutePath();
+            hikari.setJdbcUrl("jdbc:sqlite:" + databasePath);
+            hikari.setDriverClassName("org.sqlite.JDBC");
+            hikari.setConnectionInitSql("PRAGMA foreign_keys=ON");
+        } else {
+            hikari.setJdbcUrl("jdbc:mysql://" + config.host() + ":" + config.port() + "/" + config.database());
+            hikari.setUsername(config.username());
+            hikari.setPassword(config.resolvedPassword());
+            hikari.addDataSourceProperty("sslMode", config.sslMode());
+            hikari.addDataSourceProperty("connectionTimeZone", "UTC");
+            hikari.addDataSourceProperty("cachePrepStmts", "true");
+            hikari.addDataSourceProperty("prepStmtCacheSize", "250");
+            hikari.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+            hikari.addDataSourceProperty("useServerPrepStmts", "true");
+            hikari.addDataSourceProperty("tcpKeepAlive", "true");
+            hikari.addDataSourceProperty("connectTimeout", Integer.toString(config.connectionTimeoutMs()));
+            hikari.addDataSourceProperty("socketTimeout", "10000");
+        }
+        hikari.setMaximumPoolSize(backend.sqlite() ? 1 : config.poolSize());
         hikari.setMinimumIdle(1);
         hikari.setConnectionTimeout(config.connectionTimeoutMs());
         hikari.setValidationTimeout(Math.min(3000, config.connectionTimeoutMs()));
@@ -109,15 +153,6 @@ public final class DatabaseManager implements DatabaseExecutor {
         hikari.setMaxLifetime(1_800_000);
         hikari.setKeepaliveTime(120_000);
         hikari.setInitializationFailTimeout(-1);
-        hikari.addDataSourceProperty("sslMode", config.sslMode());
-        hikari.addDataSourceProperty("connectionTimeZone", "UTC");
-        hikari.addDataSourceProperty("cachePrepStmts", "true");
-        hikari.addDataSourceProperty("prepStmtCacheSize", "250");
-        hikari.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        hikari.addDataSourceProperty("useServerPrepStmts", "true");
-        hikari.addDataSourceProperty("tcpKeepAlive", "true");
-        hikari.addDataSourceProperty("connectTimeout", Integer.toString(config.connectionTimeoutMs()));
-        hikari.addDataSourceProperty("socketTimeout", "10000");
         return hikari;
     }
 
@@ -222,6 +257,27 @@ public final class DatabaseManager implements DatabaseExecutor {
         }
     }
 
+    @Override
+    public SqlDialect dialect() { return sqlDialect; }
+
+    public record Metrics(DatabaseStatus status, DatabaseType backend, int active, int idle,
+                          int waiting, int queued, long completed, long failures,
+                          long lastQueryMs, long slowestQueryMs, long uptimeMs) {}
+
+    public Metrics metrics() {
+        HikariDataSource pool = source;
+        int active = 0, idle = 0, waiting = 0;
+        if (pool != null && pool.getHikariPoolMXBean() != null) {
+            var bean = pool.getHikariPoolMXBean();
+            active = bean.getActiveConnections();
+            idle = bean.getIdleConnections();
+            waiting = bean.getThreadsAwaitingConnection();
+        }
+        return new Metrics(status.get(), backend, active, idle, waiting,
+                executor.getQueue().size(), queryCount.sum(), failedCount.sum(),
+                lastQueryMs, slowestQueryMs.get(), System.currentTimeMillis() - startedAt);
+    }
+
     public DatabaseStatus status() {
         return status.get();
     }
@@ -239,10 +295,18 @@ public final class DatabaseManager implements DatabaseExecutor {
                     future.completeExceptionally(new IllegalStateException("Pula MySQL nie jest dostepna."));
                     return;
                 }
+                long started = System.nanoTime();
                 try (Connection connection = activeSource.getConnection()) {
                     future.complete(operation.run(connection));
                 } catch (Throwable error) {
+                    failedCount.increment();
                     future.completeExceptionally(error);
+                } finally {
+                    long ms = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+                    lastQueryMs = ms;
+                    slowestQueryMs.accumulateAndGet(ms, Math::max);
+                    queryCount.increment();
+                    if (ms >= 1000) plugin.getLogger().warning("Wolna operacja SQL: " + ms + " ms");
                 }
             });
         } catch (RejectedExecutionException error) {

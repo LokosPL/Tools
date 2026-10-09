@@ -165,6 +165,8 @@ public final class ToolsConfig {
         private int autosaveSeconds=30;
         public int autosaveSeconds(){return autosaveSeconds;}
         private boolean enabled = true;
+        private String type = "MYSQL";
+        private String sqliteFile = "tools.db";
         private boolean createDatabaseIfMissing = true;
         private String host = "127.0.0.1";
         private int port = 3306;
@@ -176,6 +178,8 @@ public final class ToolsConfig {
         private int connectionTimeoutMs = 5000;
 
         public boolean enabled() { return enabled; }
+        public String type() { return type; }
+        public String sqliteFile() { return sqliteFile; }
         public boolean createDatabaseIfMissing() { return createDatabaseIfMissing; }
         public String host() { return host; }
         public int port() { return port; }
@@ -202,6 +206,10 @@ public final class ToolsConfig {
             if (!enabled) {
                 return;
             }
+            pl.lokos.tools.database.DatabaseType engine = pl.lokos.tools.database.DatabaseType.parse(type);
+            if (sqliteFile == null || !sqliteFile.matches("[a-zA-Z0-9_-]+\\.db"))
+                throw new IllegalArgumentException("sqliteFile musi być nazwą pliku .db bez katalogów.");
+            if (engine.sqlite()) return;
             if (host == null || host.isBlank() || host.contains("/") || host.contains("?")) {
                 throw new IllegalArgumentException("Nieprawidlowy database.host.");
             }

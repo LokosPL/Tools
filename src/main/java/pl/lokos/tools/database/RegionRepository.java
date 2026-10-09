@@ -10,7 +10,8 @@ import java.util.concurrent.CompletableFuture;
 /** Zapisy SQL tylko poprzez kolejke DatabaseManager; nigdy na watku tickow. */
 public final class RegionRepository {
     private final DatabaseExecutor database;
-    public RegionRepository(DatabaseExecutor database) { this.database = database; }
+    private final SqlDialect dialect;
+    public RegionRepository(DatabaseExecutor database) { this.database = database; this.dialect = database.dialect(); }
 
     public record Data(List<Region> regions, String mainSpawn) { }
 
@@ -96,9 +97,7 @@ public final class RegionRepository {
                     p.setString(1,name);p.setString(2,flag.name());p.executeUpdate();
                 }
             } else {
-                try(PreparedStatement p=c.prepareStatement(
-                        "INSERT INTO tools_region_flags(region_name,flag_name,allowed) VALUES(?,?,?) "
-                        +"ON DUPLICATE KEY UPDATE allowed=VALUES(allowed)")) {
+                try(PreparedStatement p=c.prepareStatement(dialect.regionFlag())) {
                     p.setString(1,name);p.setString(2,flag.name());p.setBoolean(3,state);p.executeUpdate();
                 }
             }
@@ -129,9 +128,7 @@ public final class RegionRepository {
                     p.setFloat(4,location.yaw());p.setFloat(5,location.pitch());p.setString(6,name);
                     if(p.executeUpdate()==0) throw new SQLException("Nie znaleziono regionu.");
                 }
-                try(PreparedStatement p=c.prepareStatement(
-                        "INSERT INTO tools_region_settings(config_key,config_value) VALUES('spawn',?) "
-                        +"ON DUPLICATE KEY UPDATE config_value=VALUES(config_value)")) {
+                try(PreparedStatement p=c.prepareStatement(dialect.regionSetting())) {
                     p.setString(1,name);p.executeUpdate();
                 }
                 c.commit();

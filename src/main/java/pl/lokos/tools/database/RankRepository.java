@@ -14,9 +14,11 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class RankRepository {
     private final DatabaseExecutor database;
+    private final SqlDialect dialect;
 
     public RankRepository(DatabaseExecutor database) {
         this.database = database;
+        this.dialect = database.dialect();
     }
 
     public CompletableFuture<RankSnapshot> load() {
@@ -91,7 +93,7 @@ public final class RankRepository {
     }
 
     public CompletableFuture<Void> addPermission(String name, String permission) {
-        return change("INSERT IGNORE INTO tools_rank_permissions(rank_name,permission) VALUES(?,?)", name, permission);
+        return change(dialect.addPermission(), name, permission);
     }
 
     public CompletableFuture<Void> position(String name, int priority) {
@@ -127,9 +129,7 @@ public final class RankRepository {
     /** Zapis z odczytem kontrolnym w tej samej sesji JDBC. */
     public CompletableFuture<Void> grant(UUID uuid, String rank, Long expires) {
         return database.query(c -> {
-            try (PreparedStatement stmt = c.prepareStatement(
-                    "INSERT INTO tools_player_ranks(player_uuid,rank_name,expires_at) VALUES(?,?,?) "
-                            + "ON DUPLICATE KEY UPDATE rank_name=VALUES(rank_name),expires_at=VALUES(expires_at)")) {
+            try (PreparedStatement stmt = c.prepareStatement(dialect.grant())) {
                 stmt.setString(1, uuid.toString());
                 stmt.setString(2, rank);
                 if (expires == null) stmt.setNull(3, java.sql.Types.BIGINT);
@@ -205,7 +205,7 @@ public final class RankRepository {
     }
 
     public CompletableFuture<Void> rememberOp(UUID uuid, boolean original) {
-        return change("INSERT IGNORE INTO tools_rank_op_restore(player_uuid,original_op) VALUES(?,?)",
+        return change(dialect.rememberOp(),
                 uuid.toString(), original);
     }
 

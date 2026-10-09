@@ -9,21 +9,17 @@ import java.util.concurrent.CompletableFuture;
 public final class PlayerRepository {
     public record PlayerStats(String name, long joins, long playtimeMs) {}
 
-    private final DatabaseManager database;
+    private final DatabaseExecutor database;
+    private final SqlDialect dialect;
 
-    public PlayerRepository(DatabaseManager database) {
+    public PlayerRepository(DatabaseExecutor database) {
         this.database = database;
+        this.dialect = database.dialect();
     }
 
     public CompletableFuture<Void> recordJoin(UUID playerId, String name, long now) {
         return database.query(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT INTO tools_players (player_uuid, last_name, first_seen, last_seen, join_count)
-                    VALUES (?, ?, ?, ?, 1)
-                    ON DUPLICATE KEY UPDATE last_name = VALUES(last_name),
-                      last_seen = GREATEST(last_seen, VALUES(last_seen)),
-                      join_count = join_count + 1
-                    """)) {
+            try (PreparedStatement statement = connection.prepareStatement(dialect.playerJoin())) {
                 statement.setString(1, playerId.toString());
                 statement.setString(2, name);
                 statement.setLong(3, now);
@@ -36,24 +32,14 @@ public final class PlayerRepository {
 
     public CompletableFuture<Void> saveSession(PlayerSnapshot snapshot) {
         return database.query(connection -> {
-            try (PreparedStatement player = connection.prepareStatement("""
-                    INSERT INTO tools_players (player_uuid, last_name, first_seen, last_seen, join_count)
-                    VALUES (?, ?, ?, ?, 0)
-                    ON DUPLICATE KEY UPDATE last_name = VALUES(last_name),
-                      last_seen = GREATEST(last_seen, VALUES(last_seen))
-                    """)) {
+            try (PreparedStatement player = connection.prepareStatement(dialect.playerUpdate())) {
                 player.setString(1, snapshot.playerId().toString());
                 player.setString(2, snapshot.name());
                 player.setLong(3, snapshot.startedAt());
                 player.setLong(4, snapshot.savedAt());
                 player.executeUpdate();
             }
-            try (PreparedStatement session = connection.prepareStatement("""
-                    INSERT INTO tools_sessions (session_uuid, player_uuid, started_at, duration_ms, updated_at)
-                    VALUES (?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE duration_ms = GREATEST(duration_ms, VALUES(duration_ms)),
-                      updated_at = GREATEST(updated_at, VALUES(updated_at))
-                    """)) {
+            try (PreparedStatement session = connection.prepareStatement(dialect.sessionUpdate())) {
                 session.setString(1, snapshot.sessionId().toString());
                 session.setString(2, snapshot.playerId().toString());
                 session.setLong(3, snapshot.startedAt());
