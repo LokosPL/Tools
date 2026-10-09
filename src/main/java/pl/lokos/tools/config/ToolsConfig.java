@@ -144,15 +144,18 @@ public final class ToolsConfig {
         private boolean enabled = true;
         private int maxRadius = 2000;
         private int teleportSeconds = 5;
+        private int spawnProtectionOutside = 50;
         private boolean cancelTeleportOnMove = true;
         private String barTitle = "&aᴏʙꜱᴢᴀʀ &8» &7";
         public boolean enabled() { return enabled; }
         public int maxRadius() { return maxRadius; }
         public int teleportSeconds() { return teleportSeconds; }
+        public int spawnProtectionOutside(){return spawnProtectionOutside;}
         public boolean cancelTeleportOnMove() { return cancelTeleportOnMove; }
         public String barTitle() { return barTitle; }
         public void validate() {
             if (maxRadius < 1 || maxRadius > 30000) throw new IllegalArgumentException("regions.maxRadius: 1-30000.");
+            if(spawnProtectionOutside<0 || spawnProtectionOutside>2000)throw new IllegalArgumentException("spawnProtectionOutside: 0-2000");
             if (teleportSeconds < 1 || teleportSeconds > 30) throw new IllegalArgumentException("regions.teleportSeconds: 1-30.");
             if (barTitle == null || barTitle.length() > 100) throw new IllegalArgumentException("Niepoprawny regions.barTitle.");
         }

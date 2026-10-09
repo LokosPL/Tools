@@ -7,6 +7,8 @@ import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.enums.DatabaseStatus;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ArrayBlockingQueue;
