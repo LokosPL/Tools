@@ -7,6 +7,7 @@ class RankCommandTest {
     @Test
     void parsesRelativeAndPermanentTime() {
         assertNull(RankCommand.parseTime("na_zawsze"));
+        assertNull(RankCommand.parseTime("*"));
         assertNull(RankCommand.parseTime("na zawsze"));
         long before = System.currentTimeMillis();
         long expiry = RankCommand.parseTime("7d");

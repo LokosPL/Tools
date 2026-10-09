@@ -1,4 +1,4 @@
-# Tools 1.1.1 — system rang Paper 26.3
+# Tools 1.2.0 — rozbudowany TAB i system rang Paper 26.3
 
 Modułowy plugin Java 25 / Paper 26.3 z MySQL (HikariCP), konfiguracją definiowaną w Java i zapisywaną do JSON dopiero przy uruchomieniu.
 
@@ -40,6 +40,7 @@ Komunikaty pluginu **nie zawierają powtarzanego prefiksu [Tools]**. Potwierdzen
 | `/ranga wejscie premium brak` | Wyłącza komunikat |
 | `/ranga nadaj LokosPL premium 7d` | Nadaje rangę na siedem dni |
 | `/ranga nadaj LokosPL premium na_zawsze` | Nadaje bez końca |
+| `/ranga nadaj LokosPL premium *` | Skrót oznaczający rangę na zawsze (to samo co `na_zawsze`) |
 | `/ranga edytuj premium prefix &#55AAFF[VIP]_` | Edytuje prefix |
 | `/ranga edytuj premium sufix &7*` | Edytuje suffix |
 | `/ranga edytuj premium nazwa vip` | Zmienia nazwę |
@@ -53,14 +54,34 @@ Dostęp do komend: `tools.ranga.admin` (domyślnie OP). Komendy rejestrowane są
 
 **Uwaga bezpieczeństwa:** `*` zmienia uprawnienia oraz status OP gracza; oryginalny stan OP jest zapisywany do MySQL i przywracany przy wyjściu, odebraniu rangi i zamknięciu pluginu. Daj dostęp do `/ranga` wyłącznie zaufanym operatorom. Nadawanie rangi bez ustawionej pozycji jest zablokowane.
 
-## Wyświetlanie
+## Rozbudowana tablista — styl inspirowany podanym zrzutem
 
-- **TAB:** kolory prefixu + nick + suffix. Gracze są sortowani według pola `position` (mniejsza liczba oznacza wyższą rangę); rangi bez przypisania są niżej. Nagłówek i stopka mają HEX.
-- **Czat:** `[PREFIX] NICK » WIADOMOŚĆ` — prefix ma własny kolor, nick i tekst są szare. Zawartość czatu gracza nie jest interpretowana jako kody kolorów.
-- **Wejście:** komunikat wyświetla się wyłącznie, gdy w randze jest ustawiony tekst; użyj `{nick}` i `{ranga}`. W przeciwnym wypadku nie ma komunikatu wejścia.
-- **Nick nad głową:** system teamów scoreboard dla innych graczy; **własny nick w F5** przez osobny `TextDisplay`, widoczny tylko dla siebie. W pliku `config.json` można wyłączyć `ranks.selfNameTag`.
+Panel TAB używa wbudowanych możliwości Paper, bez wymogu ProtocolLib ani fałszywych kont graczy. Rozbudowany, kolorowy nagłówek i stopka obejmują:
 
-Obecna implementacja używa dedykowanego scoreboard do teamów/nicków; może kolidować z innymi pluginami, które zmieniają scoreboard, chat lub TAB. Własna etykieta F5 jest rozwiązaniem niestandardowym i wymaga testu wizualnego na kliencie 26.3.
+- **Serwer:** liczba graczy online / maksymalna pojemność, bieżący TPS (średnia 1 min).
+- **Twój profil:** twoja ranga i bieżący ping w milisekundach.
+- **Twoje statystyki:** zabójstwa, śmierci oraz czas gry (z wbudowanych statystyk Minecraft).
+- **TOP ZABÓJSTW:** maksymalnie trzy najwyższe wyniki **spośród aktualnie grających** (nie globalny ranking MySQL).
+- **Lista graczy:** istniejące rangi i ich sortowanie (pozycja 1 najwyżej), szare nicki, kolorowe prefixy.
+
+Tablista automatycznie aktualizuje widoczne statystyki co **3 sekundy** (60 ticków). Odświeżenie korzysta z danych Bukkit na głównym wątku, bez zapytań do MySQL. Zmiana nicków, grup i sortowanie odbywa się po zmianie rangi / dołączeniu gracza, a nie przy każdym odświeżeniu statystyk.
+
+Ustawienia w `config/ToolsConfig.java` (domyślne wartości w Java, do `plugins/Tools/config.json` są dopisywane przy starcie):
+- `ranks.tabStatsEnabled` — wyświetlanie profilu i statystyk.
+- `ranks.tabTopKillsEnabled` — ranking zabójstw online.
+- `ranks.tabTopLimit` — ile osób w rankingu (od 1 do 5).
+- `ranks.tabRefreshTicks` — częstotliwość odświeżania (od 20 do 1200 ticków; 60 to ok. 3 sekundy).
+- `ranks.tabHeader`, `ranks.tabFooter` — linie nagłówka i stopki z kodami kolorów `&` / `&#RRGGBB`.
+
+Własne linie obsługują znaczniki: `{online}`, `{max_online}`, `{nick}`, `{ranga}`, `{ping}`, `{zabojstwa}`, `{smierci}`, `{czas_gry}` i `{tps}`.
+
+**Ograniczenie Minecraft:** dokładne boczne kolumny i sztuczne wpisy jak na zdjęciu nie są natywnie obsługiwane przez nagłówek/stopkę Paper. Tutaj statystyki trafiają w czytelne sekcje nad i pod prawdziwą listą graczy. Do odwzorowania wszystkich bocznych bloków 1:1 potrzebny byłby osobny system wirtualnych wpisów i pakietów.
+
+- **Czat:** kolorowy prefix rangi, szary nick i szara wiadomość; kody wpisywane przez zwykłych graczy są traktowane jak tekst.
+- **Wejście:** komunikat rangi jest opcjonalny; szablon pozwala użyć `{nick}` i `{ranga}`.
+- **Nick nad głową:** scoreboard team dla innych graczy; w trybie F5 własny `TextDisplay`, widoczny tylko dla właściciela.
+
+Uwaga: scoreboard może kolidować z innymi pluginami zarządzającymi TAB-em; F5 i TAB wymagają weryfikacji wizualnej na kliencie Minecraft.
 
 ## Struktura
 
@@ -75,7 +96,7 @@ registry/ConfigRegistry.java, CommandRegistry.java
 helpers/Colors.java
 ...```
 
-MySQL: `tools_players`, `tools_sessions`, `tools_ranks`, `tools_rank_permissions`, `tools_player_ranks`, `tools_rank_op_restore`. Asynchroniczna obsługa SQL; cache rang widoczny dla chatu jest niemutowalny. Przypisania z czasem wygasają, a odświeżenie odbywa się co 10 sekund. Wszystkie opcje konfiguracyjne mają domyślne wartości w klasach Java, a JSON powstaje dopiero podczas uruchomienia pluginu.
+MySQL: `tools_players`, `tools_sessions`, `tools_ranks`, `tools_rank_permissions`, `tools_player_ranks`, `tools_rank_op_restore`. Asynchroniczna obsługa SQL; cache rang widoczny dla chatu jest niemutowalny. Przypisania z czasem wygasają, a wygasłe przypisania są sprawdzane co sekundę. Wszystkie opcje konfiguracyjne mają domyślne wartości w klasach Java, a JSON powstaje dopiero podczas uruchomienia pluginu.
 
 ## Budowanie i testy
 

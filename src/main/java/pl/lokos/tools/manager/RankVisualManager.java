@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Statistic;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -69,11 +70,47 @@ public final class RankVisualManager {
                 player.setScoreboard(scoreboard);
                 player.setPlayerListOrder(order++);
                 player.playerListName(label(player, rank));
-                player.sendPlayerListHeaderAndFooter(
-                        Colors.color(config.tabHeader().replace("{online}", Integer.toString(players.size()))),
-                        Colors.color(config.tabFooter().replace("{online}", Integer.toString(players.size()))));
+
             }
             updateSelfTag(player, rank);
+        }
+        updateTab();
+    }
+
+    /**
+     * Odswiezamy lekkie statystyki graczy okresowo z API Bukkit, bez
+     * zapytan do MySQL i bez przebudowy teamow przy kazdym odswiezeniu.
+     */
+    public void updateTab() {
+        ThreadChecks.requirePrimaryThread();
+        if (closed || !config.enabled()) return;
+        List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
+        if (online.isEmpty()) return;
+
+        List<TabPanel.TopPlayer> top = config.tabTopKillsEnabled()
+                ? online.stream()
+                    .sorted(Comparator.comparingInt((Player player) -> player.getStatistic(Statistic.PLAYER_KILLS))
+                        .reversed().thenComparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
+                    .limit(config.tabTopLimit())
+                    .map(player -> new TabPanel.TopPlayer(player.getName(),
+                            player.getStatistic(Statistic.PLAYER_KILLS)))
+                    .toList()
+                : List.of();
+
+        double[] tpsValues = Bukkit.getTPS();
+        double tps = tpsValues.length == 0 ? 20.0 : tpsValues[0];
+        RankSnapshot ranksSnapshot = ranks.snapshot();
+        for (Player viewer : online) {
+            RankSnapshot.Rank rank = ranksSnapshot.forPlayer(viewer.getUniqueId());
+            TabPanel.Stats stats = new TabPanel.Stats(
+                    viewer.getName(), rank == null ? "Gracz" : rank.name(),
+                    online.size(), Bukkit.getMaxPlayers(), viewer.getPing(),
+                    viewer.getStatistic(Statistic.PLAYER_KILLS),
+                    viewer.getStatistic(Statistic.DEATHS),
+                    viewer.getStatistic(Statistic.PLAY_ONE_MINUTE), tps);
+            viewer.sendPlayerListHeaderAndFooter(
+                    TabPanel.header(config, stats),
+                    TabPanel.footer(config, stats, top));
         }
     }
 

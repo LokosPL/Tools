@@ -173,7 +173,7 @@ public final class RankCommand implements BasicCommand {
     private void grant(CommandSender sender, String[] args) {
         if (args.length < 4 || args.length > 5) {
             errorUsage(sender, "Podaj nick, rangę i czas ważności.",
-                    "/ranga nadaj <nick> <ranga> <1d|12h|30m|na_zawsze>");
+                    "/ranga nadaj <nick> <ranga> <1d|12h|30m|*>");
             return;
         }
         String target = args[1];
@@ -205,10 +205,10 @@ public final class RankCommand implements BasicCommand {
 
     public static Long parseTime(String duration) {
         String value = duration.toLowerCase(Locale.ROOT).trim();
-        if (value.equals("na_zawsze") || value.equals("na zawsze") || value.equals("zawsze")) return null;
+        if (value.equals("*") || value.equals("na_zawsze") || value.equals("na zawsze") || value.equals("zawsze")) return null;
         if (!value.matches("[1-9][0-9]{0,6}[mhdw]")) {
             throw new IllegalArgumentException("Nieprawidłowy czas: &c&n" + duration
-                    + "&r&c. Dozwolone: &e30m&c, &e12h&c, &e7d&c, &e2w&c, &ena_zawsze&c.");
+                    + "&r&c. Dozwolone: &e30m&c, &e12h&c, &e7d&c, &e2w&c, &e*&c lub &ena_zawsze&c.");
         }
         long count = Long.parseLong(value.substring(0, value.length() - 1));
         long millis = switch (value.charAt(value.length() - 1)) {
@@ -328,7 +328,7 @@ public final class RankCommand implements BasicCommand {
         Messages.line(sender, "&e/ranga dodaj &7<ranga> <uprawnienie>");
         Messages.line(sender, "&e/ranga pozycja &7<ranga> <1-9998>");
         Messages.line(sender, "&e/ranga wejscie &7<ranga> <tekst|brak>");
-        Messages.line(sender, "&e/ranga nadaj &7<nick> <ranga> <czas|na_zawsze>");
+        Messages.line(sender, "&e/ranga nadaj &7<nick> <ranga> <czas|*|na_zawsze>");
         Messages.line(sender, "&e/ranga edytuj &7<ranga> <prefix|sufix|nazwa> <wartość>");
         Messages.line(sender, "&e/ranga info &7<ranga> &8• &e/ranga lista");
         Messages.line(sender, "&e/ranga usun &7<ranga>");
@@ -382,7 +382,7 @@ public final class RankCommand implements BasicCommand {
             if (action.equals("pozycja")) return filter(List.of("1", "2", "3", "4", "5", "10"), args[2]);
         }
         if (action.equals("nadaj") && args.length >= 4)
-            return filter(List.of("1h", "1d", "7d", "30d", "na_zawsze"), args[3]);
+            return filter(List.of("*", "1h", "1d", "7d", "30d", "na_zawsze"), args[3]);
         return List.of();
     }
 

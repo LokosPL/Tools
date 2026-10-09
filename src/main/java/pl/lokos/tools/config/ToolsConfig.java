@@ -93,12 +93,21 @@ public final class ToolsConfig {
     public static final class Ranks {
         private boolean enabled = true;
         private boolean selfNameTag = true;
+        // Rozbudowany TAB: profil, statystyki, ping, TPS i ranking online.
+        private boolean tabStatsEnabled = true;
+        private boolean tabTopKillsEnabled = true;
+        private int tabTopLimit = 3;
+        private int tabRefreshTicks = 60;
         private String defaultPrefix = "&8[&7Gracz&8] &7";
         private String tabHeader = "&#4ACBFF&lTOOLS &8| &fSerwer Minecraft";
         private String tabFooter = "&7Online: &#77DD88{online} &8| &#4ACBFF&lMilej gry!";
 
         public boolean enabled() { return enabled; }
         public boolean selfNameTag() { return selfNameTag; }
+        public boolean tabStatsEnabled() { return tabStatsEnabled; }
+        public boolean tabTopKillsEnabled() { return tabTopKillsEnabled; }
+        public int tabTopLimit() { return tabTopLimit; }
+        public int tabRefreshTicks() { return tabRefreshTicks; }
         public String defaultPrefix() { return defaultPrefix; }
         public String tabHeader() { return tabHeader; }
         public String tabFooter() { return tabFooter; }
@@ -106,6 +115,12 @@ public final class ToolsConfig {
         private void validate() {
             if (defaultPrefix == null || tabHeader == null || tabFooter == null) {
                 throw new IllegalArgumentException("Puste pola konfiguracji rang.");
+            }
+            if (tabRefreshTicks < 20 || tabRefreshTicks > 1200) {
+                throw new IllegalArgumentException("ranks.tabRefreshTicks musi wynosic od 20 do 1200 tickow.");
+            }
+            if (tabTopLimit < 1 || tabTopLimit > 5) {
+                throw new IllegalArgumentException("ranks.tabTopLimit musi wynosic od 1 do 5.");
             }
             if (defaultPrefix.length() > 256 || tabHeader.length() > 1024 || tabFooter.length() > 1024) {
                 throw new IllegalArgumentException("Tekst tablisty lub prefixu za dlugi.");
