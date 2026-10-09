@@ -46,12 +46,12 @@ public final class RegionTeleportManager {
                 if(settings.cancelTeleportOnMove() &&
                         (!player.getWorld().equals(origin.getWorld())
                         || player.getLocation().distanceSquared(origin)>0.3)) {
-                    cancel(player,true);
+                    RegionTeleportManager.this.cancel(player,true);
                     return;
                 }
                 Region fresh=regions.index().byName(name);
                 if(fresh==null || !regions.canEnter(player,fresh)) {
-                    cancel(player,true); return;
+                    RegionTeleportManager.this.cancel(player,true); return;
                 }
                 if(remaining==0) {
                     finish();

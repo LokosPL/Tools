@@ -61,7 +61,7 @@ public final class RegionMenuListener implements Listener {
             }
             if(action.startsWith("flag:")) {
                 Region region=regions.index().byName(h.region());
-                if(region==null) {plugin.getServer().getScheduler().runTask(plugin,player::closeInventory);return;}
+                if(region==null) {plugin.getServer().getScheduler().runTask(plugin,()->player.closeInventory());return;}
                 RegionFlag flag=RegionFlag.valueOf(action.substring(5));
                 Boolean current=region.flags().get(flag);
                 Boolean next=current==null?true:current?false:null;
