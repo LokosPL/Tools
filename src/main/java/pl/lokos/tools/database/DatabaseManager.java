@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public final class DatabaseManager {
+public final class DatabaseManager implements DatabaseExecutor {
     @FunctionalInterface
     public interface SqlOperation<T> {
         T run(Connection connection) throws SQLException;

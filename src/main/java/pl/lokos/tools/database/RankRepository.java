@@ -91,6 +91,7 @@ public final class RankRepository {
         return changeExisting("DELETE FROM tools_ranks WHERE name=?", name);
     }
 
+    /** Zapis z odczytem kontrolnym w tej samej sesji JDBC. */
     public CompletableFuture<Void> grant(UUID uuid, String rank, Long expires) {
         return database.query(c -> {
             try (PreparedStatement stmt = c.prepareStatement(
@@ -102,7 +103,33 @@ public final class RankRepository {
                 else stmt.setLong(3, expires);
                 stmt.executeUpdate();
             }
+            try (PreparedStatement statement = c.prepareStatement(
+                    "SELECT rank_name,expires_at FROM tools_player_ranks WHERE player_uuid=?")) {
+                statement.setString(1, uuid.toString());
+                try (ResultSet result = statement.executeQuery()) {
+                    if (!result.next()) throw new SQLException("Nie zapisano przypisania rangi.");
+                    String actualRank = result.getString(1);
+                    long actualTime = result.getLong(2);
+                    Long actualExpiry = result.wasNull() ? null : actualTime;
+                    if (!actualRank.equalsIgnoreCase(rank) || !Objects.equals(actualExpiry, expires))
+                        throw new SQLException("Weryfikacja nadania nie powiodła się.");
+                }
+            }
             return null;
+        });
+    }
+
+    public CompletableFuture<RankSnapshot.Grant> findGrant(UUID uuid) {
+        return database.query(c -> {
+            try (PreparedStatement statement = c.prepareStatement(
+                    "SELECT rank_name, expires_at FROM tools_player_ranks WHERE player_uuid=?")) {
+                statement.setString(1, uuid.toString());
+                try (ResultSet result = statement.executeQuery()) {
+                    if (!result.next()) return null;
+                    long time = result.getLong(2);
+                    return new RankSnapshot.Grant(result.getString(1), result.wasNull() ? null : time);
+                }
+            }
         });
     }
 
