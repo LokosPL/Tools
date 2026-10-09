@@ -45,7 +45,7 @@ public final class RegionManager {
                 if(!legacyHalo.contains(region.name()) && !legacyHalo.contains(region.parent()))
                     imported.add(region);
             String spawn=data.mainSpawn();
-            if(spawn!=null && imported.stream().noneMatch(region->region.name().equals(spawn)))spawn=null;
+            if(spawn!=null && new RegionIndex(imported).byName(spawn)==null)spawn=null;
             definitions.saveRegions(RegionsFile.from(imported,spawn,definitions.regions().settings()));
             plugin.getLogger().info("Przeniesiono "+imported.size()+" regionów do Regions.json.");
         }) : CompletableFuture.<Void>completedFuture(null)).thenCompose(unused->refresh());
