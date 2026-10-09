@@ -186,7 +186,7 @@ public final class RegionProtectionListener implements Listener {
     /** Moby, ktore wchodza na spawn z zewnatrz, sa usuwane. */
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void mobMove(io.papermc.paper.event.entity.EntityMoveEvent event) {
-        if(event.getEntity() instanceof Player)return;
+        if(!(event.getEntity() instanceof org.bukkit.entity.Mob))return;
         if(event.getEntity().getPersistentDataContainer().has(wandKey,PersistentDataType.BYTE)
                 && Byte.valueOf((byte)2).equals(event.getEntity().getPersistentDataContainer()
                         .get(wandKey,PersistentDataType.BYTE)))return;
