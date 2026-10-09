@@ -1,76 +1,60 @@
-# Tools 1.4.0 — regiony, lokalizacje i rangi
+# Tools 1.5.0 — niezależna konfiguracja i bezpieczny spawn
 
-Plugin Paper 26.3 / Java 25. Konfiguracja startuje z klas Java i generuje `plugins/Tools/config.json`. Dane regionów, rang i graczy zapisywane są w MySQL/MariaDB przez asynchroniczny silnik SQL.
+Paper 26.3, Java 25, MySQL/MariaDB (HikariCP), komendy rejestrowane w Java.
 
-## Regiony
+## Pliki
 
-| Komenda | Funkcja |
+Po pierwszym starcie w katalogu plugins/Tools zostaną utworzone:
+
+| Plik | Zawartość |
 | --- | --- |
-| `/region stworz spawn 100` | Region 201 × 201 bloków (100 w każdą stronę od gracza), cała wysokość świata |
-| `/region rozdzka` | Daje różdżkę (lewy/prawy klik w blok: pierwszy/drugi narożnik) |
-| `/region podregion spawn afk` | Tworzy wewnętrzny region AFK z zaznaczenia |
-| `/region podregion spawn pvp` | Tworzy strefę PvP w zaznaczeniu |
-| `/region edytuj pvp flaga pvp tak` | Odblokowuje PvP tylko w strefie pvp |
-| `/region edytuj afk wejscie premium` | Wymaga rangi Premium lub wyższej według jej pozycji |
-| `/region edytuj spawn` | GUI zarządzania flagami regionu |
-| `/region ochrona spawn 50` | Tworzy chroniony podregion 101 × 101 wokół ustawionego punktu spawn |
-| `/region spawn` | Stojąc w regionie ustawia jego punkt teleportacji i globalny spawn nowych graczy |
-| `/region lista` | Wyświetla utworzone regiony |
-| `/region info spawn` | Pokazuje parametry, dostęp i flagi |
-| `/region usun spawn` | Usuwa region i wszystkie jego podregiony |
-| `/lokalizacje` | GUI dostępnych dla danej rangi punktów teleportacji |
+| MySql.json | Host, port, dane logowania, pula połączeń, autosaveSeconds |
+| Commands.json | Osobne settings \`enabled\`, \`description\`, \`aliases\`, \`permission\` dla komend \`tools\`, \`ranga\`, \`region\`, \`lokalizacje\` |
+| Ranks.json | Ustawienia TAB-u i pełne definicje rang: nazwy, prefixy, suffixy, pozycje, wiadomości wejścia, uprawnienia |
+| Regions.json | Ustawienia ochrony, lista regionów, podregionów, flag i punktów teleportacji oraz \`mainSpawn\` |
 
-Domyślna ochrona nowego regionu zabrania: budowania, niszczenia, PvP, zadawania obrażeń (w tym upadku), spawnu mobów, eksplozji, ognia, tłoków, rozlewania płynów i interakcji z kontenerami/przedmiotami. Blokowane są również zdarzenia pochodzące z zewnątrz regionu (przepływ wody, wybuchy, ruch bloków tłokiem). Uprawnienie `tools.region.bypass` lub status OP/ranga zawierająca uprawnienie `*` omija restrykcje administracyjne.
+**Definicje to JSON, dane graczy to SQL.** Zapisy do Ranks.json i Regions.json są atomowe (plik tymczasowy + rename) i nie wykonują zapytań bazodanowych podczas ticków. MySQL przechowuje przypisania rang do UUID, terminy ważności, sesje i statystyki. Usuwamy stary klucz obcy wiążący SQL przypisań z definicjami, nie kasując danych graczy.
 
-### Zasady podregionów
+### Migracja z wcześniejszych wersji
 
-Nowy podregion **dziedziczy wszystkie ustawienia rodzica**, chyba że wybrana flaga jest ustawiona jawnie. Przykład: strefa `pvp` z włączoną flagą `pvp` pozwala walczyć między graczami znajdującymi się w niej, pozostawiając budowanie i inne czynności zablokowane jak w spawn.
+Przy pierwszym uruchomieniu plugin odczyta stary \`config.json\` i rozdzieli ustawienia pomiędzy cztery pliki. Stary plik zostanie zachowany jako \`config.json.legacy-backup\`. Istniejące rangi i regiony przeniesie **jednorazowo** z MySQL do odpowiednich JSON. Nie usuwa historycznych tabel, aby można było wykonać rollback po przywróceniu wcześniejszej wersji pluginu. Zrób kopię katalogu Tools oraz bazy przed aktualizacją.
 
-```text
-/region edytuj pvp flaga pvp tak
-/region edytuj pvp flaga budowanie nie
-/region edytuj pvp flaga pvp dziedzicz
-/region edytuj pvp wejscie moderator
-/region edytuj pvp wejscie wszyscy
-```
+## Ochrona spawn
 
-Pozycja rangi jest jej priorytetem: ranga z pozycją 1 ma dostęp do obszarów wymagających rangi z pozycją 2, ale nie odwrotnie. Ograniczenia dostępowe rodzica również obowiązują w podregionach. Gdy region jest aktywny, gracz widzi jego nazwę na actionbarze.
+\`\`\`text
+/region stworz spawn 100
+/region spawn
+\`\`\`
 
-### Teleportacja
+Region 100 oznacza 100 bloków w każdą stronę (łącznie 201 × 201 bloków), na całej wysokości. \`Regions.json\` zawiera \`settings.spawnProtectionOutside: 50\`, które automatycznie chroni pas **na zewnątrz** granic głównego spawnu: jego chroniony obszar obejmuje dodatkowo 50 bloków na każdy bok. Pas nie jest nowym regionem, nie ma własnej nazwy i nie pojawia się w GUI ani na liście regionów. Nie istnieje już komenda \`/region ochrona\`. Dawne, błędnie utworzone podregiony \`spawn_ochrona\` nie będą importowane podczas migracji.
 
-`/lokalizacje` wyświetla do 45 punktów na stronę; podregiony można również udostępnić jako lokalizacje po ustawieniu w nich `/region spawn`. GUI używa kontrolowanego InventoryHolder i PDC. Każdorazowo kontroluje uprawnienia. Teleport trwa **5 sekund** z odliczaniem, dźwiękami i cząsteczkami. Ruch lub obrażenia przerywają odliczanie. Docelowy chunk wczytywany jest asynchronicznie (Paper `teleportAsync`).
+Wewnątrz spawnu i jego zewnętrznego bufora blokowane są: niszczenie, budowanie, płyny, PvP, obrażenia, eksplozje, tłoki, ogień, interakcje i moby (chyba że administrator przyzna odpowiednią flagę wewnątrz regionu). Moby wchodzące do strefy z zewnątrz są usuwane. Gdy spawn mobów nie jest dozwolony, próby naturalnego przywołania są anulowane. Wyjątkiem mogą być moby przywołane przez administratora.
 
-Nowy gracz na pierwszym wejściu trafia na główny spawn, jeśli został ustawiony. Zwykły respawn również korzysta ze spawnu, o ile gracz ma tam dostęp.
+## Podregiony
 
-## Uprawnienia
+\`\`\`text
+/region rozdzka
+/region podregion spawn arena
+/region edytuj arena flaga pvp tak
+/region edytuj arena wejscie premium
+/region edytuj spawn
+/region lista
+/region usun arena
+\`\`\`
 
-- `tools.region.admin` — pełna administracja komendą `/region`, tylko operator.
-- `tools.region.bypass` — omija restrykcje regionów, tylko operator.
-- `tools.lokalizacje` — dostęp do GUI, domyślnie każdy gracz. Docelowy region może dodatkowo wymagać rangi.
-- `tools.ranga.admin` — zarządzanie rangami, operator.
+Zaznacz dwa narożniki różdżką. Podregiony dziedziczą flagi regionu nadrzędnego, ale jawne wartości nadpisują wybrane zasady. Lista regionów i zasady są odczytywane z Regions.json. Własna lokalizacja regionu jest dostępna w GUI \`/lokalizacje\` dopiero po ustawieniu punktu teleportacji poleceniem \`/region spawn\` stojąc w danym regionie.
 
-## Konfiguracja
+## Teleport
 
-Domyślne ustawienia znajdują się w `ToolsConfig.Regions`, NIE w szablonach JSON:
+- Gracze z **aktywną nadaną rangą**, OP i osoby z \`tools.lokalizacje.instant\` teleportują się bez odliczania.
+- Gracze bez nadanej rangi mają odliczanie (domyślnie 5 sekund; zmiana w Regions.json), przerywane ruchem lub obrażeniami.
+- Papierowe \`teleportAsync\` ładuje chunk bez blokowania głównego wątku.
+- Uprawnienia wejścia są sprawdzane ponownie przy wykonywaniu akcji.
 
-```json
-"regions": {
-  "enabled": true,
-  "maxRadius": 2000,
-  "teleportSeconds": 5,
-  "cancelTeleportOnMove": true,
-  "barTitle": "&aᴏʙꜱᴢᴀʀ &8» &7"
-}
-```
+## Testy i budowanie
 
-`JsonConfigManager` uzupełni te opcje w istniejącym `config.json` bez nadpisywania Twoich ustawień bazy i rang. Dane regionów przechowywane są w tabelach `tools_regions`, `tools_region_flags` i `tools_region_settings` (klucze obce i transakcje).
-
-**Ważne:** ochrona regionów jest ładowana asynchronicznie z bazy; dopóki nie ma gotowego cache regionów, działania zmieniające świat są blokowane, aby nie dopuścić do obchodzenia zabezpieczeń przy starcie. Przed uruchomieniem produkcyjnym zapewnij stabilne połączenie MySQL. Przetestuj zabezpieczenia wraz z innymi pluginami, szczególnie TNT, redstone, teleport i PvP.
-
-## Kompilacja i testy
-
-```bash
+\`\`\`bash
 mvn clean verify
-```
+\`\`\`
 
-GitHub Actions uruchamia testy JUnit i integracyjne testy MariaDB. Wynikowy `Tools.jar` znajduje się w artefaktach workflow. Nie używaj `/reload`; po aktualizacji JAR-a uruchom cały serwer ponownie. Zalecane wykonywanie kopii MySQL przed zmianami struktury danych. Konto MySQL `root` bez hasła jest dopuszczalne **wyłącznie na lokalnym środowisku deweloperskim**.
+GitHub Actions uruchamia rzeczywistą MariaDB oraz testy Java. Konieczny jest również test na serwerze Paper z mobami, teleportacją i innymi pluginami modyfikującymi zdarzenia. Kopię danych wykonaj przed migracją.

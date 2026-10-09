@@ -19,13 +19,14 @@ import java.util.*;
 public final class RegionTeleportManager {
     private final JavaPlugin plugin;
     private final RegionManager regions;
+    private final RankManager ranks;
     private final ToolsConfig.Regions settings;
     private final Map<UUID, Pending> pending=new HashMap<>();
 
     private record Pending(BukkitTask task, Location origin) {}
 
-    public RegionTeleportManager(JavaPlugin plugin,RegionManager regions,ToolsConfig.Regions settings) {
-        this.plugin=plugin;this.regions=regions;this.settings=settings;
+    public RegionTeleportManager(JavaPlugin plugin,RegionManager regions,RankManager ranks,ToolsConfig.Regions settings) {
+        this.plugin=plugin;this.regions=regions;this.ranks=ranks;this.settings=settings;
     }
 
     public boolean busy(Player player) {return pending.containsKey(player.getUniqueId());}
@@ -37,6 +38,12 @@ public final class RegionTeleportManager {
         Location target=regions.spawnOf(region);
         if(target==null) {Messages.error(player,"Świat tej lokalizacji nie jest dostępny.");return;}
         cancel(player,false);
+        // Każdy gracz z nadaną, aktywną rangą ma teleportację bez odliczania.
+        if(player.hasPermission("tools.lokalizacje.instant") || player.isOp()
+                || (ranks!=null && ranks.snapshot().forPlayer(player.getUniqueId())!=null)) {
+            teleportNow(player,name,target);
+            return;
+        }
         Location origin=player.getLocation().clone();
         final int seconds=settings.teleportSeconds();
         BukkitRunnable job=new BukkitRunnable() {
@@ -57,18 +64,7 @@ public final class RegionTeleportManager {
                     finish();
                     player.sendActionBar(Colors.color("&aᴛᴇʟᴇᴘᴏʀᴛᴀᴄᴊᴀ &8» &7Trwa przenoszenie..."));
                     // Paper teleportAsync wczytuje chunk bez blokowania tickow.
-                    player.teleportAsync(target).whenComplete((done,error)-> {
-                        if(!plugin.isEnabled()) return;
-                        Bukkit.getScheduler().runTask(plugin,()->{
-                            if(error!=null || !Boolean.TRUE.equals(done)) {
-                                if(player.isOnline())Messages.error(player,"Teleportacja nie powiodła się.");
-                            } else if(player.isOnline()) {
-                                Messages.success(player,"Teleportowano do &a"+name+"&7.");
-                                player.getWorld().spawnParticle(Particle.PORTAL,player.getLocation().add(0,1,0),28,0.35,0.6,0.35,0.08);
-                                player.playSound(player.getLocation(),Sound.ENTITY_ENDERMAN_TELEPORT,0.65f,1.2f);
-                            }
-                        });
-                    });
+                    teleportNow(player,name,target);
                     return;
                 }
                 player.sendActionBar(Colors.color("&a&lTELEPORTACJA &8» &7Do &a"+name+
@@ -81,6 +77,23 @@ public final class RegionTeleportManager {
         };
         BukkitTask task=job.runTaskTimer(plugin,0L,20L);
         pending.put(player.getUniqueId(),new Pending(task,origin));
+    }
+
+    private void teleportNow(Player player,String name,Location target){
+        player.teleportAsync(target).whenComplete((done,error)->{
+            if(!plugin.isEnabled())return;
+            Bukkit.getScheduler().runTask(plugin,()->{
+                if(!player.isOnline())return;
+                if(error!=null || !Boolean.TRUE.equals(done)) {
+                    Messages.error(player,"Teleportacja nie powiodła się.");
+                }else{
+                    Messages.success(player,"Teleportowano do &a"+name+"&7.");
+                    player.getWorld().spawnParticle(Particle.PORTAL,
+                            player.getLocation().add(0,1,0),28,0.35,0.6,0.35,0.08);
+                    player.playSound(player.getLocation(),Sound.ENTITY_ENDERMAN_TELEPORT,0.65f,1.2f);
+                }
+            });
+        });
     }
 
     public void cancel(Player player,boolean notify) {

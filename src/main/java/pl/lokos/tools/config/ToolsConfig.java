@@ -151,6 +151,8 @@ public final class ToolsConfig {
     }
 
     public static final class Database {
+        private int autosaveSeconds=30;
+        public int autosaveSeconds(){return autosaveSeconds;}
         private boolean enabled = true;
         private boolean createDatabaseIfMissing = true;
         private String host = "127.0.0.1";
@@ -185,6 +187,7 @@ public final class ToolsConfig {
         }
 
         private void validate() {
+            if(autosaveSeconds<5 || autosaveSeconds>3600)throw new IllegalArgumentException("autosaveSeconds: 5-3600.");
             if (!enabled) {
                 return;
             }

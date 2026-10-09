@@ -64,12 +64,12 @@ public final class ToolsPlugin extends JavaPlugin {
                 this.database = new DatabaseManager(this, config.database());
                 repository = new PlayerRepository(database);
                 this.playerData = new PlayerDataManager(this, repository);
-                this.rankManager = new RankManager(this, new RankRepository(database));
+                this.rankManager = new RankManager(this, new RankRepository(database), configurations.definitions());
                 this.rankVisuals = new RankVisualManager(this, rankManager, config.ranks());
                 rankManager.setVisuals(rankVisuals);
                 if(config.regions().enabled()) {
-                    this.regionManager=new RegionManager(this,new RegionRepository(database),rankManager);
-                    this.regionTeleports=new RegionTeleportManager(this,regionManager,config.regions());
+                    this.regionManager=new RegionManager(this,new RegionRepository(database),rankManager,configurations.definitions());
+                    this.regionTeleports=new RegionTeleportManager(this,regionManager,rankManager,config.regions());
                 }
             } catch (RuntimeException error) {
                 getLogger().severe("Nie mozna uruchomic MySQL: " + error.getMessage());
@@ -77,16 +77,16 @@ public final class ToolsPlugin extends JavaPlugin {
                 return;
             }
         } else {
-            getLogger().warning("MySQL wylaczony. Wlacz database.enabled w plugins/Tools/config.json.");
+            getLogger().warning("MySQL wylaczony. Wlacz enabled w plugins/Tools/MySql.json.");
         }
 
-        new CommandRegistry(this).register(config.commands(), database, repository, playerData, rankManager);
+        new CommandRegistry(this).register(configurations.commands(), database, repository, playerData, rankManager);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
             RegionSelection selection=new RegionSelection();
-            RegionMenuFactory menus=new RegionMenuFactory(regionManager,menuKey);
-            new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey);
+            RegionMenuFactory menus=new RegionMenuFactory(regionManager,menuKey,config.regions().teleportSeconds());
+            new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey,configurations.commands());
             getServer().getPluginManager().registerEvents(
                     new RegionProtectionListener(regionManager,selection,wandKey),this);
             RegionPlayerListener playerRegions=new RegionPlayerListener(

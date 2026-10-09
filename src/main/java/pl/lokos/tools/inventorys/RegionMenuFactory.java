@@ -38,8 +38,9 @@ public final class RegionMenuFactory {
 
     private final RegionManager regions;
     private final NamespacedKey key;
-    public RegionMenuFactory(RegionManager regions,NamespacedKey key) {
-        this.regions=regions;this.key=key;
+    private final int waitingSeconds;
+    public RegionMenuFactory(RegionManager regions,NamespacedKey key,int waitingSeconds) {
+        this.regions=regions;this.key=key;this.waitingSeconds=waitingSeconds;
     }
 
     private ItemStack item(Material type,String name,String action,String... lore) {
@@ -76,12 +77,12 @@ public final class RegionMenuFactory {
                     "&7Świat: &a"+Optional.ofNullable(Bukkit.getWorld(r.world())).map(w->w.getName()).orElse("Niedostępny"),
                     "&7Obszar: &a"+(r.maxX()-r.minX()+1)+" × "+(r.maxZ()-r.minZ()+1),
                     "&8",
-                    "&aKliknij, aby rozpocząć teleportację."));
+                    "&7Kliknij, aby wybrać tę lokalizację."));
         }
         if(current>0)inventory.setItem(45,item(Material.ARROW,"&7Poprzednia strona","page:"+(current-1)));
         inventory.setItem(49,item(Material.COMPASS,"&a&lLOKALIZACJE","noop",
                 "&7Dostępne punkty: &a"+available.size(),
-                "&7Czas teleportacji: &a5 sekund"));
+                "&7Bez rangi: &a"+waitingSeconds+" s"));
         if(current<maxPage)inventory.setItem(53,item(Material.ARROW,"&7Następna strona","page:"+(current+1)));
         player.openInventory(inventory);
     }
@@ -111,7 +112,7 @@ public final class RegionMenuFactory {
         inventory.setItem(49,item(Material.BOOK,"&aZASADY REGIONU","noop",
                 "&7Kliknięcie flagi przełącza jej stan:",
                 "&7dziedziczenie → tak → nie → dziedziczenie.",
-                "&7Modyfikacje zapisują się w MySQL."));
+                "&7Modyfikacje zapisują się w Regions.json."));
         player.openInventory(inventory);
     }
 }

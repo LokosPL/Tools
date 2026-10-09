@@ -10,10 +10,11 @@ import pl.lokos.tools.manager.RegionManager;
 public final class LocationsCommand implements BasicCommand {
     private final RegionManager regions;
     private final RegionMenuFactory menus;
-    public LocationsCommand(RegionManager regions,RegionMenuFactory menus) {
-        this.regions=regions;this.menus=menus;
+    private final String commandPermission;
+    public LocationsCommand(RegionManager regions,RegionMenuFactory menus,String permission) {
+        this.regions=regions;this.menus=menus;this.commandPermission=permission;
     }
-    @Override public String permission() {return "tools.lokalizacje";}
+    @Override public String permission() {return commandPermission;}
     @Override public void execute(CommandSourceStack source,String[] args) {
         if(!(source.getSender() instanceof Player player)) {
             Messages.error(source.getSender(),"Menu lokalizacji jest dostępne tylko w grze.");return;

@@ -6,6 +6,9 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.RankRepository;
+import pl.lokos.tools.config.DefinitionFiles;
+import pl.lokos.tools.config.RanksFile;
+import java.util.function.Function;
 import pl.lokos.tools.utils.ThreadChecks;
 
 import java.util.*;
@@ -20,6 +23,7 @@ import java.util.logging.Level;
 public final class RankManager {
     private final JavaPlugin plugin;
     private final RankRepository repository;
+    private final DefinitionFiles definitions;
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
     private final Set<UUID> opPending = new HashSet<>();
     private volatile RankSnapshot snapshot = RankSnapshot.empty();
@@ -28,9 +32,10 @@ public final class RankManager {
     private RankVisualManager visuals;
     private CompletableFuture<Void> mutationTail = CompletableFuture.completedFuture(null);
 
-    public RankManager(JavaPlugin plugin, RankRepository repository) {
+    public RankManager(JavaPlugin plugin, RankRepository repository, DefinitionFiles definitions) {
         this.plugin = plugin;
         this.repository = repository;
+        this.definitions = definitions;
     }
 
     public void setVisuals(RankVisualManager visuals) {
@@ -50,7 +55,20 @@ public final class RankManager {
      * nadac rangi w trakcie inicjalizacji i potem nadpisac cache starym widokiem.
      */
     public synchronized void start() {
-        mutationTail = refresh().whenComplete((ignored, error) -> {
+        mutationTail = repository.load().thenCompose(legacy -> {
+            if(definitions.importRanks() && definitions.ranks().ranks().isEmpty() && !legacy.ranks().isEmpty()) {
+                Map<String,RanksFile.RankEntry> imported=new LinkedHashMap<>();
+                for(var item:legacy.ranks().entrySet()){
+                    RankSnapshot.Rank rank=item.getValue();
+                    imported.put(item.getKey(),new RanksFile.RankEntry(
+                            rank.prefix(),rank.suffix(),rank.position(),rank.joinMessage(),
+                            legacy.permissions().getOrDefault(item.getKey(),Set.of())));
+                }
+                definitions.saveRanks(RanksFile.from(imported,definitions.ranks().settings()));
+                plugin.getLogger().info("Przeniesiono "+imported.size()+" rang z MySQL do Ranks.json.");
+            }
+            return refresh();
+        }).whenComplete((ignored, error) -> {
             if (error != null) {
                 plugin.getLogger().log(Level.SEVERE,
                         "Nie udało się pobrać początkowych rang z bazy MySQL.", error);
@@ -59,7 +77,16 @@ public final class RankManager {
     }
 
     public CompletableFuture<Void> refresh() {
-        return repository.load().thenCompose(this::installSnapshot);
+        return repository.load().thenCompose(legacy -> {
+            Map<String,RankSnapshot.Rank> ranks=new HashMap<>();
+            Map<String,Set<String>> permissions=new HashMap<>();
+            definitions.ranks().ranks().forEach((name,entry) -> {
+                ranks.put(name,entry.toRank(name));
+                permissions.put(name,entry.permissions());
+            });
+            return installSnapshot(new RankSnapshot(Map.copyOf(ranks),Map.copyOf(permissions),
+                    legacy.grants(),legacy.opRestores()));
+        });
     }
 
     private CompletableFuture<Void> installSnapshot(RankSnapshot next) {
@@ -114,6 +141,80 @@ public final class RankManager {
         return operation;
     }
 
+    private CompletableFuture<Void> updateDefinitions(Function<Map<String,RanksFile.RankEntry>,
+            Map<String,RanksFile.RankEntry>> update) {
+        return change(() -> CompletableFuture.runAsync(() -> {
+            Map<String,RanksFile.RankEntry> changed=update.apply(new LinkedHashMap<>(definitions.ranks().ranks()));
+            definitions.saveRanks(RanksFile.from(changed,definitions.ranks().settings()));
+        }));
+    }
+    private static RanksFile.RankEntry require(Map<String,RanksFile.RankEntry> map,String name) {
+        RanksFile.RankEntry rank=map.get(name);
+        if(rank==null)throw new IllegalArgumentException("Ranga "+name+" nie istnieje.");
+        return rank;
+    }
+    public CompletableFuture<Void> create(String name,String prefix,String suffix) {
+        return updateDefinitions(map -> {
+            if(map.containsKey(name))throw new IllegalArgumentException("Ta ranga już istnieje.");
+            map.put(name,new RanksFile.RankEntry(prefix,suffix,null,"",Set.of()));
+            return map;
+        });
+    }
+    public CompletableFuture<Void> addPermission(String name,String permission) {
+        return updateDefinitions(map -> {
+            var r=require(map,name);
+            Set<String> perms=new HashSet<>(r.permissions());perms.add(permission);
+            map.put(name,new RanksFile.RankEntry(r.prefix(),r.suffix(),r.position(),r.joinMessage(),perms));
+            return map;
+        });
+    }
+    public CompletableFuture<Void> position(String name,int position){
+        return updateDefinitions(map -> {
+            var r=require(map,name);
+            map.put(name,new RanksFile.RankEntry(r.prefix(),r.suffix(),position,r.joinMessage(),r.permissions()));
+            return map;
+        });
+    }
+    public CompletableFuture<Void> joinMessage(String name,String message){
+        return updateDefinitions(map -> {
+            var r=require(map,name);
+            map.put(name,new RanksFile.RankEntry(r.prefix(),r.suffix(),r.position(),message,r.permissions()));
+            return map;
+        });
+    }
+    public CompletableFuture<Void> edit(String name,String field,String value) {
+        if(field.equals("nazwa")){
+            return change(() -> {
+                Map<String,RanksFile.RankEntry> map=new LinkedHashMap<>(definitions.ranks().ranks());
+                var rank=require(map,name);
+                if(map.containsKey(value))throw new IllegalArgumentException("Ranga o nowej nazwie już istnieje.");
+                // Najpierw zmieniamy przypisania w SQL, po powodzeniu JSON.
+                return repository.renameGrants(name,value).thenRun(() -> {
+                    map.remove(name);map.put(value,rank);
+                    definitions.saveRanks(RanksFile.from(map,definitions.ranks().settings()));
+                });
+            });
+        }
+        return updateDefinitions(map -> {
+            var r=require(map,name);
+            map.put(name,new RanksFile.RankEntry(
+                    field.equals("prefix")?value:r.prefix(),
+                    field.equals("sufix")?value:r.suffix(),
+                    r.position(),r.joinMessage(),r.permissions()));
+            return map;
+        });
+    }
+    public CompletableFuture<Void> delete(String name) {
+        return change(() -> {
+            Map<String,RanksFile.RankEntry> map=new LinkedHashMap<>(definitions.ranks().ranks());
+            require(map,name);
+            return repository.deleteGrants(name).thenRun(() -> {
+                map.remove(name);
+                definitions.saveRanks(RanksFile.from(map,definitions.ranks().settings()));
+            });
+        });
+    }
+
     public void expire() {
         if (stopping || expirePending) return;
         long now = System.currentTimeMillis();
@@ -166,8 +267,7 @@ public final class RankManager {
         if (all && original == null && opPending.add(uuid)) {
             boolean before = player.isOp();
             repository.rememberOp(uuid, before)
-                    .thenCompose(unused -> repository.load())
-                    .thenCompose(this::installSnapshot)
+                    .thenCompose(unused -> refresh())
                     .whenComplete((v, error) -> {
                         if (!plugin.isEnabled()) return;
                         plugin.getServer().getScheduler().runTask(plugin, () -> {
@@ -180,8 +280,7 @@ public final class RankManager {
             player.setOp(true);
         } else if (!all && original != null && opPending.add(uuid)) {
             player.setOp(original);
-            repository.forgetOp(uuid).thenCompose(unused -> repository.load())
-                    .thenCompose(this::installSnapshot).whenComplete((v, error) -> {
+            repository.forgetOp(uuid).thenCompose(unused -> refresh()).whenComplete((v, error) -> {
                         if (!plugin.isEnabled()) return;
                         plugin.getServer().getScheduler().runTask(plugin, () -> {
                             opPending.remove(uuid);

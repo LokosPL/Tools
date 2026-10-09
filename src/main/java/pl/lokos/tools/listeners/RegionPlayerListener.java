@@ -62,7 +62,7 @@ public final class RegionPlayerListener implements Listener {
         if(!regions.ready())return;
         for(Player player:Bukkit.getOnlinePlayers()) {
             if(teleports.busy(player)) continue;
-            Region r=regions.at(player.getLocation());
+            Region r=regions.visibleAt(player.getLocation());
             if(r!=null) {
                 String inheritance=r.parent()==null?"":" &8• &7podregion";
                 player.sendActionBar(Colors.color(title+"&a"+r.name()+inheritance));

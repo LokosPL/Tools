@@ -36,17 +36,14 @@ public final class RegionProtectionListener implements Listener {
     }
 
     private boolean denies(Player player, Location loc, RegionFlag flag) {
-        if (loc == null) return false;
-        if (!regions.ready()) return true; // bezpieczenstwo: przy awarii SQL nie pozostawiamy swiata bez ochrony
-        Region region=regions.at(loc);
-        return region!=null && (player==null || !regions.bypass(player))
-                && !regions.allowed(player,region,flag);
+        if(loc==null)return false;
+        if(!regions.ready())return true;
+        return (player==null||!regions.bypass(player)) && regions.protectedLocation(loc,flag);
     }
     private boolean denies(Location loc,RegionFlag flag) {
-        if(loc==null) return false;
-        if(!regions.ready()) return true;
-        Region r=regions.at(loc);
-        return r!=null && !regions.index().enabled(r,flag);
+        if(loc==null)return false;
+        if(!regions.ready())return true;
+        return regions.protectedLocation(loc,flag);
     }
     private boolean deniesEither(Location a,Location b,RegionFlag flag) {
         return denies(a,flag) || denies(b,flag);
@@ -178,9 +175,31 @@ public final class RegionProtectionListener implements Listener {
         if(!denies(e.getLocation(),RegionFlag.MOBS)) return;
         if(e.getSpawnReason()==CreatureSpawnEvent.SpawnReason.SPAWNER_EGG) {
             boolean adminNearby=e.getLocation().getNearbyPlayers(5.0).stream().anyMatch(regions::bypass);
-            if(adminNearby) return;
+            if(adminNearby) {
+                e.getEntity().getPersistentDataContainer().set(wandKey, PersistentDataType.BYTE,(byte)2);
+                return;
+            }
         }
         e.setCancelled(true);
+    }
+    /** Moby, ktore wchodza na spawn z zewnatrz, sa usuwane. */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void mobMove(io.papermc.paper.event.entity.EntityMoveEvent event) {
+        if(event.getEntity() instanceof Player)return;
+        if(event.getEntity().getPersistentDataContainer().has(wandKey,PersistentDataType.BYTE)
+                && Byte.valueOf((byte)2).equals(event.getEntity().getPersistentDataContainer()
+                        .get(wandKey,PersistentDataType.BYTE)))return;
+        if(denies(event.getTo(),RegionFlag.MOBS))event.getEntity().remove();
+    }
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void chunkLoad(org.bukkit.event.world.ChunkLoadEvent event) {
+        if(!regions.ready())return;
+        for(Entity entity:event.getChunk().getEntities()) {
+            if(!(entity instanceof org.bukkit.entity.Mob))continue;
+            Byte override=entity.getPersistentDataContainer().get(wandKey,PersistentDataType.BYTE);
+            if(override!=null&&override==2)continue;
+            if(denies(entity.getLocation(),RegionFlag.MOBS))entity.remove();
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void entityBlocks(EntityChangeBlockEvent e) {
@@ -221,7 +240,7 @@ public final class RegionProtectionListener implements Listener {
     public void damage(EntityDamageEvent e) {
         Entity victim=e.getEntity();
         Region target=regions.at(victim.getLocation());
-        if(target==null) return;
+        if(target==null && !regions.inHalo(victim.getLocation()))return;
         if(e instanceof EntityDamageByEntityEvent attack) {
             Entity attacker=attack.getDamager();
             Player player=attacker instanceof Player p ? p
@@ -229,12 +248,12 @@ public final class RegionProtectionListener implements Listener {
             if(player!=null && regions.bypass(player)) return;
             if (player != null && victim instanceof Player) {
                 Region attackerRegion=regions.at(player.getLocation());
-                if(!regions.allowed(player,target,RegionFlag.PVP)
-                        || !regions.allowed(player,attackerRegion,RegionFlag.PVP)) e.setCancelled(true);
+                if(denies(player,victim.getLocation(),RegionFlag.PVP)
+                        || denies(player,player.getLocation(),RegionFlag.PVP))e.setCancelled(true);
                 return;
             }
         }
-        if(!regions.index().enabled(target,RegionFlag.DAMAGE)) e.setCancelled(true);
+        if(denies(victim.getLocation(),RegionFlag.DAMAGE))e.setCancelled(true);
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)

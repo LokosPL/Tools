@@ -92,6 +92,14 @@ public final class RankRepository {
         return changeExisting("DELETE FROM tools_ranks WHERE name=?", name);
     }
 
+    /** Player data only: rank definitions stay in Ranks.json. */
+    public CompletableFuture<Void> renameGrants(String previous,String next) {
+        return change("UPDATE tools_player_ranks SET rank_name=? WHERE rank_name=?",next,previous);
+    }
+    public CompletableFuture<Void> deleteGrants(String name) {
+        return change("DELETE FROM tools_player_ranks WHERE rank_name=?",name);
+    }
+
     /** Zapis z odczytem kontrolnym w tej samej sesji JDBC. */
     public CompletableFuture<Void> grant(UUID uuid, String rank, Long expires) {
         return database.query(c -> {

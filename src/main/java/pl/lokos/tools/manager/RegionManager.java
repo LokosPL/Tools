@@ -4,137 +4,194 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import pl.lokos.tools.config.DefinitionFiles;
+import pl.lokos.tools.config.RegionsFile;
 import pl.lokos.tools.database.RegionRepository;
-import pl.lokos.tools.region.Region;
-import pl.lokos.tools.region.RegionFlag;
-import pl.lokos.tools.region.RegionIndex;
+import pl.lokos.tools.region.*;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 
-/** Wylacznie immutable cache w pamieci dla eventow; odczyt i zapis SQL w tle. */
+/** Regions.json jest jedynym źródłem regionów, MySQL przechowuje dane graczy. */
 public final class RegionManager {
     private final JavaPlugin plugin;
-    private final RegionRepository repository;
+    private final RegionRepository legacy;
     private final RankManager ranks;
-    private volatile RegionIndex index = RegionIndex.empty();
+    private final DefinitionFiles definitions;
+    private volatile RegionIndex index=RegionIndex.empty();
     private volatile String mainSpawn;
     private volatile boolean loaded;
     private boolean closing;
-    private CompletableFuture<Void> queue = CompletableFuture.completedFuture(null);
-    private CompletableFuture<Void> initialLoad;
+    private CompletableFuture<Void> queue=CompletableFuture.completedFuture(null);
+    private CompletableFuture<Void> firstLoad;
 
-    public RegionManager(JavaPlugin plugin, RegionRepository repository, RankManager ranks) {
-        this.plugin=plugin;this.repository=repository;this.ranks=ranks;
+    public RegionManager(JavaPlugin plugin,RegionRepository legacy,RankManager ranks,DefinitionFiles definitions) {
+        this.plugin=plugin;this.legacy=legacy;this.ranks=ranks;this.definitions=definitions;
     }
-
     public synchronized CompletableFuture<Void> start() {
-        if (initialLoad == null) {
-            initialLoad=refresh();
-            queue=initialLoad.handle((v,e)->null);
-            initialLoad.exceptionally(e -> {
-                plugin.getLogger().log(Level.SEVERE,"Nie załadowano regionów. Ochrona regionów niedostępna!",e);
-                return null;
-            });
-        }
-        return initialLoad;
+        if(firstLoad!=null)return firstLoad;
+        firstLoad=(definitions.importRegions() ? legacy.load().thenAccept(data -> {
+            if(!definitions.regions().regions().isEmpty() || data.regions().isEmpty())return;
+            // Dawny "_ochrona" był błędnym podregionem wewnątrz spawnu.
+            // Jest teraz automatycznym buforem poza granicą; nie importujemy artefaktu.
+            Set<String> legacyHalo=new HashSet<>();
+            for(Region region:data.regions())
+                if(region.parent()!=null && region.name().equals(region.parent()+"_ochrona"))
+                    legacyHalo.add(region.name());
+            List<Region> imported=new ArrayList<>();
+            for(Region region:data.regions())
+                if(!legacyHalo.contains(region.name()) && !legacyHalo.contains(region.parent()))
+                    imported.add(region);
+            String spawn=data.mainSpawn();
+            if(spawn!=null && imported.stream().noneMatch(region->region.name().equals(spawn)))spawn=null;
+            definitions.saveRegions(RegionsFile.from(imported,spawn,definitions.regions().settings()));
+            plugin.getLogger().info("Przeniesiono "+imported.size()+" regionów do Regions.json.");
+        }) : CompletableFuture.<Void>completedFuture(null)).thenCompose(unused->refresh());
+        queue=firstLoad.handle((v,e)->null);
+        firstLoad.exceptionally(error->{plugin.getLogger().log(Level.SEVERE,"Nie załadowano Regions.json",error);return null;});
+        return firstLoad;
     }
-
-    public boolean ready() { return loaded; }
-    public RegionIndex index() { return index; }
-    public Region at(Location loc) {
-        return index.at(loc.getWorld().getUID(),loc.getBlockX(),loc.getBlockZ());
+    public boolean ready(){return loaded;}
+    public RegionIndex index(){return index;}
+    public Region at(Location at) {
+        if(at==null||at.getWorld()==null)return null;
+        return index.at(at.getWorld().getUID(),at.getBlockX(),at.getBlockZ());
     }
-    public Region mainSpawn() { return mainSpawn==null?null:index.byName(mainSpawn); }
-
+    public Region mainSpawn(){return mainSpawn==null?null:index.byName(mainSpawn);}
+    public Region visibleAt(Location location) {
+        Region region=at(location);
+        return region!=null?region:inHalo(location)?mainSpawn():null;
+    }
+    /** Zewnetrzny pas ochronny - NIGDY nie jest regionem ani lokalizacja w GUI. */
+    public boolean inHalo(Location loc) {
+        Region spawn=mainSpawn();
+        if(spawn==null||loc==null||loc.getWorld()==null||!spawn.world().equals(loc.getWorld().getUID()))return false;
+        int amount=definitions.regions().settings().spawnProtectionOutside();
+        if(amount<=0 || at(loc)!=null)return false;
+        return RegionHalo.contains(spawn,loc.getWorld().getUID(),loc.getBlockX(),loc.getBlockZ(),amount);
+    }
+    public boolean protectedLocation(Location l,RegionFlag flag) {
+        Region r=at(l);
+        return r!=null?!index.enabled(r,flag):inHalo(l);
+    }
     public CompletableFuture<Void> refresh() {
-        return repository.load().thenCompose(data -> {
-            RegionIndex incoming = new RegionIndex(data.regions());
-            CompletableFuture<Void> completion=new CompletableFuture<>();
-            if (closing || !plugin.isEnabled()) {
-                completion.completeExceptionally(new IllegalStateException("Plugin wyłączony."));
-                return completion;
-            }
-            try {
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    try {
-                        index=incoming;
-                        mainSpawn=data.mainSpawn();
-                        loaded=true;
-                        completion.complete(null);
-                    } catch(Throwable e) {
-                        completion.completeExceptionally(e);
-                    }
-                });
-            } catch (RuntimeException e) {
-                completion.completeExceptionally(e);
-            }
-            return completion;
+        RegionsFile file=definitions.regions();
+        RegionIndex next=new RegionIndex(file.regions());
+        CompletableFuture<Void> result=new CompletableFuture<>();
+        if(closing||!plugin.isEnabled()) {
+            result.completeExceptionally(new IllegalStateException("Plugin wyłączony"));return result;
+        }
+        try{
+            plugin.getServer().getScheduler().runTask(plugin,()->{
+                index=next;mainSpawn=file.mainSpawn();loaded=true;result.complete(null);
+            });
+        }catch(RuntimeException e){result.completeExceptionally(e);}
+        return result;
+    }
+    private synchronized CompletableFuture<Void> change(UnaryOperator<RegionsFile> edit) {
+        CompletableFuture<Void> op=queue.handle((v,e)->null)
+                .thenCompose(v->CompletableFuture.runAsync(()->{
+                    if(closing)throw new IllegalStateException("Plugin wyłączony");
+                    RegionsFile next=edit.apply(definitions.regions());
+                    definitions.saveRegions(next);
+                })).thenCompose(v->refresh());
+        queue=op.handle((v,e)->null);
+        return op;
+    }
+    private RegionsFile modified(RegionsFile file,List<Region> changed,String spawn) {
+        return RegionsFile.from(changed,spawn,file.settings());
+    }
+    public CompletableFuture<Void> create(Region r) {
+        return change(file->{
+            new RegionIndex(file.regions()).validateNew(r);
+            List<Region> all=new ArrayList<>(file.regions());all.add(r);
+            return modified(file,all,file.mainSpawn());
         });
     }
-
-    /** Uporzadkowanie zmian ogranicza wyscigi zapisu i odswiezania cache. */
-    public synchronized CompletableFuture<Void> change(Supplier<CompletableFuture<Void>> action) {
-        CompletableFuture<Void> task=queue.handle((v,e)->null)
-                .thenCompose(unused-> {
-                    if (closing) return CompletableFuture.failedFuture(new IllegalStateException("Plugin wyłączony."));
-                    return action.get();
-                }).thenCompose(unused->refresh());
-        queue=task.handle((v,e)->null);
-        return task;
-    }
-
-    public CompletableFuture<Void> create(Region region) {
-        index.validateNew(region);
-        return change(()->repository.create(region));
-    }
     public CompletableFuture<Void> remove(String name) {
-        return change(()->repository.remove(name));
+        return change(file->{
+            RegionIndex old=new RegionIndex(file.regions());
+            if(old.byName(name)==null)throw new IllegalArgumentException("Nie ma takiego regionu.");
+            Set<String> deleted=new HashSet<>(Set.of(name));
+            boolean grew;
+            do{
+                grew=false;
+                for(Region region:file.regions())if(region.parent()!=null&&deleted.contains(region.parent()))
+                    grew|=deleted.add(region.name());
+            }while(grew);
+            List<Region> kept=file.regions().stream().filter(region->!deleted.contains(region.name())).toList();
+            String spawn=deleted.contains(file.mainSpawn())?null:file.mainSpawn();
+            return modified(file,kept,spawn);
+        });
     }
-    public CompletableFuture<Void> flag(String name, RegionFlag f, Boolean value) {
-        return change(()->repository.flag(name,f,value));
+    private CompletableFuture<Void> edit(String name,UnaryOperator<Region> edit) {
+        return change(file->{
+            List<Region> all=new ArrayList<>();
+            boolean found=false;
+            for(Region r:file.regions()){
+                if(r.name().equals(name)){all.add(edit.apply(r));found=true;}
+                else all.add(r);
+            }
+            if(!found)throw new IllegalArgumentException("Nie ma takiego regionu.");
+            return modified(file,all,file.mainSpawn());
+        });
+    }
+    public CompletableFuture<Void> flag(String name,RegionFlag f,Boolean state) {
+        return edit(name,r->{
+            Map<RegionFlag,Boolean> flags=new EnumMap<>(RegionFlag.class);
+            flags.putAll(r.flags());
+            if(state==null)flags.remove(f);else flags.put(f,state);
+            return new Region(r.name(),r.world(),r.minX(),r.maxX(),r.minZ(),r.maxZ(),
+                    r.parent(),r.entryRank(),flags,r.spawn());
+        });
     }
     public CompletableFuture<Void> entryRank(String name,String rank) {
-        return change(()->repository.entryRank(name,rank));
+        return edit(name,r->new Region(r.name(),r.world(),r.minX(),r.maxX(),r.minZ(),r.maxZ(),
+                r.parent(),rank,r.flags(),r.spawn()));
     }
-    public CompletableFuture<Void> setSpawn(String name,Region.Spawn location) {
-        return change(()->repository.setSpawn(name,location));
+    public CompletableFuture<Void> setSpawn(String name,Region.Spawn spawn) {
+        return change(file->{
+            List<Region> all=new ArrayList<>();boolean found=false;
+            for(Region r:file.regions()){
+                if(r.name().equals(name)){
+                    all.add(new Region(r.name(),r.world(),r.minX(),r.maxX(),r.minZ(),r.maxZ(),
+                            r.parent(),r.entryRank(),r.flags(),spawn));
+                    found=true;
+                }else all.add(r);
+            }
+            if(!found)throw new IllegalArgumentException("Nie ma takiego regionu.");
+            return modified(file,all,name);
+        });
     }
-
-    /** Op oraz wildcard rangi sa administracyjnym bypass wszystkich zabezpieczen. */
-    public boolean bypass(Player player) {
-        return player.isOp() || player.hasPermission("tools.region.bypass")
-                || (ranks!=null && ranks.snapshot().permissionsFor(player.getUniqueId()).contains("*"));
+    public boolean bypass(Player p) {
+        return p.isOp()||p.hasPermission("tools.region.bypass")||
+                (ranks!=null&&ranks.snapshot().permissionsFor(p.getUniqueId()).contains("*"));
     }
-    public boolean allowed(Player player, Region region, RegionFlag flag) {
-        return region==null || bypass(player) || index.enabled(region,flag);
+    public boolean allowed(Player player,Region region,RegionFlag flag) {
+        return region==null||bypass(player)||index.enabled(region,flag);
     }
-
     public boolean canEnter(Player player,Region region) {
-        if (region==null || bypass(player)) return true;
-        RankSnapshot.Rank playerRank=ranks==null?null:ranks.snapshot().forPlayer(player.getUniqueId());
+        if(region==null||bypass(player))return true;
+        RankSnapshot.Rank rank=ranks==null?null:ranks.snapshot().forPlayer(player.getUniqueId());
         Set<String> seen=new HashSet<>();
-        while(region!=null && seen.add(region.name())) {
-            if(region.entryRank()!=null) {
-                RankSnapshot.Rank needed=ranks.snapshot().ranks().get(region.entryRank());
-                if (needed==null || needed.position()==null || playerRank==null || playerRank.position()==null
-                        || playerRank.position()>needed.position()) return false;
+        while(region!=null&&seen.add(region.name())){
+            if(region.entryRank()!=null){
+                RankSnapshot.Rank need=ranks.snapshot().ranks().get(region.entryRank());
+                if(need==null||need.position()==null||rank==null||rank.position()==null
+                        ||rank.position()>need.position())return false;
             }
             region=region.parent()==null?null:index.byName(region.parent());
         }
         return true;
     }
-
-    public Location spawnOf(Region region) {
-        if(region==null || region.spawn()==null) return null;
-        var world=Bukkit.getWorld(region.world());
-        if(world==null) return null;
-        Region.Spawn s=region.spawn();
+    public Location spawnOf(Region r){
+        if(r==null||r.spawn()==null)return null;
+        var world=Bukkit.getWorld(r.world());
+        if(world==null)return null;
+        Region.Spawn s=r.spawn();
         return new Location(world,s.x(),s.y(),s.z(),s.yaw(),s.pitch());
     }
-
-    public void shutdown() {closing=true;}
+    public void shutdown(){closing=true;}
 }

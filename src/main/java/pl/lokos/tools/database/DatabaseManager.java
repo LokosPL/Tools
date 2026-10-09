@@ -204,6 +204,19 @@ public final class DatabaseManager implements DatabaseExecutor {
                       original_op BOOLEAN NOT NULL
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                     """);
+            // Ranks.json jest zrodlem definicji, przypisania graczy zostaja w SQL.
+            try (PreparedStatement query = connection.prepareStatement("""
+                    SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+                    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='tools_player_ranks'
+                    AND REFERENCED_TABLE_NAME='tools_ranks'
+                    """); ResultSet fk = query.executeQuery()) {
+                while (fk.next()) {
+                    String name=fk.getString(1);
+                    if (!name.matches("[a-zA-Z0-9_]+"))
+                        throw new SQLException("Nieprawidlowa nazwa klucza obcego.");
+                    statement.executeUpdate("ALTER TABLE tools_player_ranks DROP FOREIGN KEY " + name);
+                }
+            }
         }
     }
 

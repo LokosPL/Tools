@@ -29,16 +29,18 @@ public final class RankCommand implements BasicCommand {
     private final JavaPlugin plugin;
     private final RankManager ranks;
     private final RankRepository repository;
+    private final String commandPermission;
 
-    public RankCommand(JavaPlugin plugin, RankManager ranks) {
+    public RankCommand(JavaPlugin plugin, RankManager ranks, String permission) {
         this.plugin = plugin;
         this.ranks = ranks;
         this.repository = ranks.repository();
+        this.commandPermission=permission;
     }
 
     @Override
     public String permission() {
-        return "tools.ranga.admin";
+        return commandPermission;
     }
 
     @Override
@@ -68,7 +70,7 @@ public final class RankCommand implements BasicCommand {
                     checkLength("Prefix", prefix, 256);
                     checkLength("Suffix", suffix, 256);
                     perform(sender, () -> ranks.change(() -> repository.create(name, prefix, suffix)),
-                            "Utworzono rangę &e" + name + "&a. &7Następny krok: &e/ranga pozycja " + name + " 1");
+                            "Utworzono rangę &e" + name + "&a. &7Następny krok: &a/ranga pozycja " + name + " 1");
                 }
                 case "dodaj" -> {
                     if (args.length != 3) {
@@ -165,7 +167,7 @@ public final class RankCommand implements BasicCommand {
                 case "info" -> showInfo(sender, args);
                 default -> {
                     Messages.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
-                    Messages.hint(sender, "Użyj &e/ranga &7aby zobaczyć dostępne komendy.");
+                    Messages.hint(sender, "Użyj &a/ranga &7aby zobaczyć dostępne komendy.");
                 }
             }
         } catch (IllegalArgumentException ex) {
@@ -184,12 +186,12 @@ public final class RankCommand implements BasicCommand {
         RankSnapshot.Rank rank = ranks.snapshot().ranks().get(name);
         if (rank == null) {
             Messages.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
-            Messages.hint(sender, "Wpisz &e/ranga lista&7, aby zobaczyć istniejące rangi.");
+            Messages.hint(sender, "Wpisz &a/ranga lista&7, aby zobaczyć istniejące rangi.");
             return;
         }
         if (!rank.assignable()) {
             Messages.error(sender, "Ranga &c&n" + name + "&r&c nie ma ustawionej pozycji.");
-            Messages.hint(sender, "Najpierw wpisz &e/ranga pozycja " + name + " 1");
+            Messages.hint(sender, "Najpierw wpisz &a/ranga pozycja " + name + " 1");
             return;
         }
         String duration = join(args, 3);
@@ -289,10 +291,13 @@ public final class RankCommand implements BasicCommand {
             return;
         }
         List<RankSnapshot.Rank> all = sortedRanks();
+        Messages.line(sender," ");
         Messages.title(sender, "LISTA RANG");
+        Messages.line(sender,"&7  Nazwa &8• &7Priorytet &8• &7Stan");
+        Messages.line(sender," ");
         if (all.isEmpty()) {
             Messages.info(sender, "Nie utworzono jeszcze żadnej rangi.");
-            Messages.hint(sender, "Pierwszą rangę dodasz przez &e/ranga stworz");
+            Messages.hint(sender, "Pierwszą rangę dodasz przez &a/ranga stworz");
             return;
         }
         int index = 1;
@@ -302,7 +307,8 @@ public final class RankCommand implements BasicCommand {
                     + " &8│ &7Pozycja: " + position
                     + (rank.assignable() ? " &8│ &aGotowa" : " &8│ &cNiegotowa"));
         }
-        Messages.hint(sender, "Szczegóły: &e/ranga info <nazwa>");
+        Messages.line(sender," ");
+        Messages.hint(sender, "Szczegóły: &a/ranga info <nazwa>");
     }
 
     private List<RankSnapshot.Rank> sortedRanks() {
@@ -326,7 +332,7 @@ public final class RankCommand implements BasicCommand {
         RankSnapshot.Rank rank = ranks.snapshot().ranks().get(name);
         if (rank == null) {
             Messages.error(sender, "Ranga &c&n" + name + "&r&c nie istnieje.");
-            Messages.hint(sender, "Sprawdź listę przez &e/ranga lista");
+            Messages.hint(sender, "Sprawdź listę przez &a/ranga lista");
             return;
         }
         repository.count(name).whenComplete((count, error) -> onMain(() -> {
@@ -377,7 +383,7 @@ public final class RankCommand implements BasicCommand {
     private boolean requireRank(CommandSender sender, String name) {
         if (ranks.snapshot().ranks().containsKey(name)) return true;
         Messages.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
-        Messages.hint(sender, "Dostępne rangi sprawdzisz przez &e/ranga lista");
+        Messages.hint(sender, "Dostępne rangi sprawdzisz przez &a/ranga lista");
         return false;
     }
 
@@ -387,16 +393,21 @@ public final class RankCommand implements BasicCommand {
     }
 
     private void help(CommandSender sender) {
+        Messages.line(sender," ");
         Messages.title(sender, "ZARZĄDZANIE RANGAMI");
-        Messages.line(sender, "&e/ranga stworz &7<nazwa> <prefix> [sufix]");
-        Messages.line(sender, "&e/ranga dodaj &7<ranga> <uprawnienie>");
-        Messages.line(sender, "&e/ranga pozycja &7<ranga> <1-9998>");
-        Messages.line(sender, "&e/ranga wejscie &7<ranga> <tekst|brak>");
-        Messages.line(sender, "&e/ranga nadaj &7<nick> <ranga> <czas|*|na_zawsze>");
-        Messages.line(sender, "&e/ranga edytuj &7<ranga> <prefix|sufix|nazwa> <wartość>");
-        Messages.line(sender, "&e/ranga info &7<ranga> &8• &e/ranga lista");
-        Messages.line(sender, "&e/ranga usun &7<ranga>");
-        Messages.line(sender, "&e/ranga sprawdz &7<nick> &8- &7odczyt przypisania z MySQL");
+        Messages.line(sender,"&7  Tworzenie i konfiguracja");
+        Messages.line(sender, "&a/ranga stworz &7<nazwa> <prefix> [sufix]");
+        Messages.line(sender, "&a/ranga dodaj &7<ranga> <uprawnienie>");
+        Messages.line(sender, "&a/ranga pozycja &7<ranga> <1-9998>");
+        Messages.line(sender, "&a/ranga wejscie &7<ranga> <tekst|brak>");
+        Messages.line(sender," ");
+        Messages.line(sender,"&7  Nadawanie i administracja");
+        Messages.line(sender, "&a/ranga nadaj &7<nick> <ranga> <czas|*|na_zawsze>");
+        Messages.line(sender, "&a/ranga edytuj &7<ranga> <prefix|sufix|nazwa> <wartość>");
+        Messages.line(sender, "&a/ranga info &7<ranga> &8• &a/ranga lista");
+        Messages.line(sender, "&a/ranga usun &7<ranga>");
+        Messages.line(sender, "&a/ranga sprawdz &7<nick> &8- &7odczyt przypisania z MySQL");
+        Messages.line(sender," ");
     }
 
     public static String rankName(String raw) {

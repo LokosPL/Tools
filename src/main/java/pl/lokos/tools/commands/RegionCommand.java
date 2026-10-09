@@ -38,14 +38,15 @@ public final class RegionCommand implements BasicCommand {
     private final RankManager ranks;
     private final ToolsConfig.Regions settings;
     private final NamespacedKey wandKey;
+    private final String commandPermission;
 
     public RegionCommand(JavaPlugin plugin,RegionManager regions,RegionSelection selection,
-                         RegionMenuFactory menus,RankManager ranks,ToolsConfig.Regions settings,NamespacedKey wandKey) {
+                         RegionMenuFactory menus,RankManager ranks,ToolsConfig.Regions settings,NamespacedKey wandKey,String permission) {
         this.plugin=plugin;this.regions=regions;this.selection=selection;this.menus=menus;
-        this.ranks=ranks;this.settings=settings;this.wandKey=wandKey;
+        this.ranks=ranks;this.settings=settings;this.wandKey=wandKey;this.commandPermission=permission;
     }
 
-    @Override public String permission() {return "tools.region.admin";}
+    @Override public String permission() {return commandPermission;}
 
     @Override public void execute(CommandSourceStack source,String[] args) {
         CommandSender sender=source.getSender();
@@ -212,7 +213,10 @@ public final class RegionCommand implements BasicCommand {
                 "&7 oraz wszystkie jego podregiony.");
     }
     private void list(CommandSender sender) {
+        Messages.line(sender," ");
         Messages.title(sender,"REGIONY");
+        Messages.line(sender,"&7  Nazwa &8• &7Rodzaj &8• &7Teleportacja");
+        Messages.line(sender," ");
         regions.index().all().values().stream().sorted(Comparator.comparing(Region::name))
                 .forEach(r->Messages.info(sender,"&a"+r.name()+" &8• &7"+(r.parent()==null?"główny":"podregion "+r.parent())+
                         " &8• &7"+(r.spawn()==null?"brak teleportu":"lokalizacja dostępna")));
@@ -240,12 +244,15 @@ public final class RegionCommand implements BasicCommand {
         Messages.error(sender,explanation);Messages.usage(sender,usage);
     }
     private void help(CommandSender sender) {
+        Messages.line(sender," ");
         Messages.title(sender,"ZARZĄDZANIE REGIONAMI");
+        Messages.line(sender," ");
         Messages.line(sender,"&a/region stworz &7<nazwa> <promień>");
         Messages.line(sender,"&a/region rozdzka &8• &a/region podregion &7<rodzic> <nazwa>");
         Messages.line(sender,"&a/region ochrona &7<region> <promień>");
         Messages.line(sender,"&a/region edytuj &7<nazwa> &8• &a/region spawn");
         Messages.line(sender,"&a/region usun &7<nazwa> &8• &a/region lista");
+        Messages.line(sender," ");
     }
     private void perform(CommandSender sender,Supplier<CompletableFuture<Void>> action,String success) {
         try {
