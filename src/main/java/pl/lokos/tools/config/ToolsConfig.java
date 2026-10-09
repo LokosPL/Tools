@@ -84,17 +84,19 @@ public final class ToolsConfig {
     }
 
     public static final class Database {
-        private boolean enabled = false;
+        private boolean enabled = true;
+        private boolean createDatabaseIfMissing = true;
         private String host = "127.0.0.1";
         private int port = 3306;
         private String database = "tools";
-        private String username = "tools";
-        private String password = "${TOOLS_DB_PASSWORD}";
+        private String username = "root";
+        private String password = "";
         private String sslMode = "PREFERRED";
         private int poolSize = 6;
         private int connectionTimeoutMs = 5000;
 
         public boolean enabled() { return enabled; }
+        public boolean createDatabaseIfMissing() { return createDatabaseIfMissing; }
         public String host() { return host; }
         public int port() { return port; }
         public String database() { return database; }
