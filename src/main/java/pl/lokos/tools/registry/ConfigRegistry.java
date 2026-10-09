@@ -2,6 +2,7 @@ package pl.lokos.tools.registry;
 
 import pl.lokos.tools.config.JsonConfigManager;
 import pl.lokos.tools.config.ToolsConfig;
+import pl.lokos.tools.config.ToolsConfigMigration;
 import pl.lokos.tools.variables.PluginConstants;
 
 import java.io.IOException;
@@ -24,7 +25,8 @@ public final class ConfigRegistry {
     }
 
     public void loadAll() throws IOException {
-        tools = json.load(PluginConstants.CONFIG_FILE, ToolsConfig.class, ToolsConfig::new, ToolsConfig::validate);
+        tools = json.load(PluginConstants.CONFIG_FILE, ToolsConfig.class, ToolsConfig::new, ToolsConfig::validate,
+                ToolsConfigMigration::apply);
     }
 
     public ToolsConfig tools() {
