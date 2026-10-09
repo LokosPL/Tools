@@ -20,8 +20,8 @@ public final class DefinitionFiles {
         this.folder=folder;this.ranks=ranks;this.regions=regions;
         this.importRanks=importRanks;this.importRegions=importRegions;
     }
-    public boolean importRanks(){return importRanks;}
-    public boolean importRegions(){return importRegions;}
+    public boolean importRanks(){return !ranks.legacyImported();}
+    public boolean importRegions(){return !regions.legacyImported();}
     public RanksFile ranks(){return ranks;}
     public RegionsFile regions(){return regions;}
     public synchronized void saveRanks(RanksFile next) {

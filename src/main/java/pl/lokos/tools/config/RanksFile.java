@@ -5,6 +5,7 @@ import java.util.*;
 
 public final class RanksFile {
     private ToolsConfig.Ranks settings=new ToolsConfig.Ranks();
+    private boolean legacyImported;
     private Map<String,RankEntry> ranks=new LinkedHashMap<>();
     public record RankEntry(String prefix,String suffix,Integer position,String joinMessage,Set<String> permissions) {
         public RankEntry {
@@ -16,10 +17,12 @@ public final class RanksFile {
         }
     }
     public ToolsConfig.Ranks settings(){return settings;}
+    public boolean legacyImported(){return legacyImported;}
     public Map<String,RankEntry> ranks(){return Map.copyOf(ranks);}
     public static RanksFile from(Map<String,RankEntry> ranks,ToolsConfig.Ranks settings){
         RanksFile file=new RanksFile();
         file.settings=settings;
+        file.legacyImported=true;
         file.ranks=new LinkedHashMap<>(ranks);
         file.validate();
         return file;

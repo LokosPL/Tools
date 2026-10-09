@@ -33,7 +33,11 @@ public final class RegionManager {
     public synchronized CompletableFuture<Void> start() {
         if(firstLoad!=null)return firstLoad;
         firstLoad=(definitions.importRegions() ? legacy.load().thenAccept(data -> {
-            if(!definitions.regions().regions().isEmpty() || data.regions().isEmpty())return;
+            if(!definitions.regions().regions().isEmpty()) {
+                definitions.saveRegions(RegionsFile.from(definitions.regions().regions(),
+                        definitions.regions().mainSpawn(),definitions.regions().settings()));
+                return;
+            }
             // Dawny "_ochrona" był błędnym podregionem wewnątrz spawnu.
             // Jest teraz automatycznym buforem poza granicą; nie importujemy artefaktu.
             Set<String> legacyHalo=new HashSet<>();

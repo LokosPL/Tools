@@ -56,16 +56,18 @@ public final class RankManager {
      */
     public synchronized void start() {
         mutationTail = repository.load().thenCompose(legacy -> {
-            if(definitions.importRanks() && definitions.ranks().ranks().isEmpty() && !legacy.ranks().isEmpty()) {
-                Map<String,RanksFile.RankEntry> imported=new LinkedHashMap<>();
-                for(var item:legacy.ranks().entrySet()){
-                    RankSnapshot.Rank rank=item.getValue();
-                    imported.put(item.getKey(),new RanksFile.RankEntry(
-                            rank.prefix(),rank.suffix(),rank.position(),rank.joinMessage(),
-                            legacy.permissions().getOrDefault(item.getKey(),Set.of())));
+            if(definitions.importRanks()){
+                Map<String,RanksFile.RankEntry> imported=new LinkedHashMap<>(definitions.ranks().ranks());
+                if(imported.isEmpty()){
+                    for(var item:legacy.ranks().entrySet()){
+                        RankSnapshot.Rank rank=item.getValue();
+                        imported.put(item.getKey(),new RanksFile.RankEntry(
+                                rank.prefix(),rank.suffix(),rank.position(),rank.joinMessage(),
+                                legacy.permissions().getOrDefault(item.getKey(),Set.of())));
+                    }
                 }
                 definitions.saveRanks(RanksFile.from(imported,definitions.ranks().settings()));
-                plugin.getLogger().info("Przeniesiono "+imported.size()+" rang z MySQL do Ranks.json.");
+                plugin.getLogger().info("Rangi gotowe w Ranks.json: "+imported.size());
             }
             return refresh();
         }).whenComplete((ignored, error) -> {
