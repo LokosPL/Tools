@@ -1,68 +1,71 @@
-# Tools 1.3.1 — klasyczny TAB i poprawione rangi
+# Tools 1.4.0 — regiony, lokalizacje i rangi
 
-Modułowy plugin **Paper 26.3 / Java 25** z HikariCP, MariaDB/MySQL, rangami i konfiguracją JSON generowaną z klas Java.
+Plugin Paper 26.3 / Java 25. Konfiguracja startuje z klas Java i generuje `plugins/Tools/config.json`. Dane regionów, rang i graczy zapisywane są w MySQL/MariaDB przez asynchroniczny silnik SQL.
 
-## Zmiany w 1.3.1
+## Regiony
 
-- **TAB** wrócił do standardowej listy prawdziwych graczy, bez sztucznych kolumn i poszerzania. Sortowanie według pozycji rang pozostało. U góry jest krótki tytuł i liczba graczy (czcionka `ᴀᴋᴛᴜᴀʟɴɪᴇ ɢʀᴀᴄᴢʏ ɴᴀ ᴛʀʏʙɪᴇ`), na dole ranga, ping, statystyki i TPS.
-- **Jednolite kolory:** czerwony `&c` dla błędów, zielony `&a` dla sukcesów i wyróżnień, szary `&7` dla treści, ciemny `&8` dla separatorów. Nie ma znaków ✓ / ✖ ani prefiksu `[Tools]`. Przykłady stylu:
-  - `&c&lBŁĄD &8» &cNie znaleziono rangi.`
-  - `&a&lSUKCES &8» &7Nadano rangę &awłaściciel&7.`
-  - `&a&lTIP &8» &7Użyj /ranga lista`
-- **Prefix i suffix:** plugin sam dokłada brakującą spację między prefixem, szarym nickiem a sufiksem, w TAB-ie, czacie i nazwach nad głową. Nie zmienia przy tym wartości zapisanych w MySQL.
-- **Ważność:** `/ranga sprawdz <nick>` pokazuje `na zawsze`, `wygasła` lub pozostały czas oraz datę zakończenia w lokalnej strefie serwera. Potwierdzenie `/ranga nadaj ... *` wyświetla `na zawsze`, zamiast surowej gwiazdki.
-- **Tworzenie:** suffix jest opcjonalny: `/ranga stworz <nazwa> <prefix> [sufix]`. Przy nieustawionym suffixie może pozostać tylko prefix i nick.
-- **Konfiguracja w Javie:** domyślne wartości `tabHeader` i `tabFooter` są aktualizowane dla starszych, **niezmienionych** presetów przy starcie. Twoje własne zmiany w JSON pozostają zachowane.
+| Komenda | Funkcja |
+| --- | --- |
+| `/region stworz spawn 100` | Region 201 × 201 bloków (100 w każdą stronę od gracza), cała wysokość świata |
+| `/region rozdzka` | Daje różdżkę (lewy/prawy klik w blok: pierwszy/drugi narożnik) |
+| `/region podregion spawn afk` | Tworzy wewnętrzny region AFK z zaznaczenia |
+| `/region podregion spawn pvp` | Tworzy strefę PvP w zaznaczeniu |
+| `/region edytuj pvp flaga pvp tak` | Odblokowuje PvP tylko w strefie pvp |
+| `/region edytuj afk wejscie premium` | Wymaga rangi Premium lub wyższej według jej pozycji |
+| `/region edytuj spawn` | GUI zarządzania flagami regionu |
+| `/region ochrona spawn 50` | Tworzy chroniony podregion 101 × 101 wokół ustawionego punktu spawn |
+| `/region spawn` | Stojąc w regionie ustawia jego punkt teleportacji i globalny spawn nowych graczy |
+| `/region lista` | Wyświetla utworzone regiony |
+| `/region info spawn` | Pokazuje parametry, dostęp i flagi |
+| `/region usun spawn` | Usuwa region i wszystkie jego podregiony |
+| `/lokalizacje` | GUI dostępnych dla danej rangi punktów teleportacji |
 
-## Pierwszy start
+Domyślna ochrona nowego regionu zabrania: budowania, niszczenia, PvP, zadawania obrażeń (w tym upadku), spawnu mobów, eksplozji, ognia, tłoków, rozlewania płynów i interakcji z kontenerami/przedmiotami. Blokowane są również zdarzenia pochodzące z zewnątrz regionu (przepływ wody, wybuchy, ruch bloków tłokiem). Uprawnienie `tools.region.bypass` lub status OP/ranga zawierająca uprawnienie `*` omija restrykcje administracyjne.
 
-1. Uruchom MySQL/MariaDB i serwer Paper **26.3** na Java **25**.
-2. Wgraj plik `Tools.jar` do folderu `plugins` i uruchom serwer.
-3. Plugin wygeneruje `plugins/Tools/config.json` na podstawie domyślnych ustawień w `ToolsConfig.java` i przygotuje tabele MySQL.
-4. Użyj `/tools status`, `/tools ping`, a następnie komend rang.
+### Zasady podregionów
 
-Domyślny lokalny preset MySQL: `127.0.0.1:3306`, baza `tools`, użytkownik `root`, puste hasło. To wyłącznie konfiguracja do testów z Laragonem na tym samym komputerze. **Nie używaj root bez hasła w produkcji**; utwórz dedykowanego użytkownika.
-
-## Komendy
-
-```text
-/ranga stworz właściciel &c&lWłaściciel
-/ranga pozycja właściciel 1
-/ranga dodaj właściciel essentials.fly
-/ranga nadaj LokosPL właściciel *
-/ranga sprawdz LokosPL
-/ranga lista
-/ranga info właściciel
-/ranga edytuj właściciel sufix &7★
-/ranga wejscie właściciel &a • &7Gracz&8: &a{player} &7dołączył do serwera!
-```
-
-Uwaga: wiadomość `wejscie` jest opcjonalna, a pusta nie wyświetla niczego. Dostępne placeholdery: `{player}`, `{nick}`, `{ranga}`. Podkreślenie `_` w prefixie/suffixie przy `stworz` oznacza spację.
-
-- `/ranga stworz` tworzy rangę, której jeszcze nie można nadać; `/ranga pozycja` aktywuje możliwość nadania.
-- `/ranga dodaj <ranga> *` ustawia wszystkie uprawnienia (OP); dawnego statusu OP nie traci się po odebraniu tego uprawnienia.
-- `/ranga nadaj <nick> <ranga> <1h|7d|30d|*|na_zawsze>` zapisuje przypisanie w MySQL. Dla graczy offline wymagane jest wcześniejsze wejście na serwer.
-- `/ranga sprawdz <nick>` pokazuje wynik z MySQL i bieżący stan rangi online.
-- `/ranga usun <nazwa>` usuwa rangę i jej przypisania.
-
-Nicki są **szare** na czacie, nad głową i w TAB-ie, a prefixy i suffixy mogą być kolorowane `&a`, `&c`, `&#RRGGBB`. Tekst gracza na czacie również pozostaje szary. Nazwa nad głową w F5 korzysta z oddzielnego `TextDisplay` i wymaga testu wizualnego.
-
-## Struktura i konfiguracja
+Nowy podregion **dziedziczy wszystkie ustawienia rodzica**, chyba że wybrana flaga jest ustawiona jawnie. Przykład: strefa `pvp` z włączoną flagą `pvp` pozwala walczyć między graczami znajdującymi się w niej, pozostawiając budowanie i inne czynności zablokowane jak w spawn.
 
 ```text
-src/main/java/pl/lokos/tools/
-  basic/       ToolsPlugin
-  commands/    RankCommand, ToolsCommand
-  config/      ToolsConfig, JsonConfigManager, ToolsConfigMigration
-  database/    DatabaseManager, RankRepository, PlayerRepository
-  helpers/     Colors, Messages, RankFormatting, RankValidity
-  listeners/   RankListener, PlayerConnectionListener
-  manager/     RankManager, RankVisualManager, RankSnapshot, TabPanel
-  registry/    ConfigRegistry, CommandRegistry
-  ...
+/region edytuj pvp flaga pvp tak
+/region edytuj pvp flaga budowanie nie
+/region edytuj pvp flaga pvp dziedzicz
+/region edytuj pvp wejscie moderator
+/region edytuj pvp wejscie wszyscy
 ```
 
-Domyślne wartości konfiguracji znajdują się **wyłącznie w Javie**. Pliki JSON generowane są przy starcie; późniejsze edycje administratora zostają zachowane. `plugin.yml` zawiera wyłącznie metadane; komendy są rejestrowane w Javie (Paper BasicCommand). Zmiany konfiguracji wymagają pełnego restartu.
+Pozycja rangi jest jej priorytetem: ranga z pozycją 1 ma dostęp do obszarów wymagających rangi z pozycją 2, ale nie odwrotnie. Ograniczenia dostępowe rodzica również obowiązują w podregionach. Gdy region jest aktywny, gracz widzi jego nazwę na actionbarze.
+
+### Teleportacja
+
+`/lokalizacje` wyświetla do 45 punktów na stronę; podregiony można również udostępnić jako lokalizacje po ustawieniu w nich `/region spawn`. GUI używa kontrolowanego InventoryHolder i PDC. Każdorazowo kontroluje uprawnienia. Teleport trwa **5 sekund** z odliczaniem, dźwiękami i cząsteczkami. Ruch lub obrażenia przerywają odliczanie. Docelowy chunk wczytywany jest asynchronicznie (Paper `teleportAsync`).
+
+Nowy gracz na pierwszym wejściu trafia na główny spawn, jeśli został ustawiony. Zwykły respawn również korzysta ze spawnu, o ile gracz ma tam dostęp.
+
+## Uprawnienia
+
+- `tools.region.admin` — pełna administracja komendą `/region`, tylko operator.
+- `tools.region.bypass` — omija restrykcje regionów, tylko operator.
+- `tools.lokalizacje` — dostęp do GUI, domyślnie każdy gracz. Docelowy region może dodatkowo wymagać rangi.
+- `tools.ranga.admin` — zarządzanie rangami, operator.
+
+## Konfiguracja
+
+Domyślne ustawienia znajdują się w `ToolsConfig.Regions`, NIE w szablonach JSON:
+
+```json
+"regions": {
+  "enabled": true,
+  "maxRadius": 2000,
+  "teleportSeconds": 5,
+  "cancelTeleportOnMove": true,
+  "barTitle": "&aᴏʙꜱᴢᴀʀ &8» &7"
+}
+```
+
+`JsonConfigManager` uzupełni te opcje w istniejącym `config.json` bez nadpisywania Twoich ustawień bazy i rang. Dane regionów przechowywane są w tabelach `tools_regions`, `tools_region_flags` i `tools_region_settings` (klucze obce i transakcje).
+
+**Ważne:** ochrona regionów jest ładowana asynchronicznie z bazy; dopóki nie ma gotowego cache regionów, działania zmieniające świat są blokowane, aby nie dopuścić do obchodzenia zabezpieczeń przy starcie. Przed uruchomieniem produkcyjnym zapewnij stabilne połączenie MySQL. Przetestuj zabezpieczenia wraz z innymi pluginami, szczególnie TNT, redstone, teleport i PvP.
 
 ## Kompilacja i testy
 
@@ -70,4 +73,4 @@ Domyślne wartości konfiguracji znajdują się **wyłącznie w Javie**. Pliki J
 mvn clean verify
 ```
 
-[GitHub Actions](https://github.com/LokosPL/Tools/actions/workflows/build.yml) uruchamia Maven z testami JUnit oraz integracyjnym testem MariaDB tworzenia, nadawania, odczytu i wygasania rang. Artefakt `Tools.jar` jest do pobrania po udanej kompilacji. Testy nie zastępują weryfikacji GUI i uprawnień na uruchomionym serwerze Paper.
+GitHub Actions uruchamia testy JUnit i integracyjne testy MariaDB. Wynikowy `Tools.jar` znajduje się w artefaktach workflow. Nie używaj `/reload`; po aktualizacji JAR-a uruchom cały serwer ponownie. Zalecane wykonywanie kopii MySQL przed zmianami struktury danych. Konto MySQL `root` bez hasła jest dopuszczalne **wyłącznie na lokalnym środowisku deweloperskim**.

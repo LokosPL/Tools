@@ -10,6 +10,7 @@ public final class ToolsConfig {
     private Database database = new Database();
     private Commands commands = new Commands();
     private Ranks ranks = new Ranks();
+    private Regions regions = new Regions();
 
     public int autosaveSeconds() {
         return autosaveSeconds;
@@ -26,6 +27,7 @@ public final class ToolsConfig {
     public Ranks ranks() {
         return ranks;
     }
+    public Regions regions() { return regions; }
 
     public void validate() {
         if (autosaveSeconds < 5 || autosaveSeconds > 3600) {
@@ -41,6 +43,8 @@ public final class ToolsConfig {
         commands.validate();
         if (ranks == null) throw new IllegalArgumentException("Brakuje sekcji ranks.");
         ranks.validate();
+        if (regions == null) throw new IllegalArgumentException("Brakuje sekcji regions.");
+        regions.validate();
     }
 
     public static final class Commands {
@@ -125,6 +129,24 @@ public final class ToolsConfig {
             if (defaultPrefix.length() > 256 || tabHeader.length() > 1024 || tabFooter.length() > 1024) {
                 throw new IllegalArgumentException("Tekst tablisty lub prefixu za dlugi.");
             }
+        }
+    }
+
+    public static final class Regions {
+        private boolean enabled = true;
+        private int maxRadius = 2000;
+        private int teleportSeconds = 5;
+        private boolean cancelTeleportOnMove = true;
+        private String barTitle = "&aᴏʙꜱᴢᴀʀ &8» &7";
+        public boolean enabled() { return enabled; }
+        public int maxRadius() { return maxRadius; }
+        public int teleportSeconds() { return teleportSeconds; }
+        public boolean cancelTeleportOnMove() { return cancelTeleportOnMove; }
+        public String barTitle() { return barTitle; }
+        private void validate() {
+            if (maxRadius < 1 || maxRadius > 30000) throw new IllegalArgumentException("regions.maxRadius: 1-30000.");
+            if (teleportSeconds < 1 || teleportSeconds > 30) throw new IllegalArgumentException("regions.teleportSeconds: 1-30.");
+            if (barTitle == null || barTitle.length() > 100) throw new IllegalArgumentException("Niepoprawny regions.barTitle.");
         }
     }
 

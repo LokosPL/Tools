@@ -1,12 +1,22 @@
 package pl.lokos.tools.basic;
 
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.database.DatabaseManager;
 import pl.lokos.tools.database.PlayerRepository;
 import pl.lokos.tools.database.RankRepository;
+import pl.lokos.tools.database.RegionRepository;
+import pl.lokos.tools.inventorys.RegionMenuFactory;
+import pl.lokos.tools.listeners.RegionProtectionListener;
+import pl.lokos.tools.listeners.RegionPlayerListener;
+import pl.lokos.tools.listeners.RegionMenuListener;
+import pl.lokos.tools.manager.RegionManager;
+import pl.lokos.tools.manager.RegionTeleportManager;
+import pl.lokos.tools.region.RegionSelection;
+import pl.lokos.tools.registry.RegionCommandRegistry;
 import pl.lokos.tools.inventorys.InventoryRegistry;
 import pl.lokos.tools.listeners.PlayerConnectionListener;
 import pl.lokos.tools.manager.PlayerDataManager;
@@ -25,6 +35,8 @@ public final class ToolsPlugin extends JavaPlugin {
     private PlayerDataManager playerData;
     private RankManager rankManager;
     private RankVisualManager rankVisuals;
+    private RegionManager regionManager;
+    private RegionTeleportManager regionTeleports;
     private InventoryRegistry inventories;
     private BukkitTask autosaveTask;
     private ConfigRegistry configurations;
@@ -55,6 +67,10 @@ public final class ToolsPlugin extends JavaPlugin {
                 this.rankManager = new RankManager(this, new RankRepository(database));
                 this.rankVisuals = new RankVisualManager(this, rankManager, config.ranks());
                 rankManager.setVisuals(rankVisuals);
+                if(config.regions().enabled()) {
+                    this.regionManager=new RegionManager(this,new RegionRepository(database),rankManager);
+                    this.regionTeleports=new RegionTeleportManager(this,regionManager,config.regions());
+                }
             } catch (RuntimeException error) {
                 getLogger().severe("Nie mozna uruchomic MySQL: " + error.getMessage());
                 getServer().getPluginManager().disablePlugin(this);
@@ -65,6 +81,23 @@ public final class ToolsPlugin extends JavaPlugin {
         }
 
         new CommandRegistry(this).register(config.commands(), database, repository, playerData, rankManager);
+        if(regionManager!=null) {
+            NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
+            NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
+            RegionSelection selection=new RegionSelection();
+            RegionMenuFactory menus=new RegionMenuFactory(regionManager,menuKey);
+            new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey);
+            getServer().getPluginManager().registerEvents(
+                    new RegionProtectionListener(regionManager,selection,wandKey),this);
+            RegionPlayerListener playerRegions=new RegionPlayerListener(
+                    this,regionManager,regionTeleports,config.regions().barTitle());
+            getServer().getPluginManager().registerEvents(playerRegions,this);
+            getServer().getPluginManager().registerEvents(
+                    new RegionMenuListener(this,menus,regionManager,regionTeleports),this);
+            regionManager.start();
+            getServer().getScheduler().runTaskTimer(this,playerRegions::actionbar,20L,20L);
+        }
+
         if (rankManager != null) {
             getServer().getPluginManager().registerEvents(
                     new RankListener(rankManager, rankVisuals, config.ranks()), this);
@@ -92,6 +125,8 @@ public final class ToolsPlugin extends JavaPlugin {
         if (autosaveTask != null) {
             autosaveTask.cancel();
         }
+        if(regionTeleports!=null) regionTeleports.cancelAll();
+        if(regionManager!=null) regionManager.shutdown();
         if (rankManager != null) rankManager.stop();
         if (database != null) {
             CompletableFuture<Void> pending = playerData != null
@@ -112,6 +147,10 @@ public final class ToolsPlugin extends JavaPlugin {
 
     public RankManager ranks() {
         return rankManager;
+    }
+
+    public RegionManager regions() {
+        return regionManager;
     }
 
     public ToolsConfig config() {

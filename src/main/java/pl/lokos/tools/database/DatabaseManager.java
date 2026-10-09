@@ -170,6 +170,35 @@ public final class DatabaseManager implements DatabaseExecutor {
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                     """);
             statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_regions (
+                      name VARCHAR(24) NOT NULL PRIMARY KEY,
+                      world_uuid CHAR(36) NOT NULL,
+                      min_x INT NOT NULL, max_x INT NOT NULL,
+                      min_z INT NOT NULL, max_z INT NOT NULL,
+                      parent VARCHAR(24) NULL,
+                      entry_rank VARCHAR(24) NULL,
+                      spawn_x DOUBLE NULL, spawn_y DOUBLE NULL, spawn_z DOUBLE NULL,
+                      spawn_yaw FLOAT NULL, spawn_pitch FLOAT NULL,
+                      KEY idx_regions_world (world_uuid),
+                      FOREIGN KEY (parent) REFERENCES tools_regions(name) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_region_flags (
+                      region_name VARCHAR(24) NOT NULL,
+                      flag_name VARCHAR(32) NOT NULL,
+                      allowed BOOLEAN NOT NULL,
+                      PRIMARY KEY (region_name, flag_name),
+                      FOREIGN KEY (region_name) REFERENCES tools_regions(name) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS tools_region_settings (
+                      config_key VARCHAR(32) PRIMARY KEY,
+                      config_value VARCHAR(64) NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """);
+            statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS tools_rank_op_restore (
                       player_uuid CHAR(36) NOT NULL PRIMARY KEY,
                       original_op BOOLEAN NOT NULL
