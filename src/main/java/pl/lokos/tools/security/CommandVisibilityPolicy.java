@@ -3,9 +3,12 @@ package pl.lokos.tools.security;
 import java.util.Locale;
 import java.util.Set;
 
-/** Odfiltrowanie technicznych /bukkit:* i wybranych administracyjnych vanilla. */
+/** Jedna polityka dla TAB i wykonania: ukryte polecenia wbudowane Bukkit/Paper/Minecraft. */
 public final class CommandVisibilityPolicy {
     private static final Set<String> PRIVATE_ROOTS = Set.of(
+            // Bukkit/Paper publikuje te aliasy bez przestrzeni nazw, często także bez permisji.
+            // /? jest aliasem /help, a /icanhasbukkit to wbudowana komenda diagnostyczna.
+            "help","?","icanhasbukkit",
             "plugins","pl","about","version","ver","reload","rl",
             "whitelist","bialalista","wl",
             "op","deop","stop","save-all","save-on","save-off",
