@@ -42,9 +42,16 @@ public final class CrateManager implements Listener,AutoCloseable {
     private static final String ADMIN="tools.skrzynia.admin";
     public static final class Menu implements InventoryHolder {
         private final CrateType type;
-        private final boolean admin;
+        private final boolean admin,browse;
+        private final CratesState.Position position;
         private Inventory inv;
-        private Menu(CrateType type,boolean admin){this.type=type;this.admin=admin;}
+        private Menu(CrateType type,boolean admin,boolean browse,CratesState.Position position){
+            this.type=type;this.admin=admin;this.browse=browse;this.position=position;
+        }
+        @Override public Inventory getInventory(){return inv;}
+    }
+    public static final class ResultMenu implements InventoryHolder {
+        private Inventory inv;
         @Override public Inventory getInventory(){return inv;}
     }
     private final JavaPlugin plugin;
@@ -59,6 +66,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     private final Map<String,TextDisplay> displays=new HashMap<>();
     private final Map<String,String> lastLabel=new HashMap<>();
     private final CrateActivityWindow activity=new CrateActivityWindow();
+    private final Map<UUID,Long> lastOpened=new HashMap<>();
     private long ticks;
 
     public CrateManager(JavaPlugin plugin,RankManager ranks,RegionManager regions,
@@ -116,9 +124,50 @@ public final class CrateManager implements Listener,AutoCloseable {
         if(!slotFree(player))throw new IllegalArgumentException("Brak miejsca w ekwipunku.");
         player.getInventory().addItem(icon(type,true));
     }
+    /** Liczba autentycznych kluczy danego typu w ekwipunku gracza. */
+    public int keyCount(Player player,CrateType type){
+        int count=0;
+        for(ItemStack item:player.getInventory().getStorageContents()){
+            if(item==null||!item.hasItemMeta())continue;
+            if(type.id().equals(item.getItemMeta().getPersistentDataContainer()
+                    .get(keyType,PersistentDataType.STRING)))count+=item.getAmount();
+        }
+        return count;
+    }
+    public void keySummary(Player player){
+        Messages.title(player,"TWOJE KLUCZE");
+        for(CrateType type:CrateType.values())
+            Messages.info(player,"&#70D6E8"+type.title()+" &#A8A8B7» &#FFD166"+keyCount(player,type));
+        Messages.info(player,"&#A8A8B7Postęp AFK: &#FFD166"+
+                state().afkMinutes().getOrDefault(player.getUniqueId().toString(),0)
+                +"/"+config.afkKeyMinutes()+" minut.");
+    }
+    /** Panel publiczny wyświetla nagrody, ale nie otwiera skrzyń na odległość. */
+    public void browseMenu(Player player){
+        Menu holder=new Menu(null,false,true,null);
+        Inventory inv=Bukkit.createInventory(holder,27,Colors.color("&#FFD166✦ SKRZYNIE I KLUCZE"));
+        holder.inv=inv;
+        ItemStack bg=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
+        for(int i=0;i<inv.getSize();i++)inv.setItem(i,bg);
+        int[] slots={10,11,13,15,16};
+        int index=0;
+        for(CrateType type:CrateType.values()){
+            ItemStack icon=icon(type,false);
+            ItemMeta meta=icon.getItemMeta();
+            List<Component> lore=new ArrayList<>(meta.lore());
+            lore.add(Colors.color("&#FFD166» Twoje klucze: "+keyCount(player,type)));
+            lore.add(Colors.color("&#70D6E8» Kliknij, aby sprawdzić nagrody."));
+            meta.lore(lore);icon.setItemMeta(meta);
+            inv.setItem(slots[index++],icon);
+        }
+        ItemStack close=new ItemStack(Material.BARRIER);
+        ItemMeta c=close.getItemMeta();c.displayName(Colors.color("&#FF727F✘ Zamknij"));
+        close.setItemMeta(c);inv.setItem(22,close);
+        player.openInventory(inv);
+    }
     public void adminMenu(Player admin){
         if(!admin(admin)){Messages.unknown(admin);return;}
-        Menu holder=new Menu(null,true);
+        Menu holder=new Menu(null,true,false,null);
         Inventory inv=Bukkit.createInventory(holder,27,Colors.color("&#FFD166✦ SKRZYNIE SERWERA"));
         holder.inv=inv;
         ItemStack empty=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
@@ -135,8 +184,8 @@ public final class CrateManager implements Listener,AutoCloseable {
         }
         admin.openInventory(inv);
     }
-    private void show(Player player,CrateType type){
-        Menu holder=new Menu(type,false);
+    private void show(Player player,CrateType type,CratesState.Position position){
+        Menu holder=new Menu(type,false,false,position);
         Inventory inv=Bukkit.createInventory(holder,27,
                 Colors.color(type.color()+"✦ SKRZYNIA "+type.title().toUpperCase(Locale.ROOT)));
         holder.inv=inv;
@@ -146,9 +195,9 @@ public final class CrateManager implements Listener,AutoCloseable {
         ItemMeta meta=open.getItemMeta();
         meta.displayName(Colors.color("&#FFD166✦ Otwórz skrzynię"));
         meta.lore(GuiTheme.lore(
-                "&#A8A8B7Potrzebujesz jednego klucza: "+type.title(),
-                "&#70D6E8» Kliknij, aby wylosować nagrodę.",
-                "&#A8A8B7Możliwe nagrody zależą od typu skrzyni."));
+                "&#A8A8B7Klucze: &#FFD166"+keyCount(player,type),
+                position==null?"&#FF727F» Podejdź do postawionej skrzyni.":"&#70D6E8» Kliknij, aby wylosować nagrodę.",
+                "&#A8A8B7Zużywa 1 klucz i natychmiast wypłaca nagrodę."));
         open.setItemMeta(meta);
         inv.setItem(13,open);
         inv.setItem(11,icon(type,false));
@@ -167,6 +216,9 @@ public final class CrateManager implements Listener,AutoCloseable {
         }
         rm.lore(lore);reward.setItemMeta(rm);
         inv.setItem(15,reward);
+        ItemStack back=new ItemStack(Material.ARROW);
+        ItemMeta bm=back.getItemMeta();bm.displayName(Colors.color("&#70D6E8← Wszystkie skrzynie"));
+        back.setItemMeta(bm);inv.setItem(18,back);
         player.openInventory(inv);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
@@ -187,7 +239,7 @@ public final class CrateManager implements Listener,AutoCloseable {
             if(type==CrateType.EVENTOWA&&events.active()==null){
                 Messages.error(player,"Skrzynia eventowa jest aktywna tylko podczas eventu.");return;
             }
-            show(player,type);
+            show(player,type,crate);
         });
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -316,10 +368,29 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void menu(InventoryClickEvent event){
+        if(event.getView().getTopInventory().getHolder() instanceof ResultMenu){
+            event.setCancelled(true);
+            if(event.getRawSlot()==22 && event.getWhoClicked() instanceof Player resultPlayer)
+                Bukkit.getScheduler().runTask(plugin,resultPlayer::closeInventory);
+            return;
+        }
         if(!(event.getView().getTopInventory().getHolder() instanceof Menu holder))return;
         event.setCancelled(true);
         if(!(event.getWhoClicked() instanceof Player player)||
                 event.getClickedInventory()!=event.getView().getTopInventory())return;
+        if(holder.browse){
+            if(event.getRawSlot()==22){
+                Bukkit.getScheduler().runTask(plugin,player::closeInventory);
+                return;
+            }
+            int[] slots={10,11,13,15,16};
+            for(int i=0;i<slots.length;i++)if(slots[i]==event.getRawSlot()){
+                CrateType selected=CrateType.values()[i];
+                Bukkit.getScheduler().runTask(plugin,()->show(player,selected,null));
+                return;
+            }
+            return;
+        }
         if(holder.admin){
             if(!admin(player)){Messages.unknown(player);return;}
             int[] slots={10,11,13,15,16};
@@ -331,12 +402,22 @@ public final class CrateManager implements Listener,AutoCloseable {
             }
             return;
         }
+        if(event.getRawSlot()==18){
+            Bukkit.getScheduler().runTask(plugin,()->browseMenu(player));
+            return;
+        }
         if(event.getRawSlot()!=13)return;
-        openReward(player,holder.type);
+        if(holder.position==null){
+            Messages.error(player,"Podgląd nagród nie otwiera skrzyni. Podejdź do bloku skrzyni na spawnie.");
+            return;
+        }
+        openReward(player,holder.type,holder.position);
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void drag(InventoryDragEvent event){
-        if(event.getView().getTopInventory().getHolder() instanceof Menu)event.setCancelled(true);
+        if(event.getView().getTopInventory().getHolder() instanceof Menu ||
+                event.getView().getTopInventory().getHolder() instanceof ResultMenu)
+            event.setCancelled(true);
     }
     private int findKey(Player player,CrateType type){
         ItemStack[] storage=player.getInventory().getStorageContents();
@@ -347,7 +428,26 @@ public final class CrateManager implements Listener,AutoCloseable {
         }
         return -1;
     }
-    private void openReward(Player player,CrateType type){
+    private void openReward(Player player,CrateType type,CratesState.Position position){
+        // GUI może pozostać otwarte po wyjściu gracza ze spawnu lub usunięciu skrzyni.
+        if(!CrateOpeningPolicy.near(position,player.getWorld().getUID(),
+                player.getLocation().getX(),player.getLocation().getY(),
+                player.getLocation().getZ())
+                ||!position.equals(storage.get().get(position.key()))){
+            Messages.error(player,"Podejdź do właściwej skrzyni, aby ją otworzyć.");
+            return;
+        }
+        Block chest=player.getWorld().getBlockAt(position.x(),position.y(),position.z());
+        if(chest.getType()!=Material.valueOf(type.block())||position.kind()!=type){
+            Messages.error(player,"Ta skrzynia nie jest już dostępna.");
+            return;
+        }
+        Long previous=lastOpened.get(player.getUniqueId());
+        long now=System.currentTimeMillis();
+        if(previous!=null && now-previous<1200L){
+            Messages.error(player,"Otwierasz skrzynie zbyt szybko.");
+            return;
+        }
         if(type==CrateType.EVENTOWA&&events.active()==null){
             Messages.error(player,"Event się zakończył.");return;
         }
@@ -377,6 +477,7 @@ public final class CrateManager implements Listener,AutoCloseable {
         }
         ItemStack key=player.getInventory().getItem(keySlot);
         if(key==null)return;
+        lastOpened.put(player.getUniqueId(),now);
         if(key.getAmount()==1)player.getInventory().setItem(keySlot,null);
         else key.setAmount(key.getAmount()-1);
         Map<Integer,ItemStack> remaining=player.getInventory().addItem(prize);
@@ -388,6 +489,29 @@ public final class CrateManager implements Listener,AutoCloseable {
         Messages.success(player,"Wygrałeś: "+Colors.plain(prize.getItemMeta()==null?
                 prize.getType().name():prize.getItemMeta().hasDisplayName()?
                 prize.getItemMeta().getDisplayName():prize.getType().name())+"!");
+        // Nagroda trafia do ekwipunku przed animacją wyniku: brak utraty przy wyjściu.
+        Bukkit.getScheduler().runTask(plugin,()->{
+            if(player.isOnline())showResult(player,prize,type);
+        });
+    }
+    private void showResult(Player player,ItemStack prize,CrateType type){
+        ResultMenu holder=new ResultMenu();
+        Inventory inv=Bukkit.createInventory(holder,27,Colors.color(type.color()+"✦ TWOJA NAGRODA"));
+        holder.inv=inv;
+        ItemStack bg=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
+        for(int i=0;i<inv.getSize();i++)inv.setItem(i,bg);
+        ItemStack display=prize.clone();
+        ItemMeta meta=display.getItemMeta();
+        if(meta!=null){
+            List<Component> lore=new ArrayList<>(meta.hasLore()?meta.lore():List.of());
+            lore.add(Colors.color("&#89E5B0✔ Nagroda została już przyznana!"));
+            meta.lore(lore);display.setItemMeta(meta);
+        }
+        inv.setItem(13,display);
+        ItemStack close=new ItemStack(Material.BARRIER);
+        ItemMeta cm=close.getItemMeta();cm.displayName(Colors.color("&#FF727F✘ Zamknij"));
+        close.setItemMeta(cm);inv.setItem(22,close);
+        player.openInventory(inv);
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void killed(EntityDeathEvent event){
@@ -414,6 +538,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     @EventHandler(priority=EventPriority.MONITOR)
     public void activityQuit(PlayerQuitEvent event){
         activity.remove(event.getPlayer().getUniqueId());
+        lastOpened.remove(event.getPlayer().getUniqueId());
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void activityMove(PlayerMoveEvent event){
@@ -517,6 +642,6 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
     @Override public void close(){
         for(TextDisplay display:displays.values())display.remove();
-        displays.clear();lastLabel.clear();activity.clear();storage.close();
+        displays.clear();lastLabel.clear();activity.clear();lastOpened.clear();storage.close();
     }
 }
