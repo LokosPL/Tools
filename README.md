@@ -1,4 +1,4 @@
-## Świat survival, przedmioty eventowe i TAB (1.10.0-SNAPSHOT)
+## Świat survival, przedmioty eventowe i TAB (1.11.0-SNAPSHOT)
 
 - [Koncepcja rozrastającej się mapy](docs/granica-swiata-survival.md) opiera się na cyklach aktywności,
   z ograniczeniem AFK. **To projekt, a nie uruchomiona granica świata.**
