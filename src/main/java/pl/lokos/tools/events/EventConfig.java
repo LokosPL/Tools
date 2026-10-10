@@ -1,5 +1,7 @@
 package pl.lokos.tools.events;
 
+import java.util.List;
+
 /** Java definiuje domyślne wartości Events.json; w JSON pozostaje edytowalność. */
 public final class EventConfig {
     private boolean enabled=true;
@@ -10,6 +12,9 @@ public final class EventConfig {
     private int tokensForKey=10;
     private int minimumPvPKillIntervalSeconds=300;
     private boolean snowParticles=true;
+    private boolean challengesEnabled=true;
+    private int challengeFlushSeconds=5;
+    private List<Integer> challengeKeyRewards=List.of(1,2,3);
     private boolean meteorEnabled=true;
     private int meteorSpawnIntervalSeconds=180;
     private int meteorLifetimeSeconds=480;
@@ -31,6 +36,9 @@ public final class EventConfig {
     public int tokensForKey(){return tokensForKey;}
     public int minimumPvPKillIntervalSeconds(){return minimumPvPKillIntervalSeconds;}
     public boolean snowParticles(){return snowParticles;}
+    public boolean challengesEnabled(){return challengesEnabled;}
+    public int challengeFlushSeconds(){return challengeFlushSeconds;}
+    public List<Integer> challengeKeyRewards(){return List.copyOf(challengeKeyRewards);}
     public boolean meteorEnabled(){return meteorEnabled;}
     public int meteorSpawnIntervalSeconds(){return meteorSpawnIntervalSeconds;}
     public int meteorLifetimeSeconds(){return meteorLifetimeSeconds;}
@@ -49,6 +57,9 @@ public final class EventConfig {
                 maxDurationMinutes>43200||tokenChance<0||tokenChance>0.5||
                 eventKeyChance<0||eventKeyChance>0.25||tokensForKey<1||tokensForKey>1000||
                 minimumPvPKillIntervalSeconds<60||minimumPvPKillIntervalSeconds>3600||
+                challengeFlushSeconds<1||challengeFlushSeconds>60||
+                challengeKeyRewards==null||challengeKeyRewards.size()!=3||
+                challengeKeyRewards.stream().anyMatch(n->n==null||n<1||n>16)||
                 meteorSpawnIntervalSeconds<30||meteorSpawnIntervalSeconds>3600||
                 meteorLifetimeSeconds<60||meteorLifetimeSeconds>3600||
                 meteorMaxActive<1||meteorMaxActive>12||
