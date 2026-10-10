@@ -43,9 +43,9 @@ public final class RegionTeleportManager {
         Location target=regions.spawnOf(region);
         if(target==null) {Messages.error(player,"Świat tej lokalizacji nie jest dostępny.");return;}
         cancel(player,false);
-        // Każdy gracz z nadaną, aktywną rangą ma teleportację bez odliczania.
-        if(player.hasPermission("tools.lokalizacje.instant") || player.isOp()
-                || (ranks!=null && hasAssignedRank(player))) {
+        // Teleportacja natychmiastowa wymaga faktycznej permisji.
+        if(pl.lokos.tools.security.ToolsAccess.allowed(
+                player, ranks, "tools.lokalizacje.instant", false)) {
             teleportNow(player,name,target);
             return;
         }
@@ -81,14 +81,6 @@ public final class RegionTeleportManager {
         };
         BukkitTask task=job.runTaskTimer(plugin,0L,20L);
         pending.put(player.getUniqueId(),new Pending(task,origin));
-    }
-
-    private boolean hasAssignedRank(Player player){
-        var snapshot=ranks.snapshot();
-        var grant=snapshot.grants().get(player.getUniqueId());
-        return grant!=null && grant.active(System.currentTimeMillis())
-                && !grant.rank().equals("gracz")
-                && snapshot.ranks().containsKey(grant.rank());
     }
 
     private void teleportNow(Player player,String name,Location target){

@@ -47,7 +47,7 @@ public final class RegionProtectionListener implements Listener {
     private boolean denies(Player player, Location loc, RegionFlag flag) {
         if(loc==null)return false;
         if(!regions.ready())return true;
-        return regions.protectedLocation(loc,flag);
+        return regions.protectedLocation(player,loc,flag);
     }
     private boolean denies(Location loc,RegionFlag flag) {
         if(loc==null)return false;
@@ -119,7 +119,9 @@ public final class RegionProtectionListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void ignite(BlockIgniteEvent e) {
-        if (denies(e.getBlock().getLocation(),RegionFlag.FIRE)) e.setCancelled(true);
+        if (e.getPlayer()!=null
+                ? denies(e.getPlayer(),e.getBlock().getLocation(),RegionFlag.FIRE)
+                : denies(e.getBlock().getLocation(),RegionFlag.FIRE))e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void burn(BlockBurnEvent e) {
@@ -220,11 +222,15 @@ public final class RegionProtectionListener implements Listener {
     public void hangingBreak(HangingBreakEvent e) {
         RegionFlag flag=e.getEntity() instanceof org.bukkit.entity.ItemFrame
                 ? RegionFlag.ITEM_FRAMES : RegionFlag.BREAK;
-        if(denies(e.getEntity().getLocation(),flag))e.setCancelled(true);
+        Player actor=e instanceof HangingBreakByEntityEvent breakByEntity
+                && breakByEntity.getRemover() instanceof Player player ? player : null;
+        if(actor!=null ? denies(actor,e.getEntity().getLocation(),flag)
+                : denies(e.getEntity().getLocation(),flag))e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void interact(PlayerInteractEvent e) {
-        if(e.getClickedBlock()==null || isWand(e.getItem())) return;
+        if(e.getClickedBlock()==null ||
+                (isWand(e.getItem()) && regions.canManage(e.getPlayer()))) return;
         if (e.getAction()!=Action.RIGHT_CLICK_BLOCK && e.getAction()!=Action.PHYSICAL) return;
         RegionFlag flag=interactionFlag(e.getClickedBlock().getType());
         if(denies(e.getPlayer(),e.getClickedBlock().getLocation(),flag)) {
@@ -291,10 +297,12 @@ public final class RegionProtectionListener implements Listener {
             Entity attacker=attack.getDamager();
             Player player=attacker instanceof Player p ? p
                     : attacker instanceof Projectile projectile && projectile.getShooter() instanceof Player p ? p : null;
-            if (player != null && victim instanceof Player) {
-                Region attackerRegion=regions.at(player.getLocation());
-                if(denies(player,victim.getLocation(),RegionFlag.PVP)
-                        || denies(player,player.getLocation(),RegionFlag.PVP))e.setCancelled(true);
+            if (player != null) {
+                if (victim instanceof Player) {
+                    if (denies(player,victim.getLocation(),RegionFlag.PVP)
+                            || denies(player,player.getLocation(),RegionFlag.PVP))e.setCancelled(true);
+                } else if (denies(player,victim.getLocation(),RegionFlag.DAMAGE))
+                    e.setCancelled(true);
                 return;
             }
         }

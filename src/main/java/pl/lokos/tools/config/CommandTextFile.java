@@ -54,7 +54,7 @@ public final class CommandTextFile {
                     "&8&m                               "),
                     Map.of(
                             "notReady","&cRegiony nie zostały poprawnie wczytane. Sprawdź Regions.json i konsolę.",
-                            "protectedAction","&#FF6B79Ten obszar jest chroniony.",
+                            "protectedAction","&#FF727F⚠ &7Obszar chroniony",
                             "noEntry","&cBrak dostępu do tego regionu. &7Wymagana wyższa ranga.",
                             "noRegion","&cNie znaleziono regionu {region}.",
                             "saved","&aZapisano zmianę regionu.",

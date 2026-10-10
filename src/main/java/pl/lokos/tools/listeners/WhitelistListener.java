@@ -117,14 +117,13 @@ public final class WhitelistListener implements Listener {
             }
             display.info(sender,"Sprawdzanie konfiguracji Tools w tle...");
             for(Player online:Bukkit.getOnlinePlayers())
-                online.sendActionBar(Colors.color(
-                        whitelist.state().reloadMessage().replace("\n"," &8• ")));
+                online.sendMessage(Colors.color(whitelist.state().reloadMessage()));
             reload.reload().thenCompose(message->whitelist.reload().thenApply(ignored->message))
                     .whenComplete((message,error)->later(()->{
                         if(error==null){
                             display.success(sender,"Przeładowano ustawienia Tools. "+message);
                             for(Player online:Bukkit.getOnlinePlayers())
-                                online.sendActionBar(Colors.color("&aKonfiguracja Tools została przeładowana."));
+                                online.sendMessage(Colors.color("&#86E6BC✔ &7Konfiguracja serwera została odświeżona."));
                         }
                         else {
                             Throwable rootError=error;

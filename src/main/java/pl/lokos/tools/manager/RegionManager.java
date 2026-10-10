@@ -22,6 +22,7 @@ public final class RegionManager {
     private final DefinitionFiles definitions;
     private volatile RegionIndex index=RegionIndex.empty();
     private volatile String mainSpawn;
+    private final String regionAdminPermission;
     private volatile boolean loaded;
     private boolean closing;
     private CompletableFuture<Void> queue=CompletableFuture.completedFuture(null);
@@ -29,6 +30,7 @@ public final class RegionManager {
 
     public RegionManager(JavaPlugin plugin,RegionRepository legacy,RankManager ranks,DefinitionFiles definitions) {
         this.plugin=plugin;this.legacy=legacy;this.ranks=ranks;this.definitions=definitions;
+        this.regionAdminPermission=definitions.commands().region().permission();
     }
     public synchronized CompletableFuture<Void> start() {
         if(firstLoad!=null)return firstLoad;
@@ -88,6 +90,17 @@ public final class RegionManager {
     public boolean protectedLocation(Location l,RegionFlag flag) {
         Region r=at(l);
         return inHalo(l) || (r!=null && !index.enabled(r,flag));
+    }
+    /** Administracja regionów może wykonywać akcje gracza, ale automatyka
+     * (tłoki, wybuchy, hoppery) nadal podlega flagom środowiskowym.
+     */
+    public boolean canManage(Player player) {
+        return ranks != null && pl.lokos.tools.security.ToolsAccess.allowed(
+                player, ranks, regionAdminPermission, true);
+    }
+    public boolean protectedLocation(Player actor,Location location,RegionFlag flag) {
+        return pl.lokos.tools.security.RegionActorPolicy.denied(
+                actor != null && canManage(actor),protectedLocation(location,flag));
     }
     public CompletableFuture<Void> refresh() {
         RegionsFile file=definitions.regions();
@@ -210,10 +223,10 @@ public final class RegionManager {
     }
 
     public boolean allowed(Player player,Region region,RegionFlag flag) {
-        return region==null||index.enabled(region,flag);
+        return canManage(player) || region==null || index.enabled(region,flag);
     }
     public boolean canEnter(Player player,Region region) {
-        if(region==null)return true;
+        if(region==null || canManage(player))return true;
         RankSnapshot.Rank rank=ranks==null?null:ranks.snapshot().forPlayer(player.getUniqueId());
         Set<String> seen=new HashSet<>();
         while(region!=null&&seen.add(region.name())){

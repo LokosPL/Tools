@@ -19,6 +19,7 @@ public final class PlayerStatusBar {
     private record Notice(String message, long untilMillis) {}
     private final RegionManager regions;
     private final Map<UUID, Notice> notices = new HashMap<>();
+    private final Map<UUID, Long> protectedCooldown = new HashMap<>();
 
     public PlayerStatusBar(RegionManager regions) {
         this.regions = regions;
@@ -32,7 +33,13 @@ public final class PlayerStatusBar {
     }
 
     public void protectedArea(Player player) {
-        notice(player, CommandTextRegistry.text("region", "protectedAction"), 2350);
+        long now=System.currentTimeMillis();
+        if(now-protectedCooldown.getOrDefault(player.getUniqueId(),0L)<800L)return;
+        protectedCooldown.put(player.getUniqueId(),now);
+        String configured=CommandTextRegistry.text("region", "protectedAction");
+        if ("&#FF6B79Ten obszar jest chroniony.".equals(configured))
+            configured="&#FF727F⚠ &7Obszar chroniony";
+        notice(player, configured, 1700);
     }
 
     public void deniedEntry(Player player) {
@@ -41,6 +48,7 @@ public final class PlayerStatusBar {
 
     public void remove(UUID uuid) {
         notices.remove(uuid);
+        protectedCooldown.remove(uuid);
     }
 
     public void tick() {
@@ -69,9 +77,9 @@ public final class PlayerStatusBar {
         String safe = location == null ? "Dzicz" : location.replace('\n', ' ').replace('\r', ' ')
                 .replace('&', ' ');
         if (safe.length() > 24) safe = safe.substring(0, 21) + "…";
-        String base = "&#FFD166⌖ &7Lokalizacja: &#FFE5A2" + safe
+        String base = "&#FFD166✦ &7Lokalizacja: &#FFE5A2" + safe
                 + " &8│ &7Poziom: &#71D7ED" + Math.max(0, level)
-                + " &8│ &7XP: &#86E6BC" + Math.max(0, Math.min(100, xpPercent)) + "%";
+                + " &8│ &7Postęp: &#86E6BC" + Math.max(0, Math.min(100, xpPercent)) + "%";
         if (notice == null || notice.isBlank()) return base;
         String side = notice.replace('\n', ' ').replace('\r', ' ');
         if (side.length() > 105) side = side.substring(0, 102) + "…";

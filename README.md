@@ -1,3 +1,49 @@
+# Tools 1.9.2 — korekta uprawnień teleportacji i ochrony
+
+## Co zostało poprawione
+
+- **Teleportacja natychmiastowa:** sama nadana ranga (VIP, Premium, Moderator)
+  nie przyspiesza /spawn ani /lokalizacje. Wymagana jest wyraźna permisja
+  `tools.lokalizacje.instant`, prawidłowe `*` lub rzeczywisty OP.
+- **Ochrona regionów:** osoba z rzeczywistym uprawnieniem do zarządzania
+  regionami (w Commands.json domyślnie `tools.region.admin`) może budować,
+  niszczyć, otwierać skrzynie, korzystać z interakcji, zbierać przedmioty
+  oraz wejść na obszary z ograniczeniem rang.
+  **Nie przywrócono** komendy `/region bypass`.
+- **Zwykli gracze:** nadal podlegają flagom regionów. Samo posiadanie
+  `tools.lokalizacje` nie daje zarządzania obszarami.
+- **Środowisko:** wybuchy, hoppery, tłoki, rozlewanie płynów i inne automatyczne
+  efekty nadal podlegają flagom regionu — uprawnienie danego gracza nie odblokowuje ich globalnie.
+- **Action bar:** lokalizacja, poziom i postęp są stale widoczne;
+  krótkie ostrzeżenie o ochronie trafia na koniec, ma cooldown 0,8 s
+  i nie zastępuje pozostałych danych. Ponowny /reload wysyła informację
+  na czat zamiast nadpisywać action bar.
+- **Zgodność:** stary tekst `protectedAction` w wygenerowanym JSON
+  otrzyma automatycznie krótki wygląd. Własne edytowane komunikaty pozostają zachowane.
+
+### Przykładowy test
+
+Utwórz rangę `vip` bez `tools.lokalizacje.instant`, ustaw pozycję i nadaj ją
+graczowi bez OP. Po `/spawn` ma wystąpić odliczanie.
+Następnie nadaj dokładnie `tools.lokalizacje.instant` i sprawdź teleportację
+natychmiastową. Gdy odbierzesz tę permisję w GUI rang i ponownie wywołasz
+`/spawn`, odliczanie musi powrócić.
+
+Na chronionym terenie zaloguj gracza bez OP z rangą zwykłą i spróbuj postawić
+blok. Operacja powinna być zablokowana. Następnie nadaj **oddzielnej randze
+moderatora** `tools.region.admin`: można budować i niszczyć, ale automatyczne
+tłoki i wybuchy nadal są kontrolowane flagami.
+
+### Bezpieczeństwo
+
+Testy jednostkowe sprawdzają brak podwyższenia uprawnień przez samą nazwę
+rangi, prawidłowe uprawnienie natychmiastowego teleportowania, wygasłe nadania,
+wildcard oraz prawa administratora regionów. Przed podmianą pluginu na
+publicznym serwerze wykonaj kopię bazy i plików JSON oraz przetestuj na
+serwerze Paper. Offline-mode wymaga dodatkowego uwierzytelniania kont.
+
+---
+
 # Tools 1.9.1 — podpowiedzi uprawnień i stabilny action bar
 
 ### Bezpieczeństwo
