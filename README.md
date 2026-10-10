@@ -1,3 +1,51 @@
+# Tools 1.8.0 — whitelist, spawn, skórki i zabezpieczenia
+
+**Wszystkie uprawnienia, rangi i ich zapis obsługuje sam Tools.** Wtyczka nie używa LuckPerms ani innych pluginów jako zależności.
+
+## Whitelist (autorska)
+
+Domyślnie wyłączona; konfiguracja `plugins/Tools/Whitelist.json` jest tworzona podczas startu z klasy Java. Dozwolone nicki przechowywane są małymi literami, niezależnie od wielkości znaków w komendzie. Własne wiadomości każdego trybu można edytować w JSON. Każda zmiana z komendy/GUI jest zapisywana **atomowo i poza głównym wątkiem**.
+
+| Polecenie | Działanie |
+| --- | --- |
+| `/whitelist` | Minimalistyczny panel |
+| `/whitelist włącz prace_techniczne` | Prace techniczne |
+| `/whitelist włącz chwilowa_przerwa` | Krótka przerwa |
+| `/whitelist włącz nowa_edycja` | Start nowej edycji |
+| `/whitelist włącz aktualizacja` | Aktualizacja |
+| `/whitelist wyłącz` | Wyłącza whitelistę |
+| `/whitelist dodaj LokosPL` | Dodaje nick |
+| `/whitelist usuń LokosPL` | Usuwa nick |
+| `/whitelist lista` | Główki graczy w GUI; kliknięcie usuwa wpis |
+
+Komenda `/whitelist` przechwytuje też wariant wbudowany vanilla. Administracja wymaga `tools.whitelist.admin` (OP domyślnie; można nadać w GUI rang Tools). Przy włączeniu whitelisty klikający administrator lub gracz uruchamiający komendę jest automatycznie dopisywany, żeby sam siebie nie wyrzucił. Wszyscy pozostali nieuprawnieni gracze otrzymują kick z tekstem trybu; nowe połączenia są odrzucane w `AsyncPlayerPreLoginEvent`.
+
+**Bezpieczeństwo offline-mode:** sama nazwa konta nie zapewnia uwierzytelnienia! Każdy może podać nick innego użytkownika, także administratora. Whitelist po nicku oraz pobieranie skinów to NIE zabezpieczenie przed podszyciem. Przed publicznym otwarciem offline-mode potrzebne jest własne uwierzytelnianie graczy (i zabezpieczenie panelu admina). Nie dodawaj uprzywilejowanych nicków na whitelistę i nie polegaj tylko na OP, jeśli połączenia są nieautoryzowane.
+
+## Lokalizacje, /spawn i interfejs
+
+- `/spawn`: teleportacja do głównej lokalizacji serwera ustawionej w `/region spawn`, z tym samym odliczaniem, kontrolą rang i `teleportAsync` co lokalizacje.
+- `/lokalizacje`: na pierwszym ekranie tylko główne lokalizacje. Kliknięcie głównej lokalizacji otwiera drugi ekran z głównym teleportem i podlokalizacjami. Nie pokazujemy rozmiaru regionu ani nazwy świata.
+- Komunikaty używają `&` i `&#RRGGBB`, szare nicki i minimalne opisy.
+
+## Skórki premium i antybot
+
+W `plugins/Tools/Security.json` generowanym z Java są przełączniki `premiumSkins` i `antiBot`. Oba są domyślnie włączone.
+
+Skórki kont premium o takiej samej nazwie pobierane są **asynchronicznie** z usług profili Minecraft, z cache 6 godzin, timeoutem 4 sekundy i ograniczeniem jednoczesnych odpytań. Przy niedostępności usług gracz zostaje z obecną skórką. Skórki są jedynie kosmetyczne; nie zmieniają UUID ani autoryzacji. Skórki w główkach GUI mogą pozostać domyślne, jeśli nie są jeszcze dostępne w profilach serwera.
+
+Lekki antybot ogranicza liczbę prób logowania z jednego IP, nie wykorzystuje SQL/HTTP w zdarzeniu prelogin i przepuszcza wcześniej znane pary nick/adres IP oraz nicki na whiteliście. **Nie chroni przed atakami DDoS ani profesjonalnym botnetem** — ograniczanie ruchu na proxy/firewallu pozostaje konieczne.
+
+## Reload i zamknięcie
+
+- `/reload` przechwytuje komendę Paper/vanilla i wykonuje `/tools przeladuj` + ponowny odczyt whitelisty. Nie wywołuje niebezpiecznego globalnego restartu pluginów.
+- Żeby nie uszkodzić sesji, zmiana połączenia SQL, aliasów i definicji regionów nadal wymaga restartu całego serwera. Zmiany stylów TAB/chatu i komunikatów są bezpiecznie przeładowywane.
+- W `Whitelist.json` można zmienić komunikat `shutdownMessage` i `reloadMessage`. Przy planowym wyłączeniu pluginu gracze otrzymują powód wyłączenia. Przy bezpiecznym hot-reloadzie gracze nie są wyrzucani.
+
+**Testowanie:** `mvn clean verify` (Java 25). Po instalacji sprawdź `/whitelist`, `/spawn`, `/reload`, `/tools zdrowie` i zachowanie skórek na serwerze testowym.
+
+---
+
 ## Poprawka 1.6.2 — prywatne uprawnienia Tools i widoczność komend
 
 - GUI \`/ranga\` pokazuje wyłącznie zdefiniowane funkcje Tools z czytelnymi polskimi nazwami i opisami; nie zbiera już uprawnień Bukkit, vanilla ani innych pluginów. Ręcznie wpisane uprawnienia innych pluginów w Ranks.json pozostają nienaruszone, ale nie są wyświetlane w panelu ani automatycznie podpowiadane w \`/ranga dodaj\`.
