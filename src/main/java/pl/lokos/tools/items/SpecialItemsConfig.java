@@ -21,6 +21,7 @@ public final class SpecialItemsConfig {
         private int speedLevel=2;
         private int jumpLevel=1;
         private int customModelData=0;
+        private Map<String,Integer> enchantments=new LinkedHashMap<>();
         private List<String> lore=new ArrayList<>(List.of(
                 "&#A8A8B7━━━━━━━━━━━━━━━━━━━━",
                 "&#FFD166✦ {subtitle}",
@@ -61,6 +62,11 @@ public final class SpecialItemsConfig {
                     "&#A8A8B7» Event: &#70D6E8{event}",
                     "&#A8A8B7━━━━━━━━━━━━━━━━━━━━"));
         }
+        private Definition enchants(Map<String,Integer> values){
+            enchantments=new LinkedHashMap<>(values);
+            return this;
+        }
+        public Map<String,Integer> enchantments(){return Map.copyOf(enchantments);}
         public boolean enabled(){return enabled;}
         public String material(){return material;}
         public String name(){return name;}
@@ -83,7 +89,8 @@ public final class SpecialItemsConfig {
                     eventStart==null || eventEnd==null ||
                     unbreaking<0 || unbreaking>10 ||
                     speedLevel<0 || speedLevel>5 || jumpLevel<0 || jumpLevel>5 ||
-                    customModelData<0 || lore==null || lore.size()>35)
+                    customModelData<0 || lore==null || lore.size()>35 ||
+                    enchantments==null || enchantments.size()>16)
                 throw new IllegalArgumentException("Nieprawidłowa definicja przedmiotu specjalnego.");
             try {
                 LocalDate start=LocalDate.parse(eventStart),end=LocalDate.parse(eventEnd);
@@ -91,6 +98,10 @@ public final class SpecialItemsConfig {
             }catch(java.time.format.DateTimeParseException error){
                 throw new IllegalArgumentException("Daty eventu: RRRR-MM-DD.",error);
             }
+            for(var enchant:enchantments.entrySet())
+                if(enchant.getKey()==null||!enchant.getKey().matches("[a-z_]{2,40}")||
+                        enchant.getValue()==null||enchant.getValue()<1||enchant.getValue()>10)
+                    throw new IllegalArgumentException("Niepoprawne zaklęcie przedmiotu.");
             for(String line:lore)
                 if(line==null || line.length()>350)
                     throw new IllegalArgumentException("Błędna linia opisu przedmiotu.");
@@ -102,28 +113,28 @@ public final class SpecialItemsConfig {
         value.put("buty_szybkosci",new Definition());
         value.put("zimowe_ostrze",new Definition("DIAMOND_SWORD",
                 "&#70D6E8&l✦ MIECZ ZAMIECI","Zimowy Festiwal",
-                "Ostrze wykute z lodowego kryształu",0,0));
+                "Ostrze wykute z lodowego kryształu",0,0).enchants(Map.of("sharpness",4,"knockback",1)));
         value.put("miecz_duchow",new Definition("NETHERITE_SWORD",
                 "&#FF727F&l✦ OSTRZE DUCHÓW","Noc Duchów",
-                "Broń poszukiwacza nocnych zjaw",0,0));
+                "Broń poszukiwacza nocnych zjaw",0,0).enchants(Map.of("sharpness",4,"looting",2)));
         value.put("buty_zajaczka",new Definition("DIAMOND_BOOTS",
                 "&#70D6E8&l✦ BUTY ZAJĄCZKA","Zajączkowe Poszukiwania",
-                "Lekkie buty skocznego podróżnika",1,3));
+                "Lekkie buty skocznego podróżnika",1,3).enchants(Map.of("feather_falling",4)));
         value.put("wedka_sloneczna",new Definition("FISHING_ROD",
                 "&#FFD166&l✦ SŁONECZNA WĘDKA","Letnie Łowy",
-                "Pamiątka letniego połowu",0,0));
+                "Pamiątka letniego połowu",0,0).enchants(Map.of("luck_of_the_sea",3,"lure",2)));
         value.put("ostrze_lowcy",new Definition("NETHERITE_AXE",
                 "&#FF727F&l✦ TOPÓR ŁOWCY","Arena Łowców",
-                "Trofeum uczciwych pojedynków",0,0));
+                "Trofeum uczciwych pojedynków",0,0).enchants(Map.of("sharpness",5)));
         value.put("kilof_meteorytu",new Definition("NETHERITE_PICKAXE",
                 "&#FFD166&l✦ KILOF METEORYTU","Deszcz Meteorów",
-                "Kilof z kosmicznego odłamka",0,0));
+                "Kilof z kosmicznego odłamka",0,0).enchants(Map.of("efficiency",5,"fortune",3)));
         value.put("sierp_urodzaju",new Definition("NETHERITE_HOE",
                 "&#89E5B0&l✦ SIERP URODZAJU","Święto Plonów",
-                "Narzędzie mistrza zbiorów",0,0));
+                "Narzędzie mistrza zbiorów",0,0).enchants(Map.of("efficiency",5)));
         value.put("wedka_oceanu",new Definition("FISHING_ROD",
                 "&#70D6E8&l✦ WĘDKA OCEANU","Wielkie Wędkowanie",
-                "Nagroda za wyjątkowy połów",0,0));
+                "Nagroda za wyjątkowy połów",0,0).enchants(Map.of("luck_of_the_sea",3,"lure",3)));
         return value;
     }
     private Map<String,Definition> items=defaults();

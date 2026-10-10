@@ -36,6 +36,9 @@ public final class SpecialItemService implements Listener {
         for(var entry:config.items().entrySet()){
             if(Material.matchMaterial(entry.getValue().material())==null)
                 throw new IOException("Nieznany material w SpecialItems.json: "+entry.getValue().material());
+            for(String name:entry.getValue().enchantments().keySet())
+                if(Registry.ENCHANTMENT.get(NamespacedKey.minecraft(name))==null)
+                    throw new IOException("Nieznane zaklęcie "+name+" w SpecialItems.json.");
         }
     }
     public SpecialItemsConfig config(){return config;}
@@ -55,6 +58,10 @@ public final class SpecialItemService implements Listener {
         if(definition.unbreaking()>0) {
             var enchant=Registry.ENCHANTMENT.get(NamespacedKey.minecraft("unbreaking"));
             if(enchant!=null)meta.addEnchant(enchant,definition.unbreaking(),true);
+        }
+        for(var entry:definition.enchantments().entrySet()){
+            var enchant=Registry.ENCHANTMENT.get(NamespacedKey.minecraft(entry.getKey()));
+            if(enchant!=null)meta.addEnchant(enchant,entry.getValue(),true);
         }
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS,ItemFlag.HIDE_ATTRIBUTES);
         meta.setEnchantmentGlintOverride(true);

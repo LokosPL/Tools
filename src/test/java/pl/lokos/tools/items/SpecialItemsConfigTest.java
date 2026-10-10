@@ -15,6 +15,8 @@ class SpecialItemsConfigTest {
                 SpecialItemsConfig::new,SpecialItemsConfig::validate);
         assertEquals(9,original.items().size());
         assertNotNull(original.get("miecz_duchow"));
+        assertEquals(4,original.get("miecz_duchow").enchantments().get("sharpness"));
+        assertEquals(3,original.get("kilof_meteorytu").enchantments().get("fortune"));
         assertNotNull(original.get("buty_zajaczka"));
         var boot=original.get("buty_szybkosci");
         assertEquals("DIAMOND_BOOTS",boot.material());
