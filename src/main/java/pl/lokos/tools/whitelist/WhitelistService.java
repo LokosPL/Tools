@@ -48,10 +48,18 @@ public final class WhitelistService implements AutoCloseable {
     public String refusal() { return state.kickText(); }
 
     public CompletableFuture<Void> enable(WhitelistMode mode) {
+        return enable(mode,null);
+    }
+    /** Jeden atomowy zapis trybu i opcjonalnego dopuszczenia operatora. */
+    public CompletableFuture<Void> enable(WhitelistMode mode,String ensurePlayer) {
+        String name=ensurePlayer==null?null:WhitelistConfig.normalize(ensurePlayer);
         return change(previous -> {
-            StateChanges.requireChange(previous.enabled() && previous.mode().equals(mode.name()),
+            Set<String> players=new LinkedHashSet<>(previous.players());
+            boolean added=name!=null && players.add(name);
+            StateChanges.requireChange(!added && previous.enabled()
+                            && previous.mode().equals(mode.name()),
                     "Whitelist jest już włączona w trybie "+mode.title()+".");
-            return previous.with(true,mode.name(),previous.players());
+            return previous.with(true,mode.name(),players);
         });
     }
     public CompletableFuture<Void> disable() {

@@ -53,14 +53,11 @@ public final class WhitelistCommand implements BasicCommand {
                             && service.state().mode().equals(mode.name());
                     boolean needsAdd=sender instanceof Player player
                             && !service.state().players().contains(player.getName().toLowerCase(Locale.ROOT));
-                    if(needsAdd) {
-                        Player player=(Player)sender;
-                        if(alreadyEnabled)
-                            update(sender,service.add(player.getName()),
-                                    "Dodano Cię do whitelisty. Tryb &f"+mode.title()+"&7 był już włączony.");
-                        else update(sender,service.add(player.getName()).thenCompose(ignored->service.enable(mode)),
-                                    "Włączono whitelistę: &f"+mode.title()+".");
-                    } else update(sender,service.enable(mode),"Włączono whitelistę: &f"+mode.title()+".");
+                    String ensurePlayer=sender instanceof Player p?p.getName():null;
+                    update(sender,service.enable(mode,ensurePlayer),
+                            alreadyEnabled && needsAdd
+                                    ?"Dodano Cię do whitelisty. Tryb &f"+mode.title()+"&7 był już włączony."
+                                    :"Włączono whitelistę: &f"+mode.title()+".");
                 } catch (IllegalArgumentException error) {display.error(sender,error.getMessage());}
             }
             case "wyłącz","wylacz","off" -> {
