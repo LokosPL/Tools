@@ -20,6 +20,7 @@ import org.bukkit.util.Vector;
 import pl.lokos.tools.config.JsonConfigManager;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.manager.BossBarHub;
 import pl.lokos.tools.security.ToolsAccess;
 
 import java.io.IOException;
@@ -37,6 +38,7 @@ public final class StaffManager implements Listener,AutoCloseable {
     private static final Gson GSON=new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private final JavaPlugin plugin;
     private final RankManager ranks;
+    private final BossBarHub bars;
     private final Path directory;
     private final ExecutorService writer=Executors.newSingleThreadExecutor(task->{
         Thread thread=new Thread(task,"Tools-Staff-Zapis");thread.setDaemon(false);return thread;
@@ -52,7 +54,10 @@ public final class StaffManager implements Listener,AutoCloseable {
     private int currentTick;
 
     public StaffManager(JavaPlugin plugin,RankManager ranks,Path directory) throws IOException {
-        this.plugin=plugin;this.ranks=ranks;this.directory=directory;
+        this(plugin,ranks,directory,null);
+    }
+    public StaffManager(JavaPlugin plugin,RankManager ranks,Path directory,BossBarHub bars) throws IOException {
+        this.plugin=plugin;this.ranks=ranks;this.directory=directory;this.bars=bars;
         JsonConfigManager json=new JsonConfigManager(directory);
         try{
             settings=json.load("StaffTools.json",StaffConfig.class,StaffConfig::new,StaffConfig::validate);
@@ -210,22 +215,24 @@ public final class StaffManager implements Listener,AutoCloseable {
         }
         if(active==null){
             if(bar!=null){
-                for(Player viewer:Bukkit.getOnlinePlayers())viewer.hideBossBar(bar);
+                if(bars!=null)bars.setGlobal(BossBarHub.Slot.BROADCAST,null,null);
+                else for(Player viewer:Bukkit.getOnlinePlayers())viewer.hideBossBar(bar);
                 bar=null;renderedBroadcast=null;barViewers.clear();
             }
             return;
         }
         if(!active.equals(renderedBroadcast)||bar==null){
-            if(bar!=null)for(Player viewer:Bukkit.getOnlinePlayers())viewer.hideBossBar(bar);
+            if(bar!=null && bars==null)for(Player viewer:Bukkit.getOnlinePlayers())viewer.hideBossBar(bar);
             bar=BossBar.bossBar(Colors.color(settings.broadcastTitle().replace("{message}",active.message())),
                     1f,BossBar.Color.YELLOW,BossBar.Overlay.PROGRESS);
             renderedBroadcast=active;
             barViewers.clear();
+            if(bars!=null)bars.setGlobal(BossBarHub.Slot.BROADCAST,bar,null);
         }
         double duration=(double)(active.untilMillis()-active.startedAt());
         float progress=(float)Math.max(0.0,Math.min(1.0,(active.untilMillis()-now)/duration));
         bar.progress(progress);
-        for(Player viewer:Bukkit.getOnlinePlayers())
+        if(bars==null)for(Player viewer:Bukkit.getOnlinePlayers())
             if(barViewers.add(viewer.getUniqueId()))viewer.showBossBar(bar);
     }
 
@@ -279,7 +286,7 @@ public final class StaffManager implements Listener,AutoCloseable {
 
     @Override public void close(){
         for(Player viewer:Bukkit.getOnlinePlayers()){
-            if(bar!=null)viewer.hideBossBar(bar);
+            if(bar!=null && bars==null)viewer.hideBossBar(bar);
             for(Player target:Bukkit.getOnlinePlayers()){
                 if(!viewer.equals(target)&&hiddenByTools.contains(new Pair(viewer.getUniqueId(),target.getUniqueId())))
                     viewer.showPlayer(plugin,target);

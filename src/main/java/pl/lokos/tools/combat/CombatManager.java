@@ -14,6 +14,7 @@ import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.RegionManager;
 import pl.lokos.tools.region.Region;
 import pl.lokos.tools.staff.StaffManager;
+import pl.lokos.tools.manager.BossBarHub;
 
 import java.io.IOException;
 import java.util.*;
@@ -27,12 +28,17 @@ public final class CombatManager implements Listener {
     private final JavaPlugin plugin;
     private final RegionManager regions;
     private final StaffManager staff;
+    private final BossBarHub bars;
     private final CombatConfig settings;
     private final Map<UUID,Tagged> tagged=new HashMap<>();
     private final Set<UUID> logoutDeaths=new HashSet<>();
     public CombatManager(JavaPlugin plugin,RegionManager regions,StaffManager staff,
                          java.nio.file.Path directory) throws IOException {
-        this.plugin=plugin;this.regions=regions;this.staff=staff;
+        this(plugin,regions,staff,directory,null);
+    }
+    public CombatManager(JavaPlugin plugin,RegionManager regions,StaffManager staff,
+                         java.nio.file.Path directory,BossBarHub bars) throws IOException {
+        this.plugin=plugin;this.regions=regions;this.staff=staff;this.bars=bars;
         settings=new JsonConfigManager(directory).load("Combat.json",CombatConfig.class,
                 CombatConfig::new,CombatConfig::validate);
         if(settings.disableAdvancementAnnouncements()){
@@ -71,7 +77,10 @@ public final class CombatManager implements Listener {
         BossBar bar=before!=null?before.bar():BossBar.bossBar(
                 Colors.color(settings.bossbar().replace("{seconds}",String.valueOf(settings.tagSeconds()))),
                 1f,BossBar.Color.RED,BossBar.Overlay.PROGRESS);
-        if(before==null)victim.showBossBar(bar);
+        if(before==null){
+            if(bars!=null)bars.combat(victim.getUniqueId(),bar);
+            else victim.showBossBar(bar);
+        }
         tagged.put(victim.getUniqueId(),new Tagged(now+settings.tagSeconds()*1000L,bar));
     }
     public boolean tagged(UUID id,long now){
@@ -85,7 +94,8 @@ public final class CombatManager implements Listener {
             Player player=Bukkit.getPlayer(current.getKey());
             Tagged tag=current.getValue();
             if(player==null || !player.isOnline() || now>=tag.until()){
-                if(player!=null)player.hideBossBar(tag.bar());
+                if(bars!=null)bars.combat(current.getKey(),null);
+                else if(player!=null)player.hideBossBar(tag.bar());
                 iter.remove();continue;
             }
             int seconds=(int)Math.ceil((tag.until()-now)/1000d);
@@ -97,7 +107,10 @@ public final class CombatManager implements Listener {
     }
     private void remove(Player p){
         Tagged current=tagged.remove(p.getUniqueId());
-        if(current!=null)p.hideBossBar(current.bar());
+        if(current!=null){
+            if(bars!=null)bars.combat(p.getUniqueId(),null);
+            else p.hideBossBar(current.bar());
+        }
     }
     @EventHandler(priority=EventPriority.HIGH)
     public void quit(PlayerQuitEvent event){
