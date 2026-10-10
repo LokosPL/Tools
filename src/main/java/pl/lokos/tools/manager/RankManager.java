@@ -317,9 +317,11 @@ public final class RankManager {
         boolean standardRank=effective==null || "gracz".equals(effective.name());
         boolean allGranted=!standardRank && snapshot.permissionsFor(uuid).contains("*");
         Boolean previousOperator=snapshot.opRestores().get(uuid);
-        if(!allGranted && previousOperator!=null && player.isOp()!=previousOperator)
-            player.setOp(previousOperator);
-
+        // Nie przywracaj OP podczas KAŻDEGO odświeżenia rang.
+        // Dotychczasowa implementacja mogła odbierać OP nadany z konsoli,
+        // zanim zapis starego restore został usunięty z SQL.
+        // Przywrócenie odbywa się wyłącznie w przejściu kończącym rangę '*'
+        // poniżej (wraz z usunięciem zapisu restore).
         PermissionAttachment old = attachments.remove(uuid);
         if (old != null) {
             try { player.removeAttachment(old); }

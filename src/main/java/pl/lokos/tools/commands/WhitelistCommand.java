@@ -31,6 +31,15 @@ public final class WhitelistCommand implements BasicCommand {
         this.ranks=ranks;
     }
     @Override public String permission() { return "tools.whitelist.admin"; }
+    /**
+     * Paper domyślnie sprawdza sender.hasPermission(permission()), które może
+     * zawierać stare false w PermissionAttachment nawet u operatora.
+     * Wykonanie, Brigadier i TAB używają jednej polityki ToolsAccess.
+     */
+    @Override public boolean canUse(org.bukkit.command.CommandSender sender) {
+        return ToolsAccess.admin(sender,ranks.get(),permission());
+    }
+
     @Override public void execute(CommandSourceStack source, String[] args) { handle(source.getSender(),args); }
 
     public void handle(CommandSender sender, String[] args) {

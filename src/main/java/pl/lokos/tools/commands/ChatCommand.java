@@ -34,6 +34,15 @@ public final class ChatCommand implements BasicCommand {
         this.plugin=plugin;this.chats=chats;this.ranks=ranks;this.permission=permission;
     }
     @Override public String permission(){return permission;}
+    /**
+     * Paper domyślnie sprawdza sender.hasPermission(permission()), które może
+     * zawierać stare false w PermissionAttachment nawet u operatora.
+     * Wykonanie, Brigadier i TAB używają jednej polityki ToolsAccess.
+     */
+    @Override public boolean canUse(org.bukkit.command.CommandSender sender) {
+        return ToolsAccess.admin(sender,ranks,permission);
+    }
+
 
     @Override public void execute(CommandSourceStack source,String[] args) {
         CommandSender sender=source.getSender();

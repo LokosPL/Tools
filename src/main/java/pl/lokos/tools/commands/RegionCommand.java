@@ -52,6 +52,15 @@ public final class RegionCommand implements BasicCommand {
     }
 
     @Override public String permission() {return commandPermission;}
+    /**
+     * Paper domyślnie sprawdza sender.hasPermission(permission()), które może
+     * zawierać stare false w PermissionAttachment nawet u operatora.
+     * Wykonanie, Brigadier i TAB używają jednej polityki ToolsAccess.
+     */
+    @Override public boolean canUse(org.bukkit.command.CommandSender sender) {
+        return ToolsAccess.admin(sender,ranks,commandPermission);
+    }
+
 
     @Override public void execute(CommandSourceStack source,String[] args) {
         CommandSender sender=source.getSender();
