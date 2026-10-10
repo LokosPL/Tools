@@ -55,6 +55,17 @@ public final class StaffCommand implements BasicCommand {
             throw new IllegalArgumentException("Z konsoli podaj nick gracza.");
         return player;
     }
+    /** Wspólny formatter chatowych zgłoszeń: gracz nie może podszyć się pod kolory administracji. */
+    public static net.kyori.adventure.text.Component safeHelpop(String template,String sender,String text){
+        String format=template.replace("{player}",sender);
+        String[] halves=format.split("\\{message\\}",-1);
+        net.kyori.adventure.text.Component result=pl.lokos.tools.helpers.Colors.color(halves[0]);
+        for(int i=1;i<halves.length;i++){
+            result=result.append(net.kyori.adventure.text.Component.text(text));
+            result=result.append(pl.lokos.tools.helpers.Colors.color(halves[i]));
+        }
+        return result;
+    }
     private static boolean enable(String value) {
         return switch(value.toLowerCase(Locale.ROOT)){
             case "on","wlacz","włącz","true"->true;
@@ -188,13 +199,8 @@ public final class StaffCommand implements BasicCommand {
                 && !sub(player,"tools.helpop.bypass.cooldown")){
             Messages.unchanged(sender,"Poczekaj przed następnym zgłoszeniem do administracji.");return;
         }
-        String msg=service.settings().helpopFormat().replace("{player}",player.getName());
-        String[] halves=msg.split("\\{message\\}",-1);
-        net.kyori.adventure.text.Component rendered=pl.lokos.tools.helpers.Colors.color(halves[0]);
-        for(int i=1;i<halves.length;i++){
-            rendered=rendered.append(net.kyori.adventure.text.Component.text(text));
-            rendered=rendered.append(pl.lokos.tools.helpers.Colors.color(halves[i]));
-        }
+        net.kyori.adventure.text.Component rendered=
+                safeHelpop(service.settings().helpopFormat(),player.getName(),text);
         for(Player viewer:Bukkit.getOnlinePlayers())if(service.helpopStaff(viewer))
             viewer.sendMessage(rendered);
         Messages.success(sender,"Wysłano zgłoszenie do administracji.");

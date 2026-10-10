@@ -85,7 +85,11 @@ public final class ToolsPermissionCatalog {
         for(Feature feature:features)if(!feature.permission().equals("*"))names.add(feature.permission());
         nodes=Set.copyOf(names);
         administrative=Set.of(commands.region().permission(),commands.ranga().permission(),
-                commands.tools().permission(),"tools.whitelist.admin",commands.chat().permission());
+                commands.tools().permission(),"tools.whitelist.admin",commands.chat().permission(),
+                commands.tp().permission(),commands.vanish().permission(),
+                commands.gamemode().permission(),commands.fly().permission(),
+                commands.broadcast().permission(),commands.inventoryopen().permission(),
+                commands.speed().permission());
     }
 
     private static void add(List<Feature> list,String node,String name,String description,String details) {
