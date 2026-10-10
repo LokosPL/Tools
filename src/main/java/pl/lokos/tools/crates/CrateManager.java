@@ -400,10 +400,16 @@ public final class CrateManager implements Listener,AutoCloseable {
         else if(roll<config.specialKeyChanceFromHostileMob()+config.ordinaryKeyChanceFromHostileMob())
             giveKey(player,CrateType.ZWYKLA,1);
     }
+    /** Wyłącznie region o nazwie afk, bez dopasowywania nazw częściowych. */
+    private boolean inAfkRegion(Location location){
+        if(regions==null||!regions.ready()||location==null)return false;
+        Region region=regions.at(location);
+        return region!=null&&"afk".equalsIgnoreCase(region.name());
+    }
     /** Zapis aktywności bez SQL i bez interakcji z wątkiem I/O. */
     @EventHandler(priority=EventPriority.MONITOR)
     public void activityJoin(PlayerJoinEvent event){
-        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+        activity.remove(event.getPlayer().getUniqueId());
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void activityQuit(PlayerQuitEvent event){
@@ -413,22 +419,30 @@ public final class CrateManager implements Listener,AutoCloseable {
     public void activityMove(PlayerMoveEvent event){
         Location to=event.getTo(),from=event.getFrom();
         if(to==null||event.getPlayer().isInsideVehicle())return;
+        if(!inAfkRegion(to)){
+            activity.remove(event.getPlayer().getUniqueId());
+            return;
+        }
         // Obrót głowy, kamera w bezruchu i przejazd wagonikiem nie liczą się.
         if(from.getBlockX()==to.getBlockX()&&from.getBlockY()==to.getBlockY()
                 && from.getBlockZ()==to.getBlockZ())return;
-        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+        if(inAfkRegion(event.getPlayer().getLocation()))
+            activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void activityInteract(PlayerInteractEvent event){
-        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+        if(inAfkRegion(event.getPlayer().getLocation()))
+            activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void activityBreak(BlockBreakEvent event){
-        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+        if(inAfkRegion(event.getPlayer().getLocation()))
+            activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void activityPlace(BlockPlaceEvent event){
-        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+        if(inAfkRegion(event.getPlayer().getLocation()))
+            activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
     }
 
     public void tick(){
@@ -437,6 +451,10 @@ public final class CrateManager implements Listener,AutoCloseable {
             Map<String,Integer> count=new HashMap<>(storage.get().afkMinutes());
             long now=System.currentTimeMillis();
             for(Player player:Bukkit.getOnlinePlayers()){
+                if(!inAfkRegion(player.getLocation())){
+                    activity.remove(player.getUniqueId());
+                    continue;
+                }
                 if(!activity.recentlyActive(player.getUniqueId(),now,
                         config.afkActivityWindowMinutes()))continue;
                 String id=player.getUniqueId().toString();
