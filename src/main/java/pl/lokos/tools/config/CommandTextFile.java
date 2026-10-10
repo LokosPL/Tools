@@ -39,7 +39,7 @@ public final class CommandTextFile {
                 throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
         }
     }
-    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist");}
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat");}
 
     public static CommandTextFile defaults(String name){
         CommandTextFile file=switch(name){
@@ -96,6 +96,22 @@ public final class CommandTextFile {
                     "&#73D6C1/spawn &8— &7Teleportacja na główny spawn"),
                     Map.of("notSet","&cSpawn nie został jeszcze ustawiony.",
                             "notReady","&cLokalizacje nie zostały wczytane."));
+            case "chat" -> new CommandTextFile("ZARZĄDZANIE CZATEM",List.of(
+                    "&#70D6E8/chat status &8• &7Stan czatu i ograniczenia",
+                    "&#70D6E8/chat wlacz &8• &#70D6E8/chat wylacz",
+                    "&#70D6E8/chat wyczysc &8• &7Wyczyść czat graczom",
+                    "&#70D6E8/chat ranga &7<wszyscy|ranga>",
+                    "&#70D6E8/chat wycisz &7<nick> <30s|5m|2h|1d|*> [powód]",
+                    "&#70D6E8/chat odcisz &7<nick>",
+                    "&#70D6E8/chat wyciszeni &7[strona]",
+                    "&#70D6E8/chat ogloszenia &7<wlacz|wylacz>",
+                    "&#70D6E8/chat przeladuj &8• &7Odśwież Chat.json"),
+                    Map.of("saved","&7Zapisano ustawienia czatu.",
+                            "offline","&7Gracz musi być online, aby go wyciszyć.",
+                            "notMuted","&7Nie znaleziono wyciszenia tego gracza.",
+                            "noRank","&7Nie znaleziono takiej rangi.",
+                            "muted","&7Wyciszono &f{nick}&7.",
+                            "unmuted","&7Cofnięto wyciszenie &f{nick}&7."));
             case "whitelist" -> new CommandTextFile("WHITELIST",List.of(
                     "&#73D6C1/whitelist &8— &7Otwórz panel",
                     "&#73D6C1/whitelist włącz &7<prace_techniczne|chwilowa_przerwa|nowa_edycja|aktualizacja>",

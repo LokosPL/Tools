@@ -29,6 +29,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"ranga",config.ranga());
         register(nodes,"region",config.region());
         register(nodes,"lokalizacje",config.lokalizacje());
+        register(nodes,"chat",config.chat());
         nodes.put("spawn", "tools.spawn");
         nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
@@ -37,7 +38,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
             nodes.put(name,"tools.whitelist.admin");
         this.rootPermissions=Map.copyOf(nodes);
         this.adminNodes=Set.of(config.tools().permission(),config.ranga().permission(),
-                config.region().permission(),"tools.whitelist.admin");
+                config.region().permission(),"tools.whitelist.admin",config.chat().permission());
         this.ranks=ranks;
     }
 

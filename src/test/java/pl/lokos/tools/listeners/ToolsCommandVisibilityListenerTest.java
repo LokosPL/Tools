@@ -14,6 +14,9 @@ class ToolsCommandVisibilityListenerTest {
         assertEquals("tools.region.admin",perms.get("tools:region"));
         assertEquals("tools.lokalizacje",perms.get("lokalizacje"));
         assertEquals("tools.lokalizacje",perms.get("lokacje"));
+        assertEquals("tools.chat.admin",perms.get("chat"));
+        assertEquals("tools.chat.admin",perms.get("czat"));
+        assertEquals("tools.chat.admin",perms.get("tools:chat"));
         assertEquals("tools.spawn",perms.get("spawn"));
         assertEquals("tools.spawn",perms.get("tools:spawn"));
         assertEquals("tools.whitelist.admin",perms.get("whitelist"));

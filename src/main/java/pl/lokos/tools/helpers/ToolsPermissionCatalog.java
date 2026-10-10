@@ -34,6 +34,18 @@ public final class ToolsPermissionCatalog {
         add(list,"tools.whitelist.admin","Zarządzanie whitelistą",
                 "Panel i komendy whitelisty.",
                 "Włączanie trybów przerwy, dodawanie i usuwanie graczy.");
+        add(list,commands.chat().permission(),"Zarządzanie czatem",
+                "Zmiana stanu czatu, czyszczenie, wyciszenia i dostęp rang.",
+                "Komenda /chat z pełną kontrolą moderacji.");
+        add(list,"tools.chat.bypass.slow","Bez limitu wiadomości",
+                "Nie podlega ograniczeniu 2 wiadomości na 3 sekundy.",
+                "Przydatne dla moderatorów i rang specjalnych.");
+        add(list,"tools.chat.bypass.lock","Pisanie przy zamkniętym czacie",
+                "Omija wyłączenie czatu i ograniczenie według rangi.",
+                "Nie omija wyciszenia ani antyspamu bez dodatkowych permisji.");
+        add(list,"tools.chat.bypass.mute","Omijanie wyciszeń",
+                "Może pisać mimo indywidualnego wyciszenia.",
+                "Nadawaj wyłącznie zaufanej moderacji.");
         add(list,commands.tools().permission(),"Narzędzia administracyjne",
                 "Dostęp do /tools.",
                 "Status serwera, test połączenia MySQL i statystyki.");
@@ -45,7 +57,7 @@ public final class ToolsPermissionCatalog {
         for(Feature feature:features)if(!feature.permission().equals("*"))names.add(feature.permission());
         nodes=Set.copyOf(names);
         administrative=Set.of(commands.region().permission(),commands.ranga().permission(),
-                commands.tools().permission(),"tools.whitelist.admin");
+                commands.tools().permission(),"tools.whitelist.admin",commands.chat().permission());
     }
 
     private static void add(List<Feature> list,String node,String name,String description,String details) {

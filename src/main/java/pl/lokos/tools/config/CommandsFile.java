@@ -34,10 +34,12 @@ public final class CommandsFile {
     private Entry ranga=new Entry(true,"Zarządzanie rangami",List.of(),"tools.ranga.admin");
     private Entry region=new Entry(true,"Zarządzanie regionami",List.of(),"tools.region.admin");
     private Entry lokalizacje=new Entry(true,"Teleportacja do lokalizacji",List.of("lokacje"),"tools.lokalizacje");
+    private Entry chat=new Entry(true,"Zarządzanie czatem",List.of("czat"),"tools.chat.admin");
     public Entry tools(){return tools;}
     public Entry ranga(){return ranga;}
     public Entry region(){return region;}
     public Entry lokalizacje(){return lokalizacje;}
+    public Entry chat(){return chat;}
     public void validate(){
         if(serverName==null||serverName.isBlank()||serverName.length()>32)
             throw new IllegalArgumentException("serverName powinno mieć 1-32 znaki");
@@ -45,8 +47,10 @@ public final class CommandsFile {
             throw new IllegalArgumentException("Niepoprawne messagePrefix");
         if(tools==null||ranga==null||region==null||lokalizacje==null)throw new IllegalArgumentException("Niekompletne Commands.json");
         tools.validate("tools");ranga.validate("ranga");region.validate("region");lokalizacje.validate("lokalizacje");
-        Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje"));
-        for(Entry entry:List.of(tools,ranga,region,lokalizacje))for(String alias:entry.aliases()){
+        if(chat==null)throw new IllegalArgumentException("Brakuje Commands.chat");
+        chat.validate("chat");
+        Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat"));
+        for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))
                 throw new IllegalArgumentException("Powtórzony alias komendy: "+alias);
         }
