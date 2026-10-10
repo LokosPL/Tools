@@ -12,6 +12,9 @@ import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -49,6 +52,8 @@ public final class AntiCheatManager implements Listener, AutoCloseable {
     private final RateWindow<ChunkKey> redstone=new RateWindow<>(1000,10000);
     private final RateWindow<ChunkKey> tnt=new RateWindow<>(5000,10000);
     private final RateWindow<ChunkKey> spawn=new RateWindow<>(5000,10000);
+    private final RateWindow<ChunkKey> hoppers=new RateWindow<>(5000,10000);
+    private final RateWindow<ChunkKey> pistons=new RateWindow<>(5000,10000);
     private final Map<String,Long> lastAlerts=new HashMap<>();
     private long lastCleanup;
 
@@ -212,11 +217,34 @@ public final class AntiCheatManager implements Listener, AutoCloseable {
             default -> {}
         }
     }
+    @EventHandler(priority=EventPriority.HIGH,ignoreCancelled=true)
+    public void hopper(InventoryMoveItemEvent event){
+        if(!settings.redstoneProtection())return;
+        Location source=event.getSource().getLocation();
+        if(source==null||source.getWorld()==null)return;
+        if(hoppers.exceeded(chunk(source),settings.hopperTransfersPerChunkFiveSeconds(),
+                System.currentTimeMillis()))event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGH,ignoreCancelled=true)
+    public void pistonExtend(BlockPistonExtendEvent event){
+        if(!settings.redstoneProtection())return;
+        if(pistons.exceeded(chunk(event.getBlock().getLocation()),
+                settings.pistonCyclesPerChunkFiveSeconds(),System.currentTimeMillis()))
+            event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGH,ignoreCancelled=true)
+    public void pistonRetract(BlockPistonRetractEvent event){
+        if(!settings.redstoneProtection())return;
+        if(pistons.exceeded(chunk(event.getBlock().getLocation()),
+                settings.pistonCyclesPerChunkFiveSeconds(),System.currentTimeMillis()))
+            event.setCancelled(true);
+    }
     public void cleanup(){
         long now=System.currentTimeMillis();
         if(now-lastCleanup<60000)return;
         lastCleanup=now;
-        redstone.cleanup(now);tnt.cleanup(now);spawn.cleanup(now);placeBurst.cleanup(now);
+        redstone.cleanup(now);tnt.cleanup(now);spawn.cleanup(now);
+        hoppers.cleanup(now);pistons.cleanup(now);placeBurst.cleanup(now);
         lastAlerts.entrySet().removeIf(e->now-e.getValue()>60000);
     }
     @Override public void close(){writes.shutdown();}

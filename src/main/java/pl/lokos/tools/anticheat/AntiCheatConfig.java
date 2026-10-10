@@ -15,6 +15,8 @@ public final class AntiCheatConfig {
     private int redstoneUpdatesPerChunkSecond=180;
     private int tntPerChunkFiveSeconds=18;
     private int creatureSpawnsPerChunkFiveSeconds=85;
+    private int hopperTransfersPerChunkFiveSeconds=320;
+    private int pistonCyclesPerChunkFiveSeconds=240;
     private int alertCooldownSeconds=8;
     private int joinGraceSeconds=6;
     private String alertFormat="&#FF727F✘ ANTYCHEAT &#A8A8B7» &#FFD166{player} &7• {check} &8({details})";
@@ -31,6 +33,8 @@ public final class AntiCheatConfig {
     public int redstoneUpdatesPerChunkSecond(){return redstoneUpdatesPerChunkSecond;}
     public int tntPerChunkFiveSeconds(){return tntPerChunkFiveSeconds;}
     public int creatureSpawnsPerChunkFiveSeconds(){return creatureSpawnsPerChunkFiveSeconds;}
+    public int hopperTransfersPerChunkFiveSeconds(){return hopperTransfersPerChunkFiveSeconds;}
+    public int pistonCyclesPerChunkFiveSeconds(){return pistonCyclesPerChunkFiveSeconds;}
     public int alertCooldownSeconds(){return alertCooldownSeconds;}
     public int joinGraceSeconds(){return joinGraceSeconds;}
     public String alertFormat(){return alertFormat;}
@@ -42,6 +46,8 @@ public final class AntiCheatConfig {
                 redstoneUpdatesPerChunkSecond<50||redstoneUpdatesPerChunkSecond>10000||
                 tntPerChunkFiveSeconds<4||tntPerChunkFiveSeconds>500||
                 creatureSpawnsPerChunkFiveSeconds<20||creatureSpawnsPerChunkFiveSeconds>1000||
+                hopperTransfersPerChunkFiveSeconds<100||hopperTransfersPerChunkFiveSeconds>10000||
+                pistonCyclesPerChunkFiveSeconds<80||pistonCyclesPerChunkFiveSeconds>10000||
                 alertCooldownSeconds<1||alertCooldownSeconds>300||
                 joinGraceSeconds<1||joinGraceSeconds>60||
                 alertFormat==null||alertFormat.length()>300||
