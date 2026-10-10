@@ -53,6 +53,20 @@ class StaffSuggestionsTest {
         assertTrue(options.contains("Steve"));
         assertFalse(options.contains("HiddenStaff"));
     }
+    @Test void flyAndVanishPermitGivingPowersToOtherPlayerInBothOrders(){
+        assertEquals(List.of("Steve"),StaffSuggestions.forCommand(
+                StaffCommand.Kind.FLY,new String[]{"wlacz","St"},List.of("Steve"),
+                permissions("tools.fly.others"),true));
+        assertEquals(List.of("Steve"),StaffSuggestions.forCommand(
+                StaffCommand.Kind.VANISH,new String[]{"wlacz","St"},List.of("Steve"),
+                permissions("tools.vanish.others"),true));
+        assertEquals(List.of("wlacz","wylacz"),StaffSuggestions.forCommand(
+                StaffCommand.Kind.FLY,new String[]{"Steve",""},List.of("Steve"),
+                permissions("tools.fly.others"),true));
+        assertTrue(StaffSuggestions.forCommand(
+                StaffCommand.Kind.FLY,new String[]{"wlacz","St"},List.of("Steve"),
+                permissions(),true).isEmpty());
+    }
     @Test void speedCompletesFourthParameterOnlyWithPermission(){
         var denied=StaffSuggestions.forCommand(StaffCommand.Kind.SPEED,
                 new String[]{"fly","5","St"},List.of("Steve"),permissions(),true);
