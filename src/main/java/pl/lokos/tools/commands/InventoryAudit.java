@@ -1,6 +1,7 @@
 package pl.lokos.tools.commands;
 
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.event.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -19,7 +20,10 @@ public final class InventoryAudit implements Listener {
     private record Opened(Inventory inventory,boolean ender) {}
     private final Map<UUID,Opened> opened=new HashMap<>();
     private final RankManager ranks;
-    public InventoryAudit(RankManager ranks){this.ranks=ranks;}
+    private final JavaPlugin plugin;
+    public InventoryAudit(JavaPlugin plugin,RankManager ranks){
+        this.plugin=plugin;this.ranks=ranks;
+    }
     public void track(Player viewer,Inventory top,boolean ender){
         opened.put(viewer.getUniqueId(),new Opened(top,ender));
     }
@@ -31,7 +35,12 @@ public final class InventoryAudit implements Listener {
                 "tools.inventoryopen.enderchest",false));
         if(allowed)return false;
         opened.remove(player.getUniqueId());
-        player.closeInventory();
+        // Paper ostrzega przed closeInventory() wewnątrz InventoryClickEvent.
+        // Odroczenie zamknięcia nie osłabia blokady: zdarzenie już jest anulowane.
+        plugin.getServer().getScheduler().runTask(plugin,()->{
+            if(player.isOnline() && player.getOpenInventory().getTopInventory()==top)
+                player.closeInventory();
+        });
         Messages.unknown(player);
         return true;
     }

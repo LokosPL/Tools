@@ -194,7 +194,7 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        inventoryAudit=new InventoryAudit(rankManager);
+        inventoryAudit=new InventoryAudit(this,rankManager);
         getServer().getPluginManager().registerEvents(inventoryAudit,this);
         getServer().getPluginManager().registerEvents(staffManager,this);
         getServer().getScheduler().runTaskTimer(this,
