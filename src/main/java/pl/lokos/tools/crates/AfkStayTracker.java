@@ -48,7 +48,7 @@ public final class AfkStayTracker {
         if(seconds<0)throw new IllegalArgumentException("Ujemny czas AFK.");
         int hours=seconds/3600,minutes=(seconds%3600)/60,remaining=seconds%60;
         return hours>0
-                ?String.format(Locale.ROOT,"%d:%02d:%02d",hours,minutes,remaining)
+                ?String.format(Locale.ROOT,"%02d:%02d:%02d",hours,minutes,remaining)
                 :String.format(Locale.ROOT,"%02d:%02d",minutes,remaining);
     }
 }
