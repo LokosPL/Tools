@@ -19,7 +19,8 @@ public final class BossBarHub {
     private final Map<UUID,List<BossBar>> shown=new HashMap<>();
 
     public void setGlobal(Slot slot,BossBar bar,UUID world){
-        if(slot==Slot.COMBAT)throw new IllegalArgumentException("Walka jest indywidualna.");
+        if(slot==Slot.COMBAT||slot==Slot.AFK)
+            throw new IllegalArgumentException("Ten bossbar jest indywidualny.");
         if(bar==null)globals.remove(slot);
         else globals.put(slot,new Global(bar,world));
         refresh();
