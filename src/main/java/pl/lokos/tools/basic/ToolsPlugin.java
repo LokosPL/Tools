@@ -254,7 +254,7 @@ public final class ToolsPlugin extends JavaPlugin {
                     new EventManager(this,getDataFolder().toPath(),specialItems,bossBars,regionManager));
             crates=services.register(CrateManager.class,
                     new CrateManager(this,rankManager,regionManager,specialItems,
-                            events,getDataFolder().toPath()));
+                            events,bossBars,getDataFolder().toPath()));
             events.setCrates(crates);
             border=services.register(BorderManager.class,
                     new BorderManager(this,regionManager,bossBars,getDataFolder().toPath()));

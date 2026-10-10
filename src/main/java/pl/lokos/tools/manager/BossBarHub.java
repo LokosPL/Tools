@@ -11,10 +11,11 @@ import java.util.*;
  * Nie wysyła pustych wiadomości ani nie ukrywa bez potrzeby tych samych pasków.
  */
 public final class BossBarHub {
-    public enum Slot { EVENT, COMBAT, BROADCAST, BORDER }
+    public enum Slot { EVENT, COMBAT, BROADCAST, BORDER, AFK }
     private record Global(BossBar bar,UUID world) {}
     private final EnumMap<Slot,Global> globals=new EnumMap<>(Slot.class);
     private final Map<UUID,BossBar> combat=new HashMap<>();
+    private final Map<UUID,BossBar> afk=new HashMap<>();
     private final Map<UUID,List<BossBar>> shown=new HashMap<>();
 
     public void setGlobal(Slot slot,BossBar bar,UUID world){
@@ -27,14 +28,21 @@ public final class BossBarHub {
         if(bar==null)combat.remove(player);else combat.put(player,bar);
         refresh();
     }
+    /** Personalny bossbar AFK, pokazywany tylko osobom w strefie. */
+    public void afk(UUID player,BossBar bar){
+        if(bar==null)afk.remove(player);else afk.put(player,bar);
+        refresh();
+    }
     public void refresh(){
         Set<UUID> online=new HashSet<>();
         for(Player player:Bukkit.getOnlinePlayers()){
             UUID id=player.getUniqueId();online.add(id);
-            List<BossBar> next=new ArrayList<>(4);
+            List<BossBar> next=new ArrayList<>(5);
             for(Slot slot:Slot.values()){
                 if(slot==Slot.COMBAT){
                     BossBar personal=combat.get(id);if(personal!=null)next.add(personal);
+                }else if(slot==Slot.AFK){
+                    BossBar personal=afk.get(id);if(personal!=null)next.add(personal);
                 }else{
                     Global global=globals.get(slot);
                     if(global!=null&&(global.world()==null||global.world().equals(player.getWorld().getUID())))
@@ -49,11 +57,12 @@ public final class BossBarHub {
         }
         shown.keySet().removeIf(id->!online.contains(id));
         combat.keySet().removeIf(id->!online.contains(id));
+        afk.keySet().removeIf(id->!online.contains(id));
     }
     public void shutdown(){
         for(Player player:Bukkit.getOnlinePlayers())
             for(BossBar bar:shown.getOrDefault(player.getUniqueId(),List.of()))
                 player.hideBossBar(bar);
-        shown.clear();combat.clear();globals.clear();
+        shown.clear();combat.clear();afk.clear();globals.clear();
     }
 }
