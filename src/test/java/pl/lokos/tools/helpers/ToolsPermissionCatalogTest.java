@@ -11,11 +11,15 @@ class ToolsPermissionCatalogTest {
         ToolsPermissionCatalog catalog=new ToolsPermissionCatalog(new CommandsFile());
         assertEquals(Set.of("tools.lokalizacje","tools.lokalizacje.instant",
                         "tools.region.admin","tools.spawn",
-                        "tools.ranga.admin","tools.admin","tools.whitelist.admin","*"),
+                        "tools.ranga.admin","tools.admin","tools.whitelist.admin","*",
+                        "tools.chat.admin","tools.chat.bypass.slow",
+                        "tools.chat.bypass.lock","tools.chat.bypass.mute"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));
         assertFalse(catalog.isManaged("minecraft.command.help"));
         assertFalse(catalog.isManaged("luckperms.user.permission.set"));
+        assertTrue(catalog.administrativeNodes().contains("tools.chat.admin"));
+        assertFalse(catalog.administrativeNodes().contains("tools.chat.bypass.slow"));
         for(var feature:catalog.features()){
             assertFalse(feature.name().isBlank());
             assertTrue(feature.description().length()>14);
