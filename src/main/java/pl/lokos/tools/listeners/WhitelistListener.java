@@ -59,7 +59,10 @@ public final class WhitelistListener implements Listener {
         }
         java.util.concurrent.CompletableFuture<Void> operation;
         if(action.startsWith("mode:"))
-            operation=whitelist.enable(WhitelistMode.parse(action.substring(5)));
+            operation=(!whitelist.state().players().contains(player.getName().toLowerCase(Locale.ROOT))
+                    ? whitelist.add(player.getName()).thenCompose(unused ->
+                        whitelist.enable(WhitelistMode.parse(action.substring(5))))
+                    : whitelist.enable(WhitelistMode.parse(action.substring(5))));
         else if(action.equals("disable"))
             operation=whitelist.disable();
         else if(action.startsWith("remove:"))

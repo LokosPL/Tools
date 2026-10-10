@@ -30,6 +30,9 @@ public final class ToolsPermissionCatalog {
         add(list,commands.ranga().permission(),"Zarządzanie rangami",
                 "Dostęp do /ranga i GUI uprawnień.",
                 "Umożliwia tworzenie rang, nadawanie, ustawianie pozycji oraz edycję.");
+        add(list,"tools.whitelist.admin","Zarządzanie whitelistą",
+                "Panel i komendy whitelisty.",
+                "Włączanie trybów przerwy, dodawanie i usuwanie graczy.");
         add(list,commands.tools().permission(),"Narzędzia administracyjne",
                 "Dostęp do /tools.",
                 "Status serwera, test połączenia MySQL i statystyki.");

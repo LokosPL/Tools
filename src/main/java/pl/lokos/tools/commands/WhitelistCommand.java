@@ -40,7 +40,11 @@ public final class WhitelistCommand implements BasicCommand {
                 if(args.length != 2){usage(sender);return;}
                 try {
                     WhitelistMode mode=WhitelistMode.parse(args[1]);
-                    update(sender,service.enable(mode),"Włączono whitelistę: &f"+mode.title()+".");
+                    CompletableFuture<Void> activation=sender instanceof Player player
+                            && !service.state().players().contains(player.getName().toLowerCase(Locale.ROOT))
+                            ? service.add(player.getName()).thenCompose(ignored -> service.enable(mode))
+                            : service.enable(mode);
+                    update(sender,activation,"Włączono whitelistę: &f"+mode.title()+".");
                 } catch (IllegalArgumentException error) {Messages.error(sender,error.getMessage());}
             }
             case "wyłącz","wylacz","off" -> {

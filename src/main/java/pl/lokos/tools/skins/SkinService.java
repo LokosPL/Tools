@@ -41,7 +41,7 @@ public final class SkinService implements Listener {
         if(pending.get()>=16 || !inFlight.add(key))return;
         pending.incrementAndGet();
         // createProfile musi zostać wykonane na głównym wątku, update jest asynchroniczne.
-        PlayerProfile original = Bukkit.createProfile(name);
+        PlayerProfile original = Bukkit.createProfileExact(null, name);
         original.update().orTimeout(4,TimeUnit.SECONDS).whenComplete((profile,error)->{
             inFlight.remove(key);pending.decrementAndGet();
             if(error!=null || profile==null || !profile.hasTextures() || !plugin.isEnabled())return;
