@@ -169,7 +169,7 @@ public final class EventManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void click(InventoryClickEvent event){
-        if(!(event.getView().getTopInventory().getHolder() instanceof Menu))return;
+        if(!(event.getView().getTopInventory().getHolder() instanceof Menu holder))return;
         event.setCancelled(true);
         if(!(event.getWhoClicked() instanceof Player player))return;
         if(holder.type==null){
