@@ -39,7 +39,7 @@ public final class CommandTextFile {
                 throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
         }
     }
-    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply");}
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed");}
 
     public static CommandTextFile defaults(String name){
         CommandTextFile file=switch(name){
@@ -129,6 +129,38 @@ public final class CommandTextFile {
                     "&#70D6E8/reply &7<wiadomość> &8• &7Odpowiedz ostatniemu rozmówcy",
                     "&#70D6E8/r &7<wiadomość> &8• &7Skrót do /reply"),
                     Map.of("noPartner","Brak dostępnego rozmówcy."));
+            case "tp" -> new CommandTextFile("TELEPORTACJA",List.of(
+                    "&#70D6E8/tp &7<nick> &8• &7Teleportacja do gracza",
+                    "&#70D6E8/tp &7<x> <y> <z> &8• &7Teleportacja na współrzędne",
+                    "&#70D6E8/tp &7<nick> <x> <y> <z>",
+                    "&#70D6E8/tp * &8• &7Wszyscy do Ciebie",
+                    "&#70D6E8/tp * &7<x> <y> <z> &8• &7Wszyscy na współrzędne"),
+                    Map.of());
+            case "vanish" -> new CommandTextFile("VANISH",List.of(
+                    "&#70D6E8/vanish &8• &7Przełącz niewidzialność",
+                    "&#70D6E8/vanish &7<wlacz|wylacz>",
+                    "&#70D6E8/vanish &7<nick> [wlacz|wylacz] &8• &7Dla administracji"),
+                    Map.of());
+            case "helpop" -> new CommandTextFile("KONTAKT Z ADMINISTRACJĄ",List.of(
+                    "&#70D6E8/helpop &7<treść zgłoszenia>"),Map.of());
+            case "gamemode" -> new CommandTextFile("TRYB GRY",List.of(
+                    "&#70D6E8/gamemode &7<1|2|3|4> &8• &71 survival, 2 creative, 3 adventure, 4 spectator",
+                    "&#70D6E8/gm &7<nick> <1|2|3|4>"),Map.of());
+            case "fly" -> new CommandTextFile("LATANIE",List.of(
+                    "&#70D6E8/fly &8• &7Przełącz latanie",
+                    "&#70D6E8/fly &7<wlacz|wylacz>",
+                    "&#70D6E8/fly &7<nick> [wlacz|wylacz]"),Map.of());
+            case "broadcast" -> new CommandTextFile("OGŁOSZENIA BOSSBAR",List.of(
+                    "&#70D6E8/broadcast &7<30s|5m|2h|1d> <treść>",
+                    "&#70D6E8/broadcast wylacz &8• &7Usuń aktywne ogłoszenie",
+                    "&#A8A8B7Ogłoszenie pozostaje po restarcie do upływu terminu."),Map.of());
+            case "inventoryopen" -> new CommandTextFile("EKWIPUNKI",List.of(
+                    "&#70D6E8/inventoryopen eq &7<nick>",
+                    "&#70D6E8/inventoryopen enderchest &7<nick>"),Map.of());
+            case "speed" -> new CommandTextFile("PRĘDKOŚĆ",List.of(
+                    "&#70D6E8/speed &7<1-10> &8• &7Twoja prędkość",
+                    "&#70D6E8/speed &7<walk|fly> <1-10> [nick]",
+                    "&#70D6E8/speed &7<nick> <1-10>"),Map.of());
             case "whitelist" -> new CommandTextFile("WHITELIST",List.of(
                     "&#73D6C1/whitelist &8— &7Otwórz panel",
                     "&#73D6C1/whitelist włącz &7<prace_techniczne|chwilowa_przerwa|nowa_edycja|aktualizacja>",

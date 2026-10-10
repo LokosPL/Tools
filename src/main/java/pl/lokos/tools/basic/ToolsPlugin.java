@@ -53,6 +53,8 @@ import pl.lokos.tools.chat.ChatListener;
 import pl.lokos.tools.msg.PrivateMessageManager;
 import pl.lokos.tools.msg.PrivateMessageListener;
 import pl.lokos.tools.listeners.UnknownCommandListener;
+import pl.lokos.tools.staff.StaffManager;
+import pl.lokos.tools.commands.InventoryAudit;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -78,6 +80,8 @@ public final class ToolsPlugin extends JavaPlugin {
     private WhitelistService whitelistService;
     private ChatManager chatManager;
     private PrivateMessageManager privateMessages;
+    private StaffManager staffManager;
+    private InventoryAudit inventoryAudit;
     private WhitelistCommand pendingWhitelistCommand;
     private WhitelistMenu pendingWhitelistMenu;
 
@@ -182,8 +186,22 @@ public final class ToolsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new UnknownCommandListener(),this);
         getServer().getScheduler().runTaskTimer(this,
                 monitoring.measured("chat.wiadomosci",chatManager::tick),20L,20L);
+        try{
+            staffManager=services.register(StaffManager.class,
+                    new StaffManager(this,rankManager,getDataFolder().toPath()));
+        }catch(IOException error){
+            getLogger().severe("Nie udało się uruchomić komend administracyjnych: "+error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        inventoryAudit=new InventoryAudit(rankManager);
+        getServer().getPluginManager().registerEvents(inventoryAudit,this);
+        getServer().getPluginManager().registerEvents(staffManager,this);
+        getServer().getScheduler().runTaskTimer(this,
+                monitoring.measured("staff.vanish-bossbar",staffManager::tick),4L,4L);
         new CommandRegistry(this).register(configurations.commands(), database,
-                repository, playerData, rankManager, rankMenus, monitoring, reloadService, chatManager,privateMessages);
+                repository, playerData, rankManager, rankMenus, monitoring, reloadService,
+                chatManager,privateMessages,staffManager,inventoryAudit);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
@@ -266,6 +284,7 @@ public final class ToolsPlugin extends JavaPlugin {
         }
         if (chatManager != null) chatManager.close();
         if (privateMessages != null) privateMessages.close();
+        if (staffManager != null) staffManager.close();
         if (services != null) services.close();
         getLogger().info("Tools został wyłączony.");
     }

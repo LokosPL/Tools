@@ -13,6 +13,9 @@ import pl.lokos.tools.config.HotReloadService;
 import pl.lokos.tools.chat.ChatManager;
 import pl.lokos.tools.msg.PrivateMessageManager;
 import pl.lokos.tools.helpers.ToolsPermissionCatalog;
+import pl.lokos.tools.staff.StaffManager;
+import pl.lokos.tools.commands.StaffCommand;
+import pl.lokos.tools.commands.InventoryAudit;
 
 public final class CommandRegistry {
     private final JavaPlugin plugin;
@@ -20,7 +23,7 @@ public final class CommandRegistry {
     public void register(CommandsFile config,DatabaseManager database,PlayerRepository repository,
                          PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus,
                          MonitoringService monitoring, HotReloadService hotReload,ChatManager chats,
-                         PrivateMessageManager privateMessages) {
+                         PrivateMessageManager privateMessages,StaffManager staff,InventoryAudit inventoryAudit) {
         if(ranks!=null && config.ranga().enabled()){
             declare(config.ranga().permission(),PermissionDefault.OP);
             plugin.registerCommand("ranga",config.ranga().description(),config.ranga().aliases(),
@@ -44,6 +47,24 @@ public final class CommandRegistry {
                 plugin.registerCommand("reply",config.reply().description(),config.reply().aliases(),
                         new PrivateMessageCommand(plugin,privateMessages,chats,ranks,adminNodes,true,
                                 config.chat().permission()));
+        }
+        if(staff!=null){
+            var definitions=java.util.List.of(
+                    new Object[]{"tp",config.tp(),StaffCommand.Kind.TP},
+                    new Object[]{"vanish",config.vanish(),StaffCommand.Kind.VANISH},
+                    new Object[]{"helpop",config.helpop(),StaffCommand.Kind.HELPOP},
+                    new Object[]{"gamemode",config.gamemode(),StaffCommand.Kind.GAMEMODE},
+                    new Object[]{"fly",config.fly(),StaffCommand.Kind.FLY},
+                    new Object[]{"broadcast",config.broadcast(),StaffCommand.Kind.BROADCAST},
+                    new Object[]{"inventoryopen",config.inventoryopen(),StaffCommand.Kind.INVENTORYOPEN},
+                    new Object[]{"speed",config.speed(),StaffCommand.Kind.SPEED});
+            for(Object[] item:definitions) {
+                String name=(String)item[0];CommandsFile.Entry entry=(CommandsFile.Entry)item[1];
+                if(!entry.enabled())continue;
+                declare(entry.permission(),name.equals("helpop")?PermissionDefault.TRUE:PermissionDefault.OP);
+                plugin.registerCommand(name,entry.description(),entry.aliases(),
+                        new StaffCommand(plugin,ranks,staff,inventoryAudit,(StaffCommand.Kind)item[2],entry.permission()));
+            }
         }
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);

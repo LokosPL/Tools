@@ -37,6 +37,14 @@ public final class CommandsFile {
     private Entry chat=new Entry(true,"Zarządzanie czatem",List.of("czat"),"tools.chat.admin");
     private Entry msg=new Entry(true,"Prywatne wiadomości",List.of("tell","w"),"tools.msg.use");
     private Entry reply=new Entry(true,"Odpowiedź na prywatną wiadomość",List.of("r","replay"),"tools.msg.use");
+    private Entry tp=new Entry(true,"Teleportacja administracyjna",List.of(),"tools.tp");
+    private Entry vanish=new Entry(true,"Tryb niewidzialności administracji",List.of(),"tools.vanish.use");
+    private Entry helpop=new Entry(true,"Kontakt z administracją",List.of(),"tools.helpop.use");
+    private Entry gamemode=new Entry(true,"Zmiana trybu gry",List.of("gm"),"tools.gamemode");
+    private Entry fly=new Entry(true,"Zarządzanie lataniem",List.of(),"tools.fly");
+    private Entry broadcast=new Entry(true,"Ogłoszenia bossbar",List.of(),"tools.broadcast");
+    private Entry inventoryopen=new Entry(true,"Podgląd ekwipunków",List.of("invopen"),"tools.inventoryopen");
+    private Entry speed=new Entry(true,"Zmiana prędkości gracza",List.of(),"tools.speed");
     public Entry tools(){return tools;}
     public Entry ranga(){return ranga;}
     public Entry region(){return region;}
@@ -44,6 +52,14 @@ public final class CommandsFile {
     public Entry chat(){return chat;}
     public Entry msg(){return msg;}
     public Entry reply(){return reply;}
+    public Entry tp(){return tp;}
+    public Entry vanish(){return vanish;}
+    public Entry helpop(){return helpop;}
+    public Entry gamemode(){return gamemode;}
+    public Entry fly(){return fly;}
+    public Entry broadcast(){return broadcast;}
+    public Entry inventoryopen(){return inventoryopen;}
+    public Entry speed(){return speed;}
     public void validate(){
         if(serverName==null||serverName.isBlank()||serverName.length()>32)
             throw new IllegalArgumentException("serverName powinno mieć 1-32 znaki");
@@ -55,8 +71,16 @@ public final class CommandsFile {
         chat.validate("chat");
         if(msg==null || reply==null)throw new IllegalArgumentException("Brak konfiguracji msg/reply.");
         msg.validate("msg");reply.validate("reply");
-        Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply"));
-        for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply))for(String alias:entry.aliases()){
+        if(tp==null||vanish==null||helpop==null||gamemode==null||fly==null||broadcast==null
+                ||inventoryopen==null||speed==null)
+            throw new IllegalArgumentException("Brakuje konfiguracji komend administracyjnych.");
+        tp.validate("tp");vanish.validate("vanish");helpop.validate("helpop");
+        gamemode.validate("gamemode");fly.validate("fly");broadcast.validate("broadcast");
+        inventoryopen.validate("inventoryopen");speed.validate("speed");
+        Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply",
+                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed"));
+        for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply,
+                tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))
                 throw new IllegalArgumentException("Powtórzony alias komendy: "+alias);
         }

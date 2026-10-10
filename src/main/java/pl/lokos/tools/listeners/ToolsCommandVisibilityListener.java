@@ -32,6 +32,10 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"chat",config.chat());
         register(nodes,"msg",config.msg());
         register(nodes,"reply",config.reply());
+        register(nodes,"tp",config.tp());register(nodes,"vanish",config.vanish());
+        register(nodes,"helpop",config.helpop());register(nodes,"gamemode",config.gamemode());
+        register(nodes,"fly",config.fly());register(nodes,"broadcast",config.broadcast());
+        register(nodes,"inventoryopen",config.inventoryopen());register(nodes,"speed",config.speed());
         nodes.put("spawn", "tools.spawn");
         nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
@@ -40,7 +44,10 @@ public final class ToolsCommandVisibilityListener implements Listener {
             nodes.put(name,"tools.whitelist.admin");
         this.rootPermissions=Map.copyOf(nodes);
         this.adminNodes=Set.of(config.tools().permission(),config.ranga().permission(),
-                config.region().permission(),"tools.whitelist.admin",config.chat().permission());
+                config.region().permission(),"tools.whitelist.admin",config.chat().permission(),
+                config.tp().permission(),config.vanish().permission(),config.gamemode().permission(),
+                config.fly().permission(),config.broadcast().permission(),
+                config.inventoryopen().permission(),config.speed().permission());
         this.ranks=ranks;
     }
 
@@ -64,6 +71,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
     private boolean canUse(Player player,String permission){
         // MSG jest publiczne domyślnie, a odrębne uprawnienia Tools chronią administrację.
         if("tools.msg.use".equals(permission))return player.hasPermission(permission);
+        if("tools.helpop.use".equals(permission))return true;
         return ToolsAccess.allowed(player,ranks,permission,adminNodes.contains(permission));
     }
 
