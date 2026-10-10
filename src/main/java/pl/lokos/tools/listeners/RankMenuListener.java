@@ -8,6 +8,7 @@ import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.inventorys.RankMenuFactory;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.security.ToolsAccess;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -64,6 +65,7 @@ public final class RankMenuListener implements Listener {
                     if(error!=null){
                         Throwable cause=error;
                         while(cause instanceof CompletionException && cause.getCause()!=null)cause=cause.getCause();
+                        if(StateChanges.reportUnchanged(p,cause))return;
                         display.error(p,"Nie zapisano uprawnienia: "+cause.getMessage());
                     }else if(p.getOpenInventory().getTopInventory().getHolder()==h){
                         menus.permissions(p,h.rank(),h.page());

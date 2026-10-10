@@ -10,6 +10,7 @@ import pl.lokos.tools.config.DefinitionFiles;
 import pl.lokos.tools.config.RanksFile;
 import pl.lokos.tools.helpers.ToolsPermissionCatalog;
 import pl.lokos.tools.security.ToolsAccess;
+import pl.lokos.tools.helpers.StateChanges;
 import java.util.function.Function;
 import pl.lokos.tools.utils.ThreadChecks;
 
@@ -190,7 +191,10 @@ public final class RankManager {
     private CompletableFuture<Void> updateDefinitions(Function<Map<String,RanksFile.RankEntry>,
             Map<String,RanksFile.RankEntry>> update) {
         return change(() -> CompletableFuture.runAsync(() -> {
-            Map<String,RanksFile.RankEntry> changed=update.apply(new LinkedHashMap<>(definitions.ranks().ranks()));
+            Map<String,RanksFile.RankEntry> before=definitions.ranks().ranks();
+            Map<String,RanksFile.RankEntry> changed=update.apply(new LinkedHashMap<>(before));
+            StateChanges.requireChange(before.equals(changed),
+                    "Ranga ma już te ustawienia. Nie wprowadzono zmian.");
             definitions.saveRanks(RanksFile.from(changed,definitions.ranks().settings()));
         }));
     }
@@ -201,7 +205,7 @@ public final class RankManager {
     }
     public CompletableFuture<Void> create(String name,String prefix,String suffix) {
         return updateDefinitions(map -> {
-            if(map.containsKey(name))throw new IllegalArgumentException("Ta ranga już istnieje.");
+            StateChanges.requireChange(map.containsKey(name),"Ranga "+name+" już istnieje.");
             map.put(name,new RanksFile.RankEntry(prefix,suffix,null,"",Set.of()));
             return map;
         });
@@ -212,7 +216,9 @@ public final class RankManager {
                     "Ranga Gracz może mieć wyłącznie uprawnienia publiczne."));
         return updateDefinitions(map -> {
             var r=require(map,name);
-            Set<String> perms=new HashSet<>(r.permissions());perms.add(permission);
+            Set<String> perms=new HashSet<>(r.permissions());
+            StateChanges.requireChange(!perms.add(permission),
+                    "Ranga "+name+" ma już uprawnienie "+permission+".");
             map.put(name,new RanksFile.RankEntry(r.prefix(),r.suffix(),r.position(),r.joinMessage(),perms));
             return map;
         });
@@ -220,6 +226,8 @@ public final class RankManager {
     public CompletableFuture<Void> position(String name,int position){
         return updateDefinitions(map -> {
             var r=require(map,name);
+            StateChanges.requireChange(Objects.equals(r.position(),position),
+                    "Ranga "+name+" ma już pozycję "+position+".");
             map.put(name,new RanksFile.RankEntry(r.prefix(),r.suffix(),position,r.joinMessage(),r.permissions()));
             return map;
         });
@@ -227,6 +235,8 @@ public final class RankManager {
     public CompletableFuture<Void> joinMessage(String name,String message){
         return updateDefinitions(map -> {
             var r=require(map,name);
+            StateChanges.requireChange(Objects.equals(r.joinMessage(),message),
+                    "Ranga "+name+" ma już taki komunikat powitania.");
             map.put(name,new RanksFile.RankEntry(r.prefix(),r.suffix(),r.position(),message,r.permissions()));
             return map;
         });
@@ -238,6 +248,7 @@ public final class RankManager {
             return change(() -> {
                 Map<String,RanksFile.RankEntry> map=new LinkedHashMap<>(definitions.ranks().ranks());
                 var rank=require(map,name);
+                StateChanges.requireChange(name.equals(value),"Ta ranga ma już nazwę "+name+".");
                 if(map.containsKey(value))throw new IllegalArgumentException("Ranga o nowej nazwie już istnieje.");
                 // Najpierw zmieniamy przypisania w SQL, po powodzeniu JSON.
                 return repository.renameGrants(name,value).thenRun(() -> {
@@ -248,6 +259,9 @@ public final class RankManager {
         }
         return updateDefinitions(map -> {
             var r=require(map,name);
+            StateChanges.requireChange(field.equals("prefix") && r.prefix().equals(value)
+                            || field.equals("sufix") && r.suffix().equals(value),
+                    "Ranga "+name+" ma już takie ustawienie "+field+".");
             map.put(name,new RanksFile.RankEntry(
                     field.equals("prefix")?value:r.prefix(),
                     field.equals("sufix")?value:r.suffix(),

@@ -10,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.RankRepository;
 import pl.lokos.tools.config.CommandTextRegistry;
 import pl.lokos.tools.security.ToolsAccess;
+import pl.lokos.tools.helpers.StateChanges;
 
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.helpers.RankValidity;
@@ -221,7 +222,14 @@ public final class RankCommand implements BasicCommand {
             if (uuid == null)
                 throw new IllegalArgumentException("Gracz &c&n" + target
                         + "&r&c nie został znaleziony w bazie. Musi najpierw wejść na serwer.");
-            return ranks.change(() -> repository.grant(uuid, name, expires));
+            return ranks.change(() -> repository.findGrant(uuid).thenCompose(existing -> {
+                StateChanges.requireChange(existing!=null
+                                && existing.active(System.currentTimeMillis())
+                                && existing.rank().equals(name)
+                                && Objects.equals(existing.expiresAt(),expires),
+                        "Gracz "+target+" ma już tę rangę z takim samym terminem ważności.");
+                return repository.grant(uuid,name,expires);
+            }));
         }), "Nadano rangę &a" + name + "&7 graczowi &a" + target + "&7. Ważność: &a" + RankValidity.durationLabel(duration) + "&7.");
     }
 
@@ -378,6 +386,7 @@ public final class RankCommand implements BasicCommand {
                 if (error == null) {
                     display.success(sender, success);
                 } else {
+                    if(StateChanges.reportUnchanged(sender,error))return;
                     Throwable cause = error instanceof CompletionException && error.getCause() != null
                             ? error.getCause() : error;
                     if (cause instanceof IllegalArgumentException) {
