@@ -128,7 +128,8 @@ public final class CombatManager implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGH)
     public void respawn(PlayerRespawnEvent event){
-        if(!settings.respawnAtMainSpawn())return;
+        if(!settings.respawnAtMainSpawn()
+                ||event.getRespawnReason()!=PlayerRespawnEvent.RespawnReason.DEATH)return;
         Location spawn=null;
         if(regions!=null){
             Region region=regions.mainSpawn();
