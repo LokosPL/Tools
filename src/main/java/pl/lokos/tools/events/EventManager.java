@@ -3,6 +3,7 @@ package pl.lokos.tools.events;
 import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -10,6 +11,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -55,6 +57,10 @@ public final class EventManager implements Listener,AutoCloseable {
     private final NamespacedKey tokenKey;
     private final MeteorShower meteors;
     private final Map<String,Long> recentlyPlaced=new LinkedHashMap<>();
+    private final Map<UUID,Integer> challengeBuffer=new HashMap<>();
+    private final Set<UUID> pendingDelivery=new HashSet<>();
+    private long challengeSession;
+    private long challengeSeconds;
     private CrateManager crates;
     private BossBar bar;
     private int visualsCounter;
@@ -76,6 +82,7 @@ public final class EventManager implements Listener,AutoCloseable {
         crates.giveKey(player,CrateType.EVENTOWA,keys);
         Messages.success(player,"&#FFD166☄ Znaleziono meteoryt! &#89E5B0+"+keys
                 +" klucz(e) eventowe.");
+        challengeAction(player,EventType.METEORY);
         reward(player,EventType.METEORY);
     }
     public EventConfig config(){return config;}
@@ -88,7 +95,8 @@ public final class EventManager implements Listener,AutoCloseable {
         EventType current=active();
         if(current!=null)throw new IllegalArgumentException("Trwa już event "+current.title()+". Zakończ go najpierw.");
         long now=System.currentTimeMillis(),until=now+seconds*1000L;
-        return storage.update(old->old.started(type,now,until)).thenRun(()->Bukkit.getScheduler()
+        return flushChallenges().thenCompose(v->
+                storage.update(old->old.started(type,now,until))).thenRun(()->Bukkit.getScheduler()
                 .runTask(plugin,()->{
                     render();
                     Bukkit.broadcast(Colors.color("&#FFD166✦ Rozpoczął się event &#70D6E8"+type.title()
@@ -97,7 +105,8 @@ public final class EventManager implements Listener,AutoCloseable {
     }
     public CompletableFuture<Void> stop(){
         if(active()==null)throw new IllegalArgumentException("Nie trwa żaden event.");
-        return storage.update(EventState::ended).thenRun(()->Bukkit.getScheduler().runTask(plugin,()->{
+        return flushChallenges().thenCompose(v->
+                storage.update(EventState::ended)).thenRun(()->Bukkit.getScheduler().runTask(plugin,()->{
             render();Bukkit.broadcast(Colors.color("&#FFD166✦ Event zakończony. &#A8A8B7Dziękujemy za udział!"));
         }));
     }
@@ -208,6 +217,95 @@ public final class EventManager implements Listener,AutoCloseable {
     public void drag(InventoryDragEvent event){
         if(event.getView().getTopInventory().getHolder() instanceof Menu)event.setCancelled(true);
     }
+    /** Punkt za rzeczywiście ukończoną akcję. Zapis zbiorczy co kilka sekund. */
+    private void challengeAction(Player player,EventType type){
+        if(!config.challengesEnabled()||type!=active()||
+                player.getGameMode()!=GameMode.SURVIVAL)return;
+        long session=state().startedAt();
+        if(challengeSession!=session){
+            challengeBuffer.clear();
+            challengeSession=session;
+        }
+        challengeBuffer.merge(player.getUniqueId(),1,(a,b)->Math.min(1000,a+b));
+    }
+    private CompletableFuture<Void> flushChallenges(){
+        if(challengeBuffer.isEmpty())return CompletableFuture.completedFuture(null);
+        Map<UUID,Integer> batch=Map.copyOf(challengeBuffer);
+        challengeBuffer.clear();
+        EventState snapshot=state();
+        EventType type=EventType.parse(snapshot.type());
+        long session=snapshot.startedAt();
+        if(type==null)return CompletableFuture.completedFuture(null);
+        int[] goals=EventChallenges.goals(type);
+        List<Integer> rewards=config.challengeKeyRewards();
+        CompletableFuture<Void> future=storage.update(old->{
+            EventState next=old;
+            for(var entry:batch.entrySet())
+                next=next.challengeActions(entry.getKey(),entry.getValue(),type,session,
+                        goals,rewards);
+            return next;
+        });
+        future.whenComplete((ignored,error)->{
+            if(!plugin.isEnabled())return;
+            Bukkit.getScheduler().runTask(plugin,()->{
+                if(error!=null){
+                    plugin.getLogger().severe("Nie zapisano wyzwań eventowych: "+error);
+                    if(state().startedAt()==session)
+                        batch.forEach((uuid,count)->challengeBuffer.merge(uuid,count,
+                                (a,b)->Math.min(1000,a+b)));
+                }else for(UUID uuid:batch.keySet()){
+                    Player player=Bukkit.getPlayer(uuid);
+                    if(player!=null)deliverChallengeKeys(player);
+                }
+            });
+        });
+        return future;
+    }
+
+    /** Wypłata nagród po zapisie wyzwania; przy pełnym ekwipunku odbiór później. */
+    public void deliverChallengeKeys(Player player){
+        if(crates==null||!player.isOnline())return;
+        UUID uuid=player.getUniqueId();
+        int amount=Math.min(16,state().pendingKeys(uuid));
+        if(amount==0||!pendingDelivery.add(uuid))return;
+        if(player.getInventory().firstEmpty()<0){
+            pendingDelivery.remove(uuid);
+            return;
+        }
+        try{
+            crates.giveKey(player,CrateType.EVENTOWA,amount);
+        }catch(RuntimeException error){
+            pendingDelivery.remove(uuid);
+            plugin.getLogger().severe("Nie wydano kluczy wyzwania: "+error);
+            return;
+        }
+        // Dopiero po wydaniu kluczy próbujemy zamknąć kolejkę.
+        // W przypadku błędu zapisu blokujemy kolejną automatyczną wypłatę
+        // do restartu, żeby nie mnożyć nagród podczas awarii dysku.
+        storage.update(old->old.keysDelivered(uuid,amount)).whenComplete((v,error)->{
+            if(error!=null){
+                plugin.getLogger().severe("Nie potwierdzono odbioru kluczy wyzwań: "+error);
+                return;
+            }
+            if(!plugin.isEnabled())return;
+            Bukkit.getScheduler().runTask(plugin,()->{
+                pendingDelivery.remove(uuid);
+                if(player.isOnline())
+                    Messages.success(player,"&#FFD166✦ Wyzwanie: odebrano &#89E5B0"
+                            +amount+" kluczy eventowych!");
+            });
+        });
+    }
+
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void challengeJoin(PlayerJoinEvent event){
+        UUID uuid=event.getPlayer().getUniqueId();
+        Bukkit.getScheduler().runTaskLater(plugin,()->{
+            Player player=Bukkit.getPlayer(uuid);
+            if(player!=null)deliverChallengeKeys(player);
+        },20L);
+    }
+
     private boolean roll(double chance){return ThreadLocalRandom.current().nextDouble()<chance;}
     private void reward(Player player,EventType type){
         if(type==null||!roll(config.tokenChance()))return;
@@ -259,25 +357,36 @@ public final class EventManager implements Listener,AutoCloseable {
                     material==Material.GRASS_BLOCK ||material==Material.SHORT_GRASS||
                     material==Material.DANDELION ||material==Material.POPPY;
             case ZNIWA -> switch(material){case WHEAT,CARROTS,POTATOES,BEETROOTS,
-                    NETHER_WART->true;default->false;};
+                    NETHER_WART->true;default->false;}
+                    && event.getBlock().getBlockData() instanceof Ageable ripe
+                    && ripe.getAge()==ripe.getMaximumAge();
             case METEORY -> material.name().endsWith("_ORE")||material==Material.ANCIENT_DEBRIS;
             default -> false;
         };
-        if(valid)reward(event.getPlayer(),type);
+        if(valid){
+            if(type!=EventType.METEORY)challengeAction(event.getPlayer(),type);
+            reward(event.getPlayer(),type);
+        }
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void fishing(PlayerFishEvent event){
         EventType type=active();
         if((type==EventType.LATO||type==EventType.WEDKOWANIE)
                 && event.getState()==PlayerFishEvent.State.CAUGHT_FISH)
+        {
+            challengeAction(event.getPlayer(),type);
             reward(event.getPlayer(),type);
+        }
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void mobDeath(EntityDeathEvent event){
         EventType type=active();
         if(type!=EventType.HALLOWEEN||!(event.getEntity() instanceof Enemy))return;
         Player killer=event.getEntity().getKiller();
-        if(killer!=null)reward(killer,type);
+        if(killer!=null){
+            challengeAction(killer,type);
+            reward(killer,type);
+        }
     }
     /** Nie punktuj walki na spawnie ani w regionie z zakazem PvP. */
     private boolean protectedPvP(Location loc){
@@ -301,10 +410,27 @@ public final class EventManager implements Listener,AutoCloseable {
         if(!state().canRewardPvPKill(killer.getUniqueId(),victim.getUniqueId(),now,interval))return;
         // Wpis antyfarmowy aktualizujemy przed losowaniem nagrody.
         // Jeden asynchroniczny StateFile zapisuje też historię par po restarcie.
-        storage.update(old->old.withPvPKill(killer.getUniqueId(),victim.getUniqueId(),now,interval));
-        reward(killer,EventType.ZABOJSTWA);
+        storage.update(old->old.withPvPKill(killer.getUniqueId(),victim.getUniqueId(),now,interval))
+                .whenComplete((ignored,error)->{
+                    if(!plugin.isEnabled())return;
+                    Bukkit.getScheduler().runTask(plugin,()->{
+                        if(error!=null){
+                            plugin.getLogger().severe("Nie zapisano antyfarmu PvP: "+error);
+                            return;
+                        }
+                        if(killer.isOnline() && active()==EventType.ZABOJSTWA){
+                            challengeAction(killer,EventType.ZABOJSTWA);
+                            reward(killer,EventType.ZABOJSTWA);
+                        }
+                    });
+                });
     }
     public void tick(){
+        if(++challengeSeconds%config.challengeFlushSeconds()==0)
+            flushChallenges();
+        if(challengeSeconds%20==0 && !state().pendingKeys().isEmpty())
+            for(Player player:Bukkit.getOnlinePlayers())
+                if(state().pendingKeys(player.getUniqueId())>0)deliverChallengeKeys(player);
         meteors.tick();
         EventType type=active();
         if(type==null){
@@ -350,6 +476,7 @@ public final class EventManager implements Listener,AutoCloseable {
         bar.progress(Math.max(0,Math.min(1,(state().endsAt()-System.currentTimeMillis())/length)));
     }
     @Override public void close(){
+        flushChallenges();
         meteors.close();
         bars.setGlobal(BossBarHub.Slot.EVENT,null,null);
         storage.close();
