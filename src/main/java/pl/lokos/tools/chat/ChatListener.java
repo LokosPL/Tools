@@ -9,11 +9,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.helpers.Messages;
 
 import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Szybka blokada przed rendererem rang; bez zapytań SQL lub plików w AsyncChatEvent. */
 public final class ChatListener implements Listener {
     private final JavaPlugin plugin;
     private final ChatManager chats;
+    private final Map<UUID,Long> lastWarn = new ConcurrentHashMap<>();
     public ChatListener(JavaPlugin plugin,ChatManager chats){this.plugin=plugin;this.chats=chats;}
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -35,11 +38,16 @@ public final class ChatListener implements Listener {
             default -> "";
         };
         if(!plugin.isEnabled())return;
+        long now=System.currentTimeMillis();
+        Long previous=lastWarn.put(uuid,now);
+        if(previous!=null && now-previous<1200L)return;
         plugin.getServer().getScheduler().runTask(plugin,()->{
             if(event.getPlayer().isOnline())Messages.error(event.getPlayer(),message);
         });
     }
     @EventHandler public void quit(PlayerQuitEvent event){
-        chats.leave(event.getPlayer().getUniqueId());
+        UUID id=event.getPlayer().getUniqueId();
+        chats.leave(id);
+        lastWarn.remove(id);
     }
 }

@@ -34,7 +34,7 @@ public final class ChatManager implements AutoCloseable {
     private volatile ChatConfig config;
     private volatile ChatStateFile state;
     private int nextAnnouncement;
-    private long nextAnnouncementAt;
+    private volatile long nextAnnouncementAt;
     private long nextCleanupAt;
 
     public ChatManager(JavaPlugin plugin,RankManager ranks,Path folder) throws IOException {
@@ -119,9 +119,14 @@ public final class ChatManager implements AutoCloseable {
             try{return new JsonConfigManager(folder).load("Chat.json",ChatConfig.class,
                     ChatConfig::new,ChatConfig::validate);}
             catch(IOException e){throw new CompletionException(e);}
-        },writer).thenAccept(fresh->{
-            config=fresh;
-            nextAnnouncementAt=System.currentTimeMillis()+fresh.announcementIntervalSeconds()*1000L;
+        },writer).thenCompose(fresh->{
+            var completion=new CompletableFuture<Void>();
+            plugin.getServer().getScheduler().runTask(plugin,()->{
+                config=fresh;
+                nextAnnouncementAt=System.currentTimeMillis()+fresh.announcementIntervalSeconds()*1000L;
+                completion.complete(null);
+            });
+            return completion;
         });
     }
 

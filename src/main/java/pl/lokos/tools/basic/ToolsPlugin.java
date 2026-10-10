@@ -48,6 +48,9 @@ import pl.lokos.tools.registry.PluginServiceFactory;
 import pl.lokos.tools.diagnostics.MonitoringService;
 import pl.lokos.tools.config.HotReloadService;
 import pl.lokos.tools.tasks.AutosaveTask;
+import pl.lokos.tools.chat.ChatManager;
+import pl.lokos.tools.chat.ChatListener;
+import pl.lokos.tools.listeners.UnknownCommandListener;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -71,6 +74,7 @@ public final class ToolsPlugin extends JavaPlugin {
     private HotReloadService reloadService;
     private RankListener rankListener;
     private WhitelistService whitelistService;
+    private ChatManager chatManager;
     private WhitelistCommand pendingWhitelistCommand;
     private WhitelistMenu pendingWhitelistMenu;
 
@@ -153,8 +157,20 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new RankMenuListener(
                     this,rankManager,rankMenus,configurations.commands().ranga().permission()),this);
         }
+        try {
+            chatManager = services.register(ChatManager.class,
+                    new ChatManager(this,rankManager,getDataFolder().toPath()));
+        } catch(IOException error) {
+            getLogger().severe("Nie można uruchomić modułu czatu: "+error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        getServer().getPluginManager().registerEvents(new ChatListener(this,chatManager),this);
+        getServer().getPluginManager().registerEvents(new UnknownCommandListener(),this);
+        getServer().getScheduler().runTaskTimer(this,
+                monitoring.measured("chat.wiadomosci",chatManager::tick),20L,20L);
         new CommandRegistry(this).register(configurations.commands(), database,
-                repository, playerData, rankManager, rankMenus, monitoring, reloadService);
+                repository, playerData, rankManager, rankMenus, monitoring, reloadService, chatManager);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
@@ -235,6 +251,7 @@ public final class ToolsPlugin extends JavaPlugin {
                     : CompletableFuture.completedFuture(null);
             database.shutdown(pending);
         }
+        if (chatManager != null) chatManager.close();
         if (services != null) services.close();
         getLogger().info("Tools został wyłączony.");
     }
