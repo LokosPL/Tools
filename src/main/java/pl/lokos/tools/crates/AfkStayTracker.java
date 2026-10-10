@@ -37,8 +37,10 @@ public final class AfkStayTracker {
     public static int remainingSeconds(int progressMinutes,long staySeconds,int intervalMinutes){
         if(progressMinutes<0||staySeconds<0||intervalMinutes<1)
             throw new IllegalArgumentException("Niepoprawny licznik AFK.");
-        long left=(long)(intervalMinutes-(progressMinutes%intervalMinutes))*60
-                -(staySeconds%60);
+        // Jeśli administrator skróci interwał w JSON, istniejący postęp
+        // nie może wyświetlać dłuższego czasu niż realnie pozostały.
+        int effective=Math.min(progressMinutes,intervalMinutes-1);
+        long left=(long)(intervalMinutes-effective)*60-(staySeconds%60);
         return (int)Math.max(1,left);
     }
 
