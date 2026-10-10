@@ -80,6 +80,10 @@ public final class ToolsPermissionCatalog {
                 "Otwiera /eventy i listę wszystkich ośmiu wydarzeń.","Tylko przeglądanie informacji.");
         add(list,commands.event().permission(),"Zarządzanie eventami",
                 "Uruchamianie i kończenie wydarzeń.","Jednocześnie może trwać jeden event.");
+        add(list,commands.skrzynie().permission(),"Podgląd skrzyń",
+                "Panel /skrzynie, lista dropów i liczba kluczy.","Nie umożliwia zdalnego otwierania skrzyń.");
+        add(list,commands.klucze().permission(),"Stan kluczy",
+                "Komenda /klucze, zestawienie typów i postęp AFK.","Dla graczy.");
         add(list,commands.skrzynia().permission(),"Zarządzanie skrzyniami",
                 "GUI skrzyń, ustawianie i wydawanie kluczy.","Postawienie tylko na głównym spawnie.");
         add(list,commands.granica().permission(),"Granica świata",

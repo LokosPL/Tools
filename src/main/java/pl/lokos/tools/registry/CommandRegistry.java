@@ -101,10 +101,22 @@ public final class CommandRegistry {
                 plugin.registerCommand(type.id(),"Informacje: "+type.title(),java.util.List.of(),
                         new EventCommand(plugin,events,ranks,type,"tools.event.info"));
         }
-        if(crates!=null&&config.skrzynia().enabled()){
-            declare(config.skrzynia().permission(),PermissionDefault.OP);
-            plugin.registerCommand("skrzynia",config.skrzynia().description(),config.skrzynia().aliases(),
-                    new CrateCommand(crates,ranks,config.skrzynia().permission()));
+        if(crates!=null){
+            if(config.skrzynie().enabled()){
+                declare(config.skrzynie().permission(),PermissionDefault.TRUE);
+                plugin.registerCommand("skrzynie",config.skrzynie().description(),config.skrzynie().aliases(),
+                        new CrateBrowseCommand(crates,ranks,config.skrzynie().permission(),false));
+            }
+            if(config.klucze().enabled()){
+                declare(config.klucze().permission(),PermissionDefault.TRUE);
+                plugin.registerCommand("klucze",config.klucze().description(),config.klucze().aliases(),
+                        new CrateBrowseCommand(crates,ranks,config.klucze().permission(),true));
+            }
+            if(config.skrzynia().enabled()){
+                declare(config.skrzynia().permission(),PermissionDefault.OP);
+                plugin.registerCommand("skrzynia",config.skrzynia().description(),config.skrzynia().aliases(),
+                        new CrateCommand(crates,ranks,config.skrzynia().permission()));
+            }
         }
         if(border!=null&&config.granica().enabled()){
             declare(config.granica().permission(),PermissionDefault.OP);

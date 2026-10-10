@@ -33,6 +33,7 @@ public final class ToolsAccess {
 
     public static boolean publicNode(String node) {
         return "tools.event.info".equals(node) || "tools.eventy.use".equals(node)
+                || "tools.skrzynie.use".equals(node) || "tools.klucze.use".equals(node)
                 || "tools.spawn".equals(node)
                 || "tools.lokalizacje".equals(node)
                 || "tools.lokalizacje.instant".equals(node);
