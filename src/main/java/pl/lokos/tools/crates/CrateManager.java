@@ -200,9 +200,20 @@ public final class CrateManager implements Listener,AutoCloseable {
         }
         CratesState.Position position=new CratesState.Position(block.getWorld().getUID().toString(),
                 block.getX(),block.getY(),block.getZ(),type.id());
-        storage.update(old->old.with(position));
-        Bukkit.getScheduler().runTaskLater(plugin,()->hologram(position),2L);
-        Messages.success(event.getPlayer(),"Ustawiono skrzynię "+type.title()+".");
+        Player actor=event.getPlayer();
+        storage.update(old->old.with(position)).whenComplete((ignored,error)->{
+            if(!plugin.isEnabled())return;
+            Bukkit.getScheduler().runTask(plugin,()->{
+                if(error!=null){
+                    plugin.getLogger().severe("Nie zapisano postawionej skrzyni: "+error);
+                    if(block.getType()==Material.valueOf(type.block()))block.setType(Material.AIR,false);
+                    Messages.error(actor,"Nie zapisano skrzyni, operację cofnięto.");
+                }else{
+                    hologram(position);
+                    if(actor.isOnline())Messages.success(actor,"Ustawiono skrzynię "+type.title()+".");
+                }
+            });
+        });
     }
     private boolean inSpawn(Block block){
         if(regions==null||!regions.ready())return false;
@@ -222,6 +233,21 @@ public final class CrateManager implements Listener,AutoCloseable {
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
     public void explode(BlockExplodeEvent event){
         event.blockList().removeIf(block->storage.get().get(at(block))!=null);
+    }
+    /** Hoppery ani inne automaty nie mogą użyć dekoracyjnych skrzyń jako magazynów. */
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void hopper(InventoryMoveItemEvent event){
+        if(managed(event.getSource())||managed(event.getDestination()))
+            event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void inventoryOpen(InventoryOpenEvent event){
+        if(managed(event.getInventory()))event.setCancelled(true);
+    }
+    private boolean managed(Inventory inventory){
+        Location at=inventory==null?null:inventory.getLocation();
+        return at!=null&&storage.get().get(
+                at.getWorld().getUID()+":"+at.getBlockX()+":"+at.getBlockY()+":"+at.getBlockZ())!=null;
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
     public void piston(BlockPistonExtendEvent event){
