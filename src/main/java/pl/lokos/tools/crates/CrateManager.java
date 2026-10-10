@@ -178,7 +178,9 @@ public final class CrateManager implements Listener,AutoCloseable {
             ItemStack item=icon(type,true);
             ItemMeta meta=item.getItemMeta();
             var lore=new ArrayList<>(meta.lore());
-            lore.add(Colors.color("&#70D6E8» Kliknij, aby odebrać skrzynię."));
+            lore.add(Colors.color("&#70D6E8» LPM: odbierz skrzynię do postawienia."));
+            lore.add(Colors.color("&#FFD166» PPM: 1 klucz dla siebie."));
+            lore.add(Colors.color("&#FFD166» Shift+PPM: 16 kluczy."));
             meta.lore(lore);item.setItemMeta(meta);
             inv.setItem(slots[i++],item);
         }
@@ -415,8 +417,16 @@ public final class CrateManager implements Listener,AutoCloseable {
             if(!admin(player)){Messages.unknown(player);return;}
             int[] slots={10,11,13,15,16};
             for(int i=0;i<slots.length;i++)if(slots[i]==event.getRawSlot()){
-                try{givePlacement(player,CrateType.values()[i]);
-                    Messages.success(player,"Otrzymano skrzynię do postawienia na spawnie.");
+                try{
+                    CrateType selected=CrateType.values()[i];
+                    if(event.isRightClick()){
+                        int amount=event.isShiftClick()?16:1;
+                        giveKey(player,selected,amount);
+                        Messages.success(player,"Otrzymano "+amount+" kluczy: "+selected.title()+".");
+                    }else{
+                        givePlacement(player,selected);
+                        Messages.success(player,"Otrzymano skrzynię do postawienia na spawnie.");
+                    }
                 }catch(IllegalArgumentException error){Messages.error(player,error.getMessage());}
                 return;
             }
