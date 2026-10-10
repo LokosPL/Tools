@@ -349,13 +349,8 @@ public final class EventManager implements Listener,AutoCloseable {
         if(type==null)return CompletableFuture.completedFuture(null);
         int[] goals=EventChallenges.goals(type);
         List<Integer> rewards=config.challengeKeyRewards();
-        CompletableFuture<Void> future=storage.update(old->{
-            EventState next=old;
-            for(var entry:batch.entrySet())
-                next=next.challengeActions(entry.getKey(),entry.getValue(),type,session,
-                        goals,rewards);
-            return next;
-        });
+        CompletableFuture<Void> future=storage.update(old->
+                old.challengeBatch(batch,type,session,goals,rewards));
         future.whenComplete((ignored,error)->{
             if(!plugin.isEnabled())return;
             Bukkit.getScheduler().runTask(plugin,()->{
