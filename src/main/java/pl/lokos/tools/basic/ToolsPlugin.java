@@ -263,6 +263,7 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        if(regionManager!=null)regionManager.setBoundaryValidator(border::permits);
         getServer().getPluginManager().registerEvents(events,this);
         getServer().getPluginManager().registerEvents(crates,this);
         getServer().getPluginManager().registerEvents(border,this);

@@ -82,7 +82,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
     private boolean canUse(Player player,String permission){
         // MSG jest publiczne domyślnie, a odrębne uprawnienia Tools chronią administrację.
         if("tools.msg.use".equals(permission))return player.hasPermission(permission);
-        if("tools.helpop.use".equals(permission))return true;
+        if("tools.helpop.use".equals(permission)||"tools.event.info".equals(permission))return true;
         if("tools.antycheat.admin".equals(permission))
             return ToolsAccess.allowed(player,ranks,permission,true)
                     || ToolsAccess.allowed(player,ranks,"tools.antycheat.alerts",false);

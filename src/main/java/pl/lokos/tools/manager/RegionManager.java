@@ -25,6 +25,7 @@ public final class RegionManager {
     private volatile String mainSpawn;
     private volatile String regionAdminPermission;
     private volatile boolean loaded;
+    private volatile java.util.function.Predicate<Region> boundaryValidator=region->true;
     private boolean closing;
     private CompletableFuture<Void> queue=CompletableFuture.completedFuture(null);
     private CompletableFuture<Void> firstLoad;
@@ -73,6 +74,9 @@ public final class RegionManager {
         if (node == null || node.isBlank())
             throw new IllegalArgumentException("Brak uprawnienia zarządzania regionami.");
         regionAdminPermission=node;
+    }
+    public void setBoundaryValidator(java.util.function.Predicate<Region> validator){
+        boundaryValidator=Objects.requireNonNull(validator);
     }
     public boolean ready(){return loaded;}
     public RegionIndex index(){return index;}
@@ -149,6 +153,8 @@ public final class RegionManager {
     }
     public CompletableFuture<Void> create(Region r) {
         return change(file->{
+            if(!boundaryValidator.test(r))
+                throw new IllegalArgumentException("Nowy region musi mieścić się w granicy świata.");
             new RegionIndex(file.regions()).validateNew(r);
             Region spawn=file.mainSpawn()==null?null:new RegionIndex(file.regions()).byName(file.mainSpawn());
             int radius=file.settings().spawnProtectionOutside();

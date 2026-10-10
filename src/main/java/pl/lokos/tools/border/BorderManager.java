@@ -31,7 +31,7 @@ public final class BorderManager implements Listener,AutoCloseable {
     private final StateFile<BorderState> storage;
     private final Map<UUID,Long> lastActive=new HashMap<>();
     private BossBar bar;
-    private boolean initialized;
+    private volatile boolean initialized;
     public BorderManager(JavaPlugin plugin,RegionManager regions,BossBarHub bars,Path folder) throws IOException{
         this.plugin=plugin;this.regions=regions;this.bars=bars;
         config=new JsonConfigManager(folder).load("WorldBorder.json",BorderConfig.class,
@@ -42,6 +42,16 @@ public final class BorderManager implements Listener,AutoCloseable {
     public BorderConfig config(){return config;}
     public BorderState state(){return storage.get();}
     public boolean ready(){return initialized;}
+    /** Czysta walidacja XZ dla nowych działek — bez API Bukkit w wątku IO. */
+    public static boolean containsRegion(BorderState border,Region region){
+        if(border.world()==null||!border.world().equals(region.world().toString()))return true;
+        double half=border.diameter()/2d;
+        return region.minX()>=border.centerX()-half+2 && region.maxX()<=border.centerX()+half-2
+                && region.minZ()>=border.centerZ()-half+2 && region.maxZ()<=border.centerZ()+half-2;
+    }
+    public boolean permits(Region region){
+        return !config.enabled()||!ready()||containsRegion(state(),region);
+    }
     private World world(){
         BorderState state=state();
         if(state.world()!=null)try{
