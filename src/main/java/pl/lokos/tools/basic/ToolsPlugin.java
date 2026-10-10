@@ -57,6 +57,9 @@ import pl.lokos.tools.staff.StaffManager;
 import pl.lokos.tools.commands.InventoryAudit;
 import pl.lokos.tools.items.SpecialItemService;
 import pl.lokos.tools.config.VisualsConfig;
+import pl.lokos.tools.anticheat.AntiCheatManager;
+import pl.lokos.tools.combat.CombatManager;
+import pl.lokos.tools.items.SpecialItemMenu;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -85,6 +88,9 @@ public final class ToolsPlugin extends JavaPlugin {
     private StaffManager staffManager;
     private InventoryAudit inventoryAudit;
     private SpecialItemService specialItems;
+    private SpecialItemMenu specialItemMenu;
+    private AntiCheatManager antiCheat;
+    private CombatManager combat;
     private WhitelistCommand pendingWhitelistCommand;
     private WhitelistMenu pendingWhitelistMenu;
 
@@ -215,9 +221,29 @@ public final class ToolsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(specialItems,this);
         getServer().getScheduler().runTaskTimer(this,
                 monitoring.measured("items.efekty",specialItems::tick),20L,20L);
+        specialItemMenu=new SpecialItemMenu(specialItems,rankManager,
+                configurations.commands().przedmiot().permission());
+        getServer().getPluginManager().registerEvents(specialItemMenu,this);
+        try{
+            antiCheat=services.register(AntiCheatManager.class,
+                    new AntiCheatManager(this,rankManager,getDataFolder().toPath()));
+            combat=services.register(CombatManager.class,
+                    new CombatManager(this,regionManager,staffManager,getDataFolder().toPath()));
+        }catch(IOException error){
+            getLogger().severe("Nie można włączyć zabezpieczeń: "+error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        getServer().getPluginManager().registerEvents(antiCheat,this);
+        getServer().getPluginManager().registerEvents(combat,this);
+        getServer().getScheduler().runTaskTimer(this,
+                monitoring.measured("combat.bossbar",combat::tick),20L,20L);
+        getServer().getScheduler().runTaskTimer(this,
+                monitoring.measured("antycheat.czyszczenie",antiCheat::cleanup),1200L,1200L);
         new CommandRegistry(this).register(configurations.commands(), database,
                 repository, playerData, rankManager, rankMenus, monitoring, reloadService,
-                chatManager,privateMessages,staffManager,inventoryAudit,specialItems);
+                chatManager,privateMessages,staffManager,inventoryAudit,
+                specialItems,specialItemMenu,antiCheat);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
@@ -301,6 +327,8 @@ public final class ToolsPlugin extends JavaPlugin {
         if (chatManager != null) chatManager.close();
         if (privateMessages != null) privateMessages.close();
         if (staffManager != null) staffManager.close();
+        if (combat != null) combat.shutdown();
+        if (antiCheat != null) antiCheat.close();
         if (services != null) services.close();
         getLogger().info("Tools został wyłączony.");
     }
