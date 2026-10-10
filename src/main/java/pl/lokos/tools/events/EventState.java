@@ -62,32 +62,46 @@ public record EventState(String type,long startedAt,long endsAt,
      */
     public EventState challengeActions(UUID player,int amount,EventType expectedType,
                                        long expectedStart,int[] goals,List<Integer> rewards){
-        if(amount<=0||!Objects.equals(type,expectedType.id())||startedAt!=expectedStart)
+        return challengeBatch(Map.of(player,amount),expectedType,expectedStart,goals,rewards);
+    }
+
+    /** Jedno skopiowanie stanu na całą partię akcji zamiast jednego na gracza. */
+    public EventState challengeBatch(Map<UUID,Integer> batch,EventType expectedType,
+                                     long expectedStart,int[] goals,List<Integer> rewards){
+        if(batch.isEmpty()||expectedType==null||
+                !Objects.equals(type,expectedType.id())||startedAt!=expectedStart)
             return this;
         if(goals.length!=3||rewards.size()!=3)
             throw new IllegalArgumentException("Potrzebne są trzy progi wyzwań.");
-        String id=player.toString();
-        int before=challengePoints.getOrDefault(id,0);
-        int after=(int)Math.min(MAX_POINTS,(long)before+amount);
-        if(after==before)return this;
-        int mask=challengeAwarded.getOrDefault(id,0),earned=0;
-        for(int i=0;i<3;i++){
-            if(after>=goals[i] && (mask&(1<<i))==0){
-                mask|=1<<i;
-                earned+=rewards.get(i);
+        Map<String,Integer> counts=new HashMap<>(challengePoints);
+        Map<String,Integer> claimed=new HashMap<>(challengeAwarded);
+        Map<String,Integer> pending=new HashMap<>(pendingKeys);
+        boolean changed=false;
+        for(var entry:batch.entrySet()){
+            int amount=entry.getValue();
+            if(amount<=0)continue;
+            String id=entry.getKey().toString();
+            int before=counts.getOrDefault(id,0);
+            int after=(int)Math.min(MAX_POINTS,(long)before+amount);
+            if(after==before)continue;
+            counts.put(id,after);
+            changed=true;
+            int mask=claimed.getOrDefault(id,0),earned=0;
+            for(int i=0;i<3;i++){
+                if(after>=goals[i] && (mask&(1<<i))==0){
+                    mask|=1<<i;
+                    earned+=rewards.get(i);
+                }
+            }
+            if(mask!=0)claimed.put(id,mask);
+            if(earned>0){
+                int existing=pending.getOrDefault(id,0);
+                if(existing>MAX_PENDING-earned)
+                    throw new IllegalArgumentException("Zbyt wiele oczekujących kluczy.");
+                pending.put(id,existing+earned);
             }
         }
-        Map<String,Integer> counts=new HashMap<>(challengePoints);
-        counts.put(id,after);
-        Map<String,Integer> claimed=new HashMap<>(challengeAwarded);
-        if(mask!=0)claimed.put(id,mask);
-        Map<String,Integer> pending=new HashMap<>(pendingKeys);
-        if(earned>0){
-            int existing=pending.getOrDefault(id,0);
-            if(existing>MAX_PENDING-earned)
-                throw new IllegalArgumentException("Zbyt wiele oczekujących kluczy.");
-            pending.put(id,existing+earned);
-        }
+        if(!changed)return this;
         return new EventState(type,startedAt,endsAt,progress,pvpCooldowns,
                 counts,claimed,pending);
     }
