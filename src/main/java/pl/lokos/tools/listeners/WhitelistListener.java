@@ -108,9 +108,16 @@ public final class WhitelistListener implements Listener {
                 Messages.error(sender,"Brak uprawnienia tools.admin.");return;
             }
             Messages.info(sender,"Sprawdzanie konfiguracji Tools w tle...");
+            for(Player online:Bukkit.getOnlinePlayers())
+                online.sendActionBar(Colors.color(
+                        whitelist.state().reloadMessage().replace("\n"," &8• ")));
             reload.reload().thenCompose(message->whitelist.reload().thenApply(ignored->message))
                     .whenComplete((message,error)->later(()->{
-                        if(error==null)Messages.success(sender,"Przeładowano ustawienia Tools. "+message);
+                        if(error==null){
+                            Messages.success(sender,"Przeładowano ustawienia Tools. "+message);
+                            for(Player online:Bukkit.getOnlinePlayers())
+                                online.sendActionBar(Colors.color("&aKonfiguracja Tools została przeładowana."));
+                        }
                         else {
                             Throwable rootError=error;
                             while(rootError instanceof CompletionException && rootError.getCause()!=null)
