@@ -1,3 +1,36 @@
+# Tools 1.9.2 — prywatne wiadomości i ustawienia czatu (aktualne)
+
+## Czat — ustawienia z gry i JSON
+
+- `/chat slow <liczba> <sekundy>` — np. `/chat slow 2 3` ogranicza gracza do 2 wiadomości w oknie 3 s.
+- `/chat ogloszenia interwal <sekundy>` — np. `/chat ogloszenia interwal 60` wysyła kolejne ogłoszenia co minutę (minimum 20 s, maksimum 86400 s).
+- `/chat ogloszenia lista` — lista treści i interwału. `/chat ogloszenia wlacz` lub `wylacz` ustawia ich stan.
+- Konfiguracja jest w `plugins/Tools/Chat.json`. Modyfikacje tych parametrów z komendy są atomowe i zachowują nieznane pola w pliku, w tym ręcznie dodane komentarze jako pola JSON (JSON nie wspiera komentarzy tekstowych).
+- `/chat przeladuj` pozwala ponownie wczytać ręcznie edytowany `Chat.json` bez restartu.
+- Stan czatu i wyciszenia nadal są zachowywane w `ChatState.json`, bez zmian w SQL.
+
+## MSG — prywatne wiadomości
+
+- `/msg <nick> <tekst>`, `/tell`, `/w` — wiadomość prywatna.
+- `/reply`, `/r`, `/replay` — odpowiedź ostatniemu dostępnemu rozmówcy.
+- `/msg wylacz` — wyłącza własną możliwość pisania i odbierania wiadomości; `/msg wlacz` ponownie włącza.
+- `/msg wycisz <nick>` — ignoruje przychodzące wiadomości od wskazanego gracza online.
+  `/msg odcisz <nick>` odblokowuje również po jego wyjściu, a `/msg wyciszeni` pokazuje listę.
+- `tools.msg.staff` — jedyne uprawnienie pozwalające wysyłać MSG do chronionej administracji; bez tej permisji zwykli gracze są odrzucani.
+- `tools.msg.protected` — dodatkowo chroni skrzynkę wiadomości wybranej rangi. Rangi administracyjne Tools są chronione także automatycznie.
+- `tools.msg.bypass.cooldown` — omija ograniczenie szybkości wysyłania prywatnych wiadomości, ale **nie** omija ignorowania, wyłączenia ani wyciszenia na czacie.
+- `tools.msg.use` — publiczne uprawnienie rejestracji komend MSG (Paper `PermissionDefault.TRUE`), natomiast specjalne uprawnienia MSG są zarządzane przez rangi Tools.
+- `plugins/Tools/PrivateMessages.json` — odstęp między wiadomościami w ms, limit znaków, ochrona administracji i format wiadomości; administrator czatu może wczytać zmiany poprzez `/msg przeladuj`.
+- `plugins/Tools/PrivateMessagesState.json` — wyłączenia oraz ignorowani gracze, zapisywane według UUID, bez kasowania po restarcie.
+- Nie można pisać do siebie; tekst wiadomości jest zwykłym tekstem (nie interpretuje `&` ani MiniMessage), aby uniemożliwić fałszowanie kolorów systemowych.
+- Globalne wyciszenie na czacie blokuje również wysyłanie MSG, z wyjątkiem posiadaczy jawnego `tools.chat.bypass.mute`.
+
+**Ważne:** `/msg wycisz` to prywatne ignorowanie użytkownika, a `/chat wycisz` jest wyciszeniem nadawania na poziomie serwera. Pamiętaj o pełnym restarcie po wymianie JAR i wykonaniu kopii istniejących JSON-ów.
+
+**Testy:** `mvn clean verify` w GitHub Actions (Java 25, MariaDB, SQLite, JUnit). Działanie interfejsu komend i rzeczywistej wysyłki należy jeszcze potwierdzić z dwoma klientami na działającym serwerze Paper.
+
+---
+
 # Tools 1.9.2 — korekta uprawnień teleportacji i ochrony
 
 ## Co zostało poprawione

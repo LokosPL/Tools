@@ -38,10 +38,12 @@ public final class CommandRegistry {
             declare("tools.msg.bypass.cooldown",PermissionDefault.FALSE);
             var adminNodes=new ToolsPermissionCatalog(config).administrativeNodes();
             plugin.registerCommand("msg",config.msg().description(),config.msg().aliases(),
-                    new PrivateMessageCommand(plugin,privateMessages,chats,ranks,adminNodes,false));
+                    new PrivateMessageCommand(plugin,privateMessages,chats,ranks,adminNodes,false,
+                            config.chat().permission()));
             if(config.reply().enabled())
                 plugin.registerCommand("reply",config.reply().description(),config.reply().aliases(),
-                        new PrivateMessageCommand(plugin,privateMessages,chats,ranks,adminNodes,true));
+                        new PrivateMessageCommand(plugin,privateMessages,chats,ranks,adminNodes,true,
+                                config.chat().permission()));
         }
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);

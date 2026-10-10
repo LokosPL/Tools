@@ -26,12 +26,15 @@ public final class PrivateMessageCommand implements BasicCommand {
     private final RankManager ranks;
     private final Set<String> administrativeNodes;
     private final boolean replyMode;
+    private final String chatAdminPermission;
 
     public PrivateMessageCommand(JavaPlugin plugin,PrivateMessageManager messages,
                                  ChatManager chat,RankManager ranks,
-                                 Set<String> administrativeNodes,boolean replyMode){
+                                 Set<String> administrativeNodes,boolean replyMode,
+                                 String chatAdminPermission){
         this.plugin=plugin;this.messages=messages;this.chat=chat;this.ranks=ranks;
         this.administrativeNodes=Set.copyOf(administrativeNodes);this.replyMode=replyMode;
+        this.chatAdminPermission=chatAdminPermission;
     }
     @Override public String permission(){return "tools.msg.use";}
 
@@ -98,7 +101,7 @@ public final class PrivateMessageCommand implements BasicCommand {
                 if(ignored.size()>30)Messages.info(player,"Więcej ignorowanych: "+(ignored.size()-30)+".");
             }
             case "przeladuj","przeładuj" -> {
-                if(!ToolsAccess.admin(player,ranks,"tools.chat.admin")){
+                if(!ToolsAccess.admin(player,ranks,chatAdminPermission)){
                     Messages.unknown(player);return;
                 }
                 save(player,messages.reloadConfig(),"Wczytano PrivateMessages.json.");
@@ -119,6 +122,10 @@ public final class PrivateMessageCommand implements BasicCommand {
         }
         long now=System.currentTimeMillis();
         RankSnapshot snapshot=ranks==null?RankSnapshot.empty():ranks.snapshot();
+        // Fail closed: nie odsłaniamy skrzynki moderatora przed wczytaniem rang z SQL.
+        if(ranks!=null && snapshot.ranks().isEmpty()){
+            Messages.error(sender,"Trwa wczytywanie uprawnień. Spróbuj ponownie.");return;
+        }
         boolean senderOp=sender.isOp();
         boolean recipientProtected=PrivateMessagePolicy.isStaff(
                 snapshot,target.getUniqueId(),target.isOp(),administrativeNodes);
