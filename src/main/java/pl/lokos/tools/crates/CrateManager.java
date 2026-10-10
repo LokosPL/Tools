@@ -229,6 +229,10 @@ public final class CrateManager implements Listener,AutoCloseable {
         if(crate==null)return;
         if(event.getAction()!=Action.RIGHT_CLICK_BLOCK)return;
         event.setCancelled(true);
+        if(!config.enabled()){
+            Messages.error(event.getPlayer(),"Skrzynie są tymczasowo wyłączone.");
+            return;
+        }
         Player player=event.getPlayer();
         CrateType type=crate.kind();
         // Otwieramy w następnym ticku, po wszystkich regionowych listenerach;
@@ -303,7 +307,12 @@ public final class CrateManager implements Listener,AutoCloseable {
                 if(error!=null){
                     plugin.getLogger().severe("Nie zapisano postawionej skrzyni: "+error);
                     if(block.getType()==Material.valueOf(type.block()))block.setType(Material.AIR,false);
-                    Messages.error(actor,"Nie zapisano skrzyni, operację cofnięto.");
+                    ItemStack refund=icon(type,true);
+                    if(actor.isOnline()){
+                        for(ItemStack overflow:actor.getInventory().addItem(refund).values())
+                            actor.getWorld().dropItemNaturally(actor.getLocation(),overflow);
+                    }else block.getWorld().dropItemNaturally(block.getLocation(),refund);
+                    Messages.error(actor,"Nie zapisano skrzyni: blok cofnięto i zwrócono przedmiot.");
                 }else{
                     hologram(position);
                     if(actor.isOnline())Messages.success(actor,"Ustawiono skrzynię "+type.title()+".");
@@ -361,10 +370,21 @@ public final class CrateManager implements Listener,AutoCloseable {
         if(!admin(admin))throw new IllegalArgumentException("Brak uprawnień.");
         CratesState.Position position=storage.get().get(at(block));
         if(position==null)throw new IllegalArgumentException("Wskazany blok nie jest skrzynią Tools.");
-        storage.update(old->old.without(position.key()));
-        TextDisplay tag=displays.remove(position.key());if(tag!=null)tag.remove();
-        lastLabel.remove(position.key());
-        block.setType(Material.AIR,false);
+        storage.update(old->old.without(position.key())).whenComplete((ignored,error)->{
+            if(!plugin.isEnabled())return;
+            Bukkit.getScheduler().runTask(plugin,()->{
+                if(error!=null){
+                    plugin.getLogger().severe("Nie usunięto skrzyni: "+error);
+                    if(admin.isOnline())Messages.error(admin,"Nie zapisano usunięcia skrzyni.");
+                    return;
+                }
+                TextDisplay tag=displays.remove(position.key());if(tag!=null)tag.remove();
+                lastLabel.remove(position.key());
+                if(block.getType()==Material.valueOf(position.kind().block()))
+                    block.setType(Material.AIR,false);
+                if(admin.isOnline())Messages.success(admin,"Usunięto skrzynię.");
+            });
+        });
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void menu(InventoryClickEvent event){
@@ -429,6 +449,10 @@ public final class CrateManager implements Listener,AutoCloseable {
         return -1;
     }
     private void openReward(Player player,CrateType type,CratesState.Position position){
+        if(!config.enabled()){
+            Messages.error(player,"Skrzynie są wyłączone w Crates.json.");
+            return;
+        }
         // GUI może pozostać otwarte po wyjściu gracza ze spawnu lub usunięciu skrzyni.
         if(!CrateOpeningPolicy.near(position,player.getWorld().getUID(),
                 player.getLocation().getX(),player.getLocation().getY(),
@@ -515,7 +539,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void killed(EntityDeathEvent event){
-        if(!(event.getEntity() instanceof Enemy))return;
+        if(!config.enabled()||!(event.getEntity() instanceof Enemy))return;
         Player player=event.getEntity().getKiller();
         if(player==null)return;
         double roll=ThreadLocalRandom.current().nextDouble();
@@ -576,6 +600,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
 
     public void tick(){
+        if(!config.enabled())return;
         ticks++;
         if(ticks%60==0){
             Map<String,Integer> count=new HashMap<>(storage.get().afkMinutes());
