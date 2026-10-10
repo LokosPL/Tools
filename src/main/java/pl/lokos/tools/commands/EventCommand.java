@@ -60,8 +60,7 @@ public final class EventCommand implements BasicCommand {
                 EventType type=EventType.parse(args[1]);
                 if(type==null)throw new IllegalArgumentException("Nieznany event. Wpisz /event lista.");
                 int seconds=StaffParsers.duration(args[2],service.config().maxDurationMinutes()*60);
-                int minutes=(seconds+59)/60;
-                complete(sender,service.start(type,minutes),"Uruchomiono event: "+type.title()+".");
+                complete(sender,service.start(type,seconds),"Uruchomiono event: "+type.title()+".");
                 return;
             }
             if(args.length==1&&(action.equals("zakoncz")||action.equals("zakończ"))){

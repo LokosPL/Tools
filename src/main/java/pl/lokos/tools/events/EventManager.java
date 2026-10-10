@@ -64,13 +64,13 @@ public final class EventManager implements Listener,AutoCloseable {
     public EventConfig config(){return config;}
     public EventState state(){return storage.get();}
     public EventType active(){return storage.get().active(System.currentTimeMillis());}
-    public CompletableFuture<Void> start(EventType type,int minutes){
+    public CompletableFuture<Void> start(EventType type,int seconds){
         if(!config.enabled())throw new IllegalArgumentException("Eventy są wyłączone w Events.json.");
-        if(type==null||minutes<1||minutes>config.maxDurationMinutes())
+        if(type==null||seconds<1||seconds>config.maxDurationMinutes()*60)
             throw new IllegalArgumentException("Niepoprawny typ lub czas eventu.");
         EventType current=active();
         if(current!=null)throw new IllegalArgumentException("Trwa już event "+current.title()+". Zakończ go najpierw.");
-        long now=System.currentTimeMillis(),until=now+minutes*60000L;
+        long now=System.currentTimeMillis(),until=now+seconds*1000L;
         return storage.update(old->old.started(type,now,until)).thenRun(()->Bukkit.getScheduler()
                 .runTask(plugin,()->{
                     render();
@@ -147,6 +147,16 @@ public final class EventManager implements Listener,AutoCloseable {
         ItemStack earned=token(type);
         Map<Integer,ItemStack> overflow=player.getInventory().addItem(earned);
         for(ItemStack item:overflow.values())player.getWorld().dropItemNaturally(player.getLocation(),item);
+        player.playSound(player.getLocation(),org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING,0.4f,1.4f);
+        org.bukkit.Particle particle=switch(type){
+            case ZIMA -> Particle.SNOWFLAKE;
+            case HALLOWEEN -> Particle.SOUL_FIRE_FLAME;
+            case WIELKANOC, ZNIWA -> Particle.HAPPY_VILLAGER;
+            case LATO, WEDKOWANIE -> Particle.SPLASH;
+            case ZABOJSTWA -> Particle.CRIT;
+            case METEORY -> Particle.END_ROD;
+        };
+        player.spawnParticle(particle,player.getLocation().add(0,1,0),8,0.5,0.4,0.5,0.01);
         int next=state().progress(player.getUniqueId())+1;
         if(next>=config.tokensForKey()){
             next=0;
@@ -155,6 +165,8 @@ public final class EventManager implements Listener,AutoCloseable {
         }else if(roll(config.eventKeyChance())&&crates!=null)
             crates.giveKey(player,CrateType.EVENTOWA,1);
         final int progress=next;
+        if(progress>0)Messages.info(player,"&#70D6E8✦ Pamiątka eventowa &#A8A8B7» "+
+                progress+"/"+config.tokensForKey());
         storage.update(old->old.progress(player.getUniqueId(),progress));
     }
     private static String position(Block block){

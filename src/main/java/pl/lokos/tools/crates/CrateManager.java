@@ -152,10 +152,14 @@ public final class CrateManager implements Listener,AutoCloseable {
         ItemMeta rm=reward.getItemMeta();
         rm.displayName(Colors.color("&#70D6E8✦ Dostępne nagrody"));
         List<Component> lore=new ArrayList<>();
-        for(String value:config.pool(type).keySet()){
+        int total=config.pool(type).values().stream().mapToInt(Integer::intValue).sum();
+        for(var entry:config.pool(type).entrySet()){
+            String value=entry.getKey();
             String label=value.equals("@event")?events.active()==null?"Aktualny przedmiot eventowy":
                     events.active().itemId():value.replace("minecraft:","");
-            lore.add(Colors.color("&#A8A8B7» "+label));
+            double percent=100d*entry.getValue()/Math.max(1,total);
+            lore.add(Colors.color("&#A8A8B7» "+label+" &#FFD166"+
+                    String.format(Locale.ROOT,"%.1f",percent)+"%"));
         }
         rm.lore(lore);reward.setItemMeta(rm);
         inv.setItem(15,reward);
