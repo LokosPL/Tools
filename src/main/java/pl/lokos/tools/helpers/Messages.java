@@ -30,19 +30,19 @@ public final class Messages {
     }
 
     public static void success(CommandSender to,String value) {
-        to.sendMessage(Colors.color(format("&#81E5B3✔ &8» &7"+value)));
+        to.sendMessage(Colors.color(format("&#70D6E8✔ &8» &7"+value)));
         notifySound(to,true);
     }
     public static void unknown(CommandSender to) {
-        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7Nieznana komenda.")));
+        to.sendMessage(Colors.color(format("&#FF727F✘ &8» &7Nieznana komenda.")));
         notifySound(to,false);
     }
     public static void error(CommandSender to,String value) {
-        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7"+value)));
+        to.sendMessage(Colors.color(format("&#FF727F✘ &8» &7"+value)));
         notifySound(to,false);
     }
     public static void info(CommandSender to,String value) {
-        to.sendMessage(Colors.color(format("&#71D7ED» &7"+value)));
+        to.sendMessage(Colors.color(format("&#70D6E8» &7"+value)));
     }
     public static void line(CommandSender to,String value) {
         to.sendMessage(Colors.color(format(value)));
@@ -51,10 +51,10 @@ public final class Messages {
         to.sendMessage(Colors.color(format("&#FFD166&l» "+value+" &8«")));
     }
     public static void usage(CommandSender to,String syntax) {
-        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7Składnia: &#FFD166"+syntax)));
+        to.sendMessage(Colors.color(format("&#FF727F✘ &8» &7Składnia: &#FFD166"+syntax)));
         notifySound(to,false);
     }
     public static void hint(CommandSender to,String value) {
-        to.sendMessage(Colors.color(format("&#71D7ED➜ &7"+value)));
+        to.sendMessage(Colors.color(format("&#70D6E8➜ &7"+value)));
     }
 }

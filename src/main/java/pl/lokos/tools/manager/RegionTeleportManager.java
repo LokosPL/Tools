@@ -44,9 +44,8 @@ public final class RegionTeleportManager {
         if(target==null) {Messages.error(player,"Świat tej lokalizacji nie jest dostępny.");return;}
         cancel(player,false);
         // Teleportacja natychmiastowa wymaga faktycznej permisji.
-        if(pl.lokos.tools.security.ToolsAccess.allowed(
-                player, ranks, "tools.lokalizacje.instant", false)) {
-            teleportNow(player,name,target);
+        if (instantAllowed(ranks.snapshot(), player.getUniqueId(), player.isOp())) {
+            teleportNow(player,name);
             return;
         }
         Location origin=player.getLocation().clone();
@@ -69,7 +68,7 @@ public final class RegionTeleportManager {
                     finish();
                     notice(player,"&#86E6BCTeleportacja &8» &7Trwa przenoszenie…");
                     // Paper teleportAsync wczytuje chunk bez blokowania tickow.
-                    teleportNow(player,name,target);
+                    teleportNow(player,name);
                     return;
                 }
                 notice(player,"&#86E6BCTeleportacja: &7"+name+" &8• &#FFD166"+remaining+" s");
@@ -83,8 +82,24 @@ public final class RegionTeleportManager {
         pending.put(player.getUniqueId(),new Pending(task,origin));
     }
 
-    private void teleportNow(Player player,String name,Location target){
-        player.teleportAsync(target).whenComplete((done,error)->{
+    /** Ta sama polityka uprawnień dla /spawn i menu lokalizacji. */
+    public static boolean instantAllowed(RankSnapshot snapshot, UUID uuid, boolean operator) {
+        return pl.lokos.tools.security.ToolsAccess.allowed(
+                operator, snapshot, uuid, "tools.lokalizacje.instant", false);
+    }
+
+    private void teleportNow(Player player,String name){
+        Region current = regions.index().byName(name);
+        if (current == null || !regions.canEnter(player,current)) {
+            Messages.error(player,"Lokalizacja jest już niedostępna.");
+            return;
+        }
+        Location updatedTarget = regions.spawnOf(current);
+        if (updatedTarget == null) {
+            Messages.error(player,"Punkt teleportacji tej lokalizacji jest niedostępny.");
+            return;
+        }
+        player.teleportAsync(updatedTarget).whenComplete((done,error)->{
             if(!plugin.isEnabled())return;
             Bukkit.getScheduler().runTask(plugin,()->{
                 if(!player.isOnline())return;

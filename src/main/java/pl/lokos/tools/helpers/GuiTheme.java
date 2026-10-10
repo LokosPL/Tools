@@ -14,7 +14,7 @@ import java.util.*;
 public final class GuiTheme {
     public static final String GOLD="&#FFD166";
     public static final String CYAN="&#70D6E8";
-    public static final String MINT="&#86E6BC";
+    public static final String MINT=CYAN; // zachowujemy alias dla istniejących GUI
     public static final String RED="&#FF727F";
     public static final String GRAY="&#A8A8B7";
     public static final String DIM="&#737388";

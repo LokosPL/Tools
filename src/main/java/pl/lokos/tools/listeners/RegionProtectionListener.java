@@ -105,7 +105,8 @@ public final class RegionProtectionListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void emptyBucket(PlayerBucketEmptyEvent e) {
-        if(denies(e.getPlayer(),e.getBlock().getLocation(),RegionFlag.FLUIDS)) {
+        if(denies(e.getPlayer(),e.getBlock().getLocation(),RegionFlag.FLUIDS)
+                || denies(e.getPlayer(),e.getBlock().getRelative(e.getBlockFace()).getLocation(),RegionFlag.FLUIDS)) {
             e.setCancelled(true);blocked(e.getPlayer());
         }
     }
@@ -263,11 +264,15 @@ public final class RegionProtectionListener implements Listener {
         RegionFlag flag=e.getRightClicked() instanceof org.bukkit.entity.ItemFrame
                 ? RegionFlag.ITEM_FRAMES : e.getRightClicked() instanceof org.bukkit.entity.Vehicle
                 ? RegionFlag.VEHICLES : RegionFlag.INTERACT;
-        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),flag))e.setCancelled(true);
+        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),flag)) {
+            e.setCancelled(true);blocked(e.getPlayer());
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void manipulate(PlayerArmorStandManipulateEvent e) {
-        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),RegionFlag.ARMOR_STANDS))e.setCancelled(true);
+        if(denies(e.getPlayer(),e.getRightClicked().getLocation(),RegionFlag.ARMOR_STANDS)) {
+            e.setCancelled(true);blocked(e.getPlayer());
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void inventories(InventoryMoveItemEvent e) {
@@ -279,13 +284,17 @@ public final class RegionProtectionListener implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void crafting(CraftItemEvent event){
         if(event.getWhoClicked() instanceof Player player &&
-                denies(player,player.getLocation(),RegionFlag.CRAFTING))event.setCancelled(true);
+                denies(player,player.getLocation(),RegionFlag.CRAFTING)) {
+            event.setCancelled(true);blocked(player);
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void vehicleDestroy(org.bukkit.event.vehicle.VehicleDestroyEvent event){
         Player p=event.getAttacker() instanceof Player player?player:null;
-        if(denies(p,event.getVehicle().getLocation(),RegionFlag.VEHICLES))
+        if(denies(p,event.getVehicle().getLocation(),RegionFlag.VEHICLES)) {
             event.setCancelled(true);
+            if(p!=null)blocked(p);
+        }
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -300,9 +309,12 @@ public final class RegionProtectionListener implements Listener {
             if (player != null) {
                 if (victim instanceof Player) {
                     if (denies(player,victim.getLocation(),RegionFlag.PVP)
-                            || denies(player,player.getLocation(),RegionFlag.PVP))e.setCancelled(true);
-                } else if (denies(player,victim.getLocation(),RegionFlag.DAMAGE))
-                    e.setCancelled(true);
+                            || denies(player,player.getLocation(),RegionFlag.PVP)) {
+                        e.setCancelled(true);blocked(player);
+                    }
+                } else if (denies(player,victim.getLocation(),RegionFlag.DAMAGE)) {
+                    e.setCancelled(true);blocked(player);
+                }
                 return;
             }
         }
@@ -323,25 +335,30 @@ public final class RegionProtectionListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void drop(PlayerDropItemEvent event){
-        if(denies(event.getPlayer(),event.getPlayer().getLocation(),RegionFlag.ITEMS_DROP))
-            event.setCancelled(true);
+        if(denies(event.getPlayer(),event.getPlayer().getLocation(),RegionFlag.ITEMS_DROP)) {
+            event.setCancelled(true);blocked(event.getPlayer());
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void pickup(EntityPickupItemEvent event){
-        if(event.getEntity() instanceof Player p && denies(p,p.getLocation(),RegionFlag.ITEMS_PICKUP))
-            event.setCancelled(true);
+        if(event.getEntity() instanceof Player p && denies(p,p.getLocation(),RegionFlag.ITEMS_PICKUP)) {
+            event.setCancelled(true);blocked(p);
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void portal(PlayerPortalEvent event){
         if(denies(event.getPlayer(),event.getFrom(),RegionFlag.PORTALS)
-                || (event.getTo()!=null && denies(event.getPlayer(),event.getTo(),RegionFlag.PORTALS)))
-            event.setCancelled(true);
+                || (event.getTo()!=null && denies(event.getPlayer(),event.getTo(),RegionFlag.PORTALS))) {
+            event.setCancelled(true);blocked(event.getPlayer());
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void launch(ProjectileLaunchEvent event){
         if(!(event.getEntity().getShooter() instanceof Player player))return;
         if(event.getEntity() instanceof org.bukkit.entity.EnderPearl
-                && denies(player,player.getLocation(),RegionFlag.ENDER_PEARLS))event.setCancelled(true);
+                && denies(player,player.getLocation(),RegionFlag.ENDER_PEARLS)) {
+            event.setCancelled(true);blocked(player);
+        }
     }
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)

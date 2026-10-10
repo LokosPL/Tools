@@ -92,8 +92,9 @@ public final class RegionCommand implements BasicCommand {
         display.title(sender,"DIAGNOSTYKA OCHRONY");
         display.info(sender,"Wczytane: "+(state.ready()?"&aTak":"&cNie")
                 +" &8• &7Regionów: &a"+state.regions());
-        display.info(sender,"Aktualny obszar: &f"+(state.region()==null?"poza regionem":state.region()));
-        if(state.region()!=null){
+        display.info(sender,"Aktualny obszar: &f"+(state.region()!=null?state.region():
+                state.halo()?"zewnętrzna ochrona spawnu":"poza regionem"));
+        if(state.region()!=null || state.halo()){
             display.info(sender,"Budowanie: "+(state.buildingAllowed()?"&aDozwolone":"&cZablokowane"));
             display.info(sender,"Niszczenie: "+(state.breakingAllowed()?"&aDozwolone":"&cZablokowane"));
         }

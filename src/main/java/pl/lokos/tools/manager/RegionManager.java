@@ -217,14 +217,18 @@ public final class RegionManager {
             return modified(file,all,name);
         });
     }
-    public record ProtectionStatus(boolean ready, int regions, String region,
+    public record ProtectionStatus(boolean ready, int regions, String region, boolean halo,
                                    boolean buildingAllowed, boolean breakingAllowed) {}
 
     public ProtectionStatus protectionStatus(Player p) {
-        Region r=at(p.getLocation());
-        return new ProtectionStatus(ready(),index.all().size(),r==null?null:r.name(),
-                r!=null && index.enabled(r,RegionFlag.BUILD),
-                r!=null && index.enabled(r,RegionFlag.BREAK));
+        Location location = p.getLocation();
+        Region region = at(location);
+        boolean halo = region == null && inHalo(location);
+        // Stan dotyczy realnych praw tego gracza, włącznie z uprawnieniem administratora.
+        return new ProtectionStatus(ready(), index.all().size(),
+                region == null ? null : region.name(), halo,
+                !protectedLocation(p, location, RegionFlag.BUILD),
+                !protectedLocation(p, location, RegionFlag.BREAK));
     }
 
     public boolean allowed(Player player,Region region,RegionFlag flag) {

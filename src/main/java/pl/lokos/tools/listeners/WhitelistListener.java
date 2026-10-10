@@ -53,7 +53,12 @@ public final class WhitelistListener implements Listener {
         if(!(event.getWhoClicked() instanceof Player player)
                 || !holder.viewer().equals(player.getUniqueId())
                 || event.getClickedInventory()!=event.getView().getTopInventory()
-                || !ToolsAccess.admin(player,((ToolsPlugin)plugin).ranks(),"tools.whitelist.admin"))return;
+                )return;
+        if(!ToolsAccess.admin(player,((ToolsPlugin)plugin).ranks(),"tools.whitelist.admin")) {
+            display.unknown(player);
+            later(player::closeInventory);
+            return;
+        }
         String action=holder.action(event.getRawSlot());
         if(action==null)return;
         if(action.startsWith("page:")){

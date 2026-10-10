@@ -2,6 +2,7 @@ package pl.lokos.tools.security;
 
 import org.junit.jupiter.api.Test;
 import pl.lokos.tools.manager.RankSnapshot;
+import pl.lokos.tools.manager.RegionTeleportManager;
 
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,6 +17,15 @@ class TeleportPermissionTest {
                 "vip", new RankSnapshot.Rank("vip","&aVIP","",4,""));
         return new RankSnapshot(roles,Map.of("gracz",Set.of(),"vip",permissions),
                 Map.of(ID,new RankSnapshot.Grant("vip",expiresAt)),Map.of());
+    }
+
+    @Test void managerUsesOnlyActualInstantPermission() {
+        assertFalse(RegionTeleportManager.instantAllowed(ranked(Set.of("tools.spawn"),null), ID,false));
+        assertFalse(RegionTeleportManager.instantAllowed(ranked(Set.of("tools.lokalizacje"),null),ID,false));
+        assertTrue(RegionTeleportManager.instantAllowed(ranked(Set.of(INSTANT),null),ID,false));
+        assertTrue(RegionTeleportManager.instantAllowed(ranked(Set.of("*"),null),ID,false));
+        assertFalse(RegionTeleportManager.instantAllowed(
+                ranked(Set.of(INSTANT),System.currentTimeMillis()-1000), ID,false));
     }
 
     @Test void anyAssignedRankDoesNotGrantInstantTeleport() {
