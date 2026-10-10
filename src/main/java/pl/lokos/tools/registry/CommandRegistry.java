@@ -90,6 +90,11 @@ public final class CommandRegistry {
         if(events!=null&&config.event().enabled()){
             declare(config.event().permission(),PermissionDefault.OP);
             declare("tools.event.info",PermissionDefault.TRUE);
+            if(config.eventy().enabled()){
+                declare(config.eventy().permission(),PermissionDefault.TRUE);
+                plugin.registerCommand("eventy",config.eventy().description(),config.eventy().aliases(),
+                        new EventHubCommand(events,ranks,config.eventy().permission()));
+            }
             plugin.registerCommand("event",config.event().description(),config.event().aliases(),
                     new EventCommand(plugin,events,ranks,null,config.event().permission()));
             for(EventType type:EventType.values())

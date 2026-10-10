@@ -76,6 +76,8 @@ public final class ToolsPermissionCatalog {
         add(list,"tools.speed.others","Prędkość innych","Zmiana szybkości innego gracza","Wymaga tools.speed.");
         add(list,"tools.event.info","Szczegóły eventów",
                 "Dostęp do /zima i innych informatorów wydarzeń.","Publiczna komenda.");
+        add(list,commands.eventy().permission(),"Panel eventów",
+                "Otwiera /eventy i listę wszystkich ośmiu wydarzeń.","Tylko przeglądanie informacji.");
         add(list,commands.event().permission(),"Zarządzanie eventami",
                 "Uruchamianie i kończenie wydarzeń.","Jednocześnie może trwać jeden event.");
         add(list,commands.skrzynia().permission(),"Zarządzanie skrzyniami",
