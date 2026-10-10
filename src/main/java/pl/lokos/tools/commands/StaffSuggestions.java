@@ -20,16 +20,14 @@ public final class StaffSuggestions {
             case TP -> {
                 if(args.length==1){
                     options.addAll(players);
-                    if(permitted.test("tools.tp.all")&&playerSender)options.add("*");
+                    if(permitted.test("tools.tp.all"))options.add("*");
                     if(playerSender)options.addAll(List.of("~","0","100","-100"));
-                }else if(args.length==2){
-                    if(root.equals("*") && permitted.test("tools.tp.all") ||
-                            players.stream().anyMatch(v->v.equalsIgnoreCase(root)) &&
-                            permitted.test("tools.tp.others"))
-                        options.addAll(List.of("~","0","100","-100"));
-                    else if(playerSender)options.addAll(List.of("~","64","100","0"));
                 }else if(args.length<=4){
-                    if(!root.equals("*")||permitted.test("tools.tp.all"))
+                    boolean wildcard=root.equals("*");
+                    boolean other=players.stream().anyMatch(v->v.equalsIgnoreCase(root));
+                    boolean maySuggest=wildcard?permitted.test("tools.tp.all")
+                            :other?permitted.test("tools.tp.others"):playerSender;
+                    if(maySuggest)
                         options.addAll(List.of("~",args.length==3?"64":"0","100","-100"));
                 }
             }

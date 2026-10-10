@@ -37,6 +37,16 @@ class StaffSuggestionsTest {
                 List.of("Steve"),permissions("tools.gamemode.others"),true).stream()
                 .filter(s->s.length()==1).toList());
     }
+    @Test void deniedGroupOrOtherTeleportHasNoArgumentHints(){
+        assertTrue(StaffSuggestions.forCommand(StaffCommand.Kind.TP,
+                new String[]{"*",""},List.of("Steve"),permissions(),true).isEmpty());
+        assertTrue(StaffSuggestions.forCommand(StaffCommand.Kind.TP,
+                new String[]{"Steve",""},List.of("Steve"),permissions(),true).isEmpty());
+        assertFalse(StaffSuggestions.forCommand(StaffCommand.Kind.TP,
+                new String[]{"*",""},List.of("Steve"),
+                permissions("tools.tp.all"),true).isEmpty());
+    }
+
     @Test void onlyPassedVisiblePlayerNamesAreExposed(){
         var options=StaffSuggestions.forCommand(StaffCommand.Kind.TP,new String[]{""},
                 List.of("Steve"),permissions(),true);
