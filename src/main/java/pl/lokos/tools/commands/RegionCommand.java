@@ -203,10 +203,11 @@ public final class RegionCommand implements BasicCommand {
         Player p=requirePlayer(sender);
         ItemStack stick=new ItemStack(Material.BLAZE_ROD);
         ItemMeta meta=stick.getItemMeta();
-        meta.displayName(Colors.color("&a&lRÓŻDŻKA REGIONÓW"));
-        meta.lore(List.of(Colors.color("&7Lewy przycisk: &aPierwszy punkt"),
-                Colors.color("&7Prawy przycisk: &aDrugi punkt"),
-                Colors.color("&8Następnie: /region podregion <rodzic> <nazwa>")));
+        meta.displayName(Colors.color("&#FFD166&l✦ Różdżka regionów"));
+        meta.lore(List.of(Colors.color("&#A8A8B7Zaznacz dwa narożniki podregionu."),
+                Colors.color("&#70D6E8» Lewy klik: pierwszy punkt"),
+                Colors.color("&#70D6E8» Prawy klik: drugi punkt"),
+                Colors.color("&#A8A8B7Potem użyj /region podregion.")));
         meta.getPersistentDataContainer().set(wandKey,PersistentDataType.BYTE,(byte)1);
         stick.setItemMeta(meta);
         p.getInventory().addItem(stick).values().forEach(overflow->p.getWorld().dropItemNaturally(p.getLocation(),overflow));

@@ -70,16 +70,16 @@ public final class RegionMenuFactory {
                 .filter(r->r.parent()==null && r.spawn()!=null && regions.canEnter(player,r))
                 .sorted(Comparator.comparing(Region::name)).toList();
         int current=Math.max(0,Math.min(page,Math.max(0,(roots.size()-1)/27)));
-        Inventory inventory=open(player,View.LOCATIONS,null,current,"&#7BCFFF&lLOKALIZACJE &8• &7"+(current+1));
+        Inventory inventory=open(player,View.LOCATIONS,null,current,"&#70D6E8&lLOKALIZACJE &8• &7"+(current+1));
         for(int i=current*27;i<Math.min((current+1)*27,roots.size());i++){
             Region root=roots.get(i);
             long children=regions.index().all().values().stream()
                     .filter(r->root.name().equals(r.parent()) && r.spawn()!=null && regions.canEnter(player,r))
                     .count();
             inventory.setItem(9+i-current*27,item(
-                    Material.COMPASS,"&#86D9FF&l"+root.name(),"browse:"+root.name(),
+                    Material.COMPASS,"&#70D6E8&l"+root.name(),"browse:"+root.name(),
                     "&7Wybierz miejsce podróży.",
-                    "&8Podlokalizacji: &f"+children,
+                    "&7Dostępne podlokalizacje: &f"+children,
                     "&aKliknij, aby otworzyć"));
         }
         navigation(inventory,current,Math.max(0,(roots.size()-1)/27),"Główne lokalizacje: "+roots.size());
@@ -95,14 +95,14 @@ public final class RegionMenuFactory {
                 .sorted(Comparator.comparing(Region::name)).toList();
         int current=Math.max(0,Math.min(page,Math.max(0,(children.size()-1)/27)));
         Inventory inventory=open(player,View.LOCATION_CHILDREN,root.name(),current,
-                "&#7BCFFF&l"+root.name()+" &8• &7"+(current+1));
+                "&#70D6E8&l"+root.name()+" &8• &7"+(current+1));
         inventory.setItem(10,item(Material.ENDER_PEARL,
-                "&#7FE3B0&lGłówna lokalizacja","tp:"+root.name(),
+                "&#FFD166&lGłówna lokalizacja","tp:"+root.name(),
                 "&7Teleportuj do "+root.name(), "&aKliknij, aby rozpocząć"));
         for(int i=current*27;i<Math.min((current+1)*27,children.size());i++) {
             Region child=children.get(i);
             inventory.setItem(18+i-current*27,item(Material.GRASS_BLOCK,
-                    "&#90CFFF"+child.name(),"tp:"+child.name(),
+                    "&#70D6E8"+child.name(),"tp:"+child.name(),
                     "&7Podlokalizacja: &f"+root.name(),
                     "&aKliknij, aby się teleportować"));
         }
@@ -138,9 +138,10 @@ public final class RegionMenuFactory {
                 "&8 ",
                 "&aKliknij, aby wyświetlić"));
         inventory.setItem(32,item(Material.BOOK,"&a&lINFORMACJE","noop",
-                "&7Świat: &a"+region.world(),
-                "&7Rozmiar: &a"+(region.maxX()-region.minX()+1)+" × "+(region.maxZ()-region.minZ()+1),
-                "&7Rodzic: &a"+(region.parent()==null?"brak":region.parent())));
+                "&7Region: &f"+region.name(),
+                "&7Rodzaj: &f"+(region.parent()==null?"Główny":"Podregion"),
+                "&7Zarządzaj ochroną i dostępem",
+                "&7przez przyciski powyżej."));
         inventory.setItem(49,item(Material.BARRIER,"&cZamknij","close"));
     }
     private static List<Integer> slots(){

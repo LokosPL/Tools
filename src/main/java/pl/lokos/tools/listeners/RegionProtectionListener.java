@@ -300,8 +300,8 @@ public final class RegionProtectionListener implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void damage(EntityDamageEvent e) {
         Entity victim=e.getEntity();
-        Region target=regions.at(victim.getLocation());
-        if(target==null && !regions.inHalo(victim.getLocation()))return;
+        // Sprawdzamy również pozycję atakującego. Atak z regionu chronionego
+        // w gracza tuż poza granicą nie może obchodzić flagi PvP.
         if(e instanceof EntityDamageByEntityEvent attack) {
             Entity attacker=attack.getDamager();
             Player player=attacker instanceof Player p ? p
