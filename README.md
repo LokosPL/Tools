@@ -1,3 +1,73 @@
+# Tools 1.10.0-SNAPSHOT — komendy administracyjne
+
+Nowe komendy są rejestrowane w Java przez Paper API, **nie** w `plugin.yml`.
+Domyślne konfiguracje: `plugins/Tools/Commands.json`,
+`plugins/Tools/StaffTools.json`, `plugins/Tools/StaffState.json` i osobne
+`plugins/Tools/commands/{tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed}.json`.
+Istniejące pliki JSON i stan graczy są zachowywane — loader dopisuje tylko
+brakujące pola.
+
+## Teleportacja administracyjna
+
+- `/tp <nick>`: teleportuje wykonującego do gracza.
+- `/tp <x> <y> <z>`: własne współrzędne; obsługiwane też `~` i `~10`.
+- `/tp <nick> <x> <y> <z>`: teleportuje gracza na koordynaty.
+- `/tp *`: teleportuje wszystkich do wykonującego.
+- `/tp * <x> <y> <z>`: teleportuje wszystkich w świat wykonującego i na współrzędne.
+- Z konsoli podaj konkretnego gracza z koordynatami; przed rozpoczęciem
+  teleportacji grupowej walidowane są wszystkie cele.
+- Permisje: `tools.tp`, dodatkowo `tools.tp.others`, `tools.tp.all`.
+
+## Vanish i nadzór
+
+- `/vanish [wlacz|wylacz]`, `/vanish <nick> [wlacz|wylacz]`.
+- Stan jest trwały dla UUID w `StaffState.json`; po ponownym wejściu
+  zachowana jest niewidzialność dla zwykłych graczy i brak wpisu w TAB.
+- Ukrytych graczy widzą osoby z `tools.vanish.use` albo `tools.vanish.see`,
+  także ich złoto-czerwoną etykietę `✦ VANISH` nad nazwą postaci.
+- Moby nie mogą ich targetować standardowym zdarzeniem Paper; nie podnoszą itemów.
+  Wiadomości publiczne na vanish są kierowane wyłącznie do widzących vanish.
+- `tools.vanish.monitor` otrzymuje powiadomienia na chacie o włączeniu i wyłączeniu.
+  `tools.vanish.others` pozwala zmieniać vanish innych.
+
+## Helpop, gamemode i fly
+
+- `/helpop <tekst>`: osobista wiadomość do administracji z
+  `tools.helpop.receive`; limit 30 s (zmieniany w StaffTools.json).
+  `tools.helpop.bypass.cooldown` omija limit.
+- `/gamemode <1|2|3|4>` oraz `/gm <nick> <tryb>`:
+  w Tools liczby oznaczają **1 survival, 2 creative, 3 adventure, 4 spectator**.
+  Nazwy angielskie także są obsługiwane.
+  Permisje: `tools.gamemode`, `tools.gamemode.others`.
+- `/fly [wlacz|wylacz]` i `/fly <nick> [wlacz|wylacz]`.
+  Monitorowanie przełączania: `tools.fly.monitor`.
+  Zmiana innych: `tools.fly.others`.
+
+## Bossbar, inwentarz i speed
+
+- `/broadcast 30s <tekst>`, `/broadcast 5m <tekst>`,
+  `/broadcast 2h <tekst>`, `/broadcast 1d <tekst>` itd.
+  `/broadcast wylacz` kończy ogłoszenie przed czasem.
+  Komunikat jest widoczny na bossbarze i trwa do zapisanego końca,
+  także po ponownym uruchomieniu serwera. Jednocześnie aktywny jest jeden
+  komunikat (kolejny zastępuje poprzedni).
+- `/inventoryopen eq <nick>` lub `/inventoryopen enderchest <nick>`:
+  dostęp do **gracza online**. Kolejne kliknięcia ponownie sprawdzają
+  permisje, także po zmianie rangi.
+  Permisje: `tools.inventoryopen`, `tools.inventoryopen.enderchest`.
+- `/speed <1-10>`, `/speed <walk|fly> <1-10> [nick]`,
+  `/speed <nick> <1-10>`; osobne `tools.speed.others`.
+- Wszystkie uprawnienia specjalne nadawane są przez wbudowany system rang Tools
+  (bez LuckPerms). OP zachowuje bezpośredni dostęp.
+
+**Testy i ograniczenia:** Maven/JUnit w GitHub Actions obejmuje parsery,
+stan JSON, bezpieczeństwo wiadomości i autoryzację komend. Pełna weryfikacja
+na dwóch klientach Minecraft oraz zachowania wszystkich mobów, GUI i TAB
+wymaga uruchomienia rzeczywistego serwera Paper 26.3. Zalecana jest kopia
+danych i pełny restart po aktualizacji.
+
+---
+
 # Tools — poprawa idempotencji poleceń (aktualna)
 
 W komendach modyfikujących konfigurację rozróżniamy **zmianę**, **brak zmiany** i **błąd**.
