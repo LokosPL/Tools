@@ -103,7 +103,7 @@ public final class CommandsFile {
         Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply",
                 "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot",
                 "antycheat","event","eventy","skrzynia","skrzynie","klucze","granica","zima","halloween","wielkanoc",
-                "lato","zabojstwa","meteory","zniwa","wedkowanie"));
+                "lato","zabojstwa","meteory","zniwa","wedkowanie","lowy"));
         for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply,
                 tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed,przedmiot,antycheat,event,eventy,skrzynia,skrzynie,klucze,granica))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))

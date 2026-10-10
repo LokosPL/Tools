@@ -39,7 +39,19 @@ public final class EventCommand implements BasicCommand {
         if(!canUse(sender)){Messages.unknown(sender);return;}
         try{
             if(information!=null){
-                if(args.length>0){Messages.error(sender,"Użycie: /"+information.id());return;}
+                if(information==EventType.METEORY && args.length==1){
+                    if(args[0].equalsIgnoreCase("gdzie")){
+                        service.meteors().sendHints(sender);return;
+                    }
+                    if(args[0].equalsIgnoreCase("namierz")){
+                        if(sender instanceof Player player)service.meteors().track(player);
+                        else Messages.error(sender,"Namierzanie wymaga gracza.");
+                        return;
+                    }
+                }
+                if(args.length>0){Messages.error(sender,
+                        "Użycie: /"+information.id()
+                        +(information==EventType.METEORY?" [gdzie|namierz]":""));return;}
                 if(!(sender instanceof Player player)){
                     Messages.info(sender,information.title()+": "+information.description());return;
                 }
@@ -95,7 +107,15 @@ public final class EventCommand implements BasicCommand {
         });
     }
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args){
-        if(!canUse(source.getSender())||information!=null||args.length==0)return List.of();
+        if(!canUse(source.getSender())||args.length==0)return List.of();
+        if(information!=null){
+            if(information==EventType.METEORY && args.length==1){
+                String typed=args[0].toLowerCase(Locale.ROOT);
+                return List.of("gdzie","namierz").stream()
+                        .filter(value->value.startsWith(typed)).toList();
+            }
+            return List.of();
+        }
         List<String> result=new ArrayList<>();
         if(args.length==1)result.addAll(List.of("gui","status","lista","wlacz","zakoncz"));
         else if(args.length==2&&args[0].equalsIgnoreCase("wlacz"))result.addAll(EventType.names());
