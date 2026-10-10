@@ -200,9 +200,13 @@ public final class ToolsPlugin extends JavaPlugin {
     public void onDisable() {
         // Użytkownicy dostają estetyczny powód przy planowym wyłączeniu.
         if (whitelistService != null) {
-            for (var player : Bukkit.getOnlinePlayers()) {
-                try { player.kick(Colors.color(whitelistService.state().shutdownMessage())); }
-                catch (RuntimeException ignored) { }
+            // Komunikat wyłączenia wyłącznie przy rzeczywistym STOP serwera.
+            // Wyłączenie samego pluginu nie może wyrzucać wszystkich graczy.
+            if (Bukkit.isStopping()) {
+                for (var player : Bukkit.getOnlinePlayers()) {
+                    try { player.kick(Colors.color(whitelistService.state().shutdownMessage())); }
+                    catch (RuntimeException ignored) { }
+                }
             }
             whitelistService.close();
         }
