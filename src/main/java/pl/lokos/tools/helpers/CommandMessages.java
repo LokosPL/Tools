@@ -13,6 +13,7 @@ public final class CommandMessages {
     private String translate(String raw) { return CommandTextRegistry.rewrite(command,raw); }
     public void info(CommandSender sender,String text) { Messages.info(sender,translate(text)); }
     public void success(CommandSender sender,String text) { Messages.success(sender,translate(text)); }
+    public void unchanged(CommandSender sender,String text) { Messages.unchanged(sender,translate(text)); }
     public void error(CommandSender sender,String text) { Messages.error(sender,translate(text)); }
     public void line(CommandSender sender,String text) { Messages.line(sender,translate(text)); }
     public void title(CommandSender sender,String text) { Messages.title(sender,translate(text)); }

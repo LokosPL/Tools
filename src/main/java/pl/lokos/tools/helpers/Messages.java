@@ -14,6 +14,7 @@ public final class Messages {
     private Messages() {}
     private static volatile String prefix="";
     private static final Map<Player,Long> lastSound=new WeakHashMap<>();
+    private static final Map<CommandSender,java.util.Map.Entry<String,Long>> lastUnchanged=new WeakHashMap<>();
     public static void configure(String value){prefix=value==null?"":value;}
     private static String format(String text){return prefix+text;}
 
@@ -43,6 +44,14 @@ public final class Messages {
     public static void error(CommandSender to,String value) {
         to.sendMessage(Colors.color(format("&#FF727F✘ &8» &7"+value)));
         notifySound(to,false);
+    }
+    /** Stan niezmieniony: jeden neutralny komunikat, bez dźwięku sukcesu i bez ponownego zapisu. */
+    public static void unchanged(CommandSender to,String value) {
+        long now=System.currentTimeMillis();
+        var last=lastUnchanged.get(to);
+        if(last!=null && last.getKey().equals(value) && now-last.getValue()<1200L)return;
+        lastUnchanged.put(to, new java.util.AbstractMap.SimpleImmutableEntry<>(value,now));
+        to.sendMessage(Colors.color(format("&#FFD166» &7"+value)));
     }
     public static void info(CommandSender to,String value) {
         to.sendMessage(Colors.color(format("&#70D6E8» &7"+value)));
