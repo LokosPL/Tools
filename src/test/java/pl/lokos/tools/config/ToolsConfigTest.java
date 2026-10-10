@@ -22,6 +22,8 @@ class ToolsConfigTest {
         assertTrue(config.commands().tools().enabled());
         assertEquals("tools.admin", config.commands().tools().permission());
         assertEquals(List.of(), config.commands().tools().aliases());
+        assertEquals("&#FF727F✘ Obszar chroniony",config.regions().actionBar().protectedMessage());
+        assertTrue(config.regions().actionBar().teleportCountdown().contains("{seconds}"));
     }
 
     @Test
@@ -56,6 +58,14 @@ class ToolsConfigTest {
                 {"commands":{"tools":{"permission":"bad permission"}}}
                 """, ToolsConfig.class);
         assertThrows(IllegalArgumentException.class, config::validate);
+    }
+
+    @Test
+    void validatesActionBarTemplates() {
+        ToolsConfig invalid=gson.fromJson("""
+                {"regions":{"actionBar":{"locationTemplate":"Missing region"}}}
+                """,ToolsConfig.class);
+        assertThrows(IllegalArgumentException.class,invalid::validate);
     }
 
     @Test

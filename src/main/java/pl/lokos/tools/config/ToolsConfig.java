@@ -174,6 +174,9 @@ public final class ToolsConfig {
         private String locationTemplate = "&#FFD166✦ &#A8A8B7Lokalizacja: &#70D6E8{region} &#FFD166✦";
         private String separator = " &#A8A8B7│ ";
         private String protectedMessage = "&#FF727F✘ Obszar chroniony";
+        private String teleportCountdown = "&#70D6E8✦ Teleportacja: &#A8A8B7{region} &#FFD166{seconds} s";
+        private String teleportStarting = "&#70D6E8✔ Trwa przenoszenie…";
+        private String teleportCancelled = "&#FF727F✘ Teleportacja przerwana";
 
         public boolean enabled() { return enabled; }
         public int refreshTicks() { return refreshTicks; }
@@ -181,6 +184,9 @@ public final class ToolsConfig {
         public String locationTemplate() { return locationTemplate; }
         public String separator() { return separator; }
         public String protectedMessage() { return protectedMessage; }
+        public String teleportCountdown() { return teleportCountdown; }
+        public String teleportStarting() { return teleportStarting; }
+        public String teleportCancelled() { return teleportCancelled; }
 
         public void validate() {
             if (refreshTicks < 2 || refreshTicks > 100)
@@ -193,6 +199,11 @@ public final class ToolsConfig {
             if (separator == null || separator.length() > 100
                     || protectedMessage == null || protectedMessage.length() > 200)
                 throw new IllegalArgumentException("Nieprawidłowe teksty regions.actionBar.");
+            if (teleportCountdown == null || teleportCountdown.length() > 250
+                    || !teleportCountdown.contains("{region}") || !teleportCountdown.contains("{seconds}")
+                    || teleportStarting == null || teleportStarting.length() > 200
+                    || teleportCancelled == null || teleportCancelled.length() > 200)
+                throw new IllegalArgumentException("Nieprawidłowe teksty teleportacji w regions.actionBar.");
         }
     }
 

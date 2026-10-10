@@ -66,12 +66,13 @@ public final class RegionTeleportManager {
                 }
                 if(remaining==0) {
                     finish();
-                    notice(player,"&#86E6BCTeleportacja &8» &7Trwa przenoszenie…");
+                    notice(player,settings.actionBar().teleportStarting());
                     // Paper teleportAsync wczytuje chunk bez blokowania tickow.
                     teleportNow(player,name);
                     return;
                 }
-                notice(player,"&#86E6BCTeleportacja: &7"+name+" &8• &#FFD166"+remaining+" s");
+                notice(player,settings.actionBar().teleportCountdown()
+                        .replace("{region}",name).replace("{seconds}",Integer.toString(remaining)));
                 player.playSound(player.getLocation(),Sound.BLOCK_NOTE_BLOCK_HAT,0.4f,1.2f);
                 player.getWorld().spawnParticle(Particle.END_ROD,player.getLocation().add(0,0.15,0),8,0.4,0.12,0.4,0.025);
                 remaining--;
@@ -120,7 +121,7 @@ public final class RegionTeleportManager {
         if(previous!=null) {
             previous.task().cancel();
             if(notify && player.isOnline())
-                notice(player,"&#FF737F✘ &7Teleportacja przerwana");
+                notice(player,settings.actionBar().teleportCancelled());
         }
     }
 
