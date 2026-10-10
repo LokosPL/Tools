@@ -21,6 +21,9 @@ public final class SpawnCommand implements BasicCommand {
         if(!(stack.getSender() instanceof Player player)) {
             display.error(stack.getSender(),"Ta komenda jest dostępna tylko w grze.");return;
         }
+        if(!pl.lokos.tools.security.ToolsAccess.allowed(player,regions.ranks(),permission(),false)) {
+            display.unknown(player);return;
+        }
         if(args.length!=0) {display.usage(player,"/spawn");return;}
         if(!regions.ready()) {CommandTextRegistry.error(player,"spawn","notReady");return;}
         var main = regions.mainSpawn();

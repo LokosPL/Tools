@@ -34,7 +34,7 @@ public final class WhitelistCommand implements BasicCommand {
 
     public void handle(CommandSender sender, String[] args) {
         if (!ToolsAccess.admin(sender,ranks.get(),permission())) {
-            CommandTextRegistry.error(sender,"whitelist","noPermission");
+            display.unknown(sender);
             return;
         }
         if (args.length==0 || args[0].equalsIgnoreCase("gui")) {

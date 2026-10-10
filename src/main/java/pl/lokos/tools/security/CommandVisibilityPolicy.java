@@ -10,7 +10,14 @@ public final class CommandVisibilityPolicy {
             "whitelist","bialalista","wl",
             "op","deop","stop","save-all","save-on","save-off",
             "ban","ban-ip","pardon","pardon-ip","banlist",
-            "debug","perf","datapack","function"
+            "debug","perf","datapack","function",
+            "gamemode","defaultgamemode","give","clear","enchant","effect",
+            "experience","xp","teleport","tp","summon","setblock","fill",
+            "fillbiome","clone","kill","item","loot","attribute","data",
+            "execute","advancement","bossbar","gamerule","difficulty",
+            "weather","time","worldborder","setworldspawn","spawnpoint",
+            "kick","tag","team","scoreboard","schedule","title","tellraw",
+            "spectate","seed","locate","forceload","jfr","tick","place","ride"
     );
     private CommandVisibilityPolicy() {}
 

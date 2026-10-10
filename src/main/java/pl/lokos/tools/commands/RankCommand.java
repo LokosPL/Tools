@@ -53,7 +53,7 @@ public final class RankCommand implements BasicCommand {
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (!ToolsAccess.admin(sender,ranks,commandPermission)) {
-            display.error(sender,"Brak uprawnień do zarządzania rangami.");
+            display.unknown(sender);
             return;
         }
         if (args.length == 0) {

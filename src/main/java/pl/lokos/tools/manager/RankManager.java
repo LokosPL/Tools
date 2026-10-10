@@ -162,7 +162,7 @@ public final class RankManager {
 
     private static void ensureDefault(Map<String,RanksFile.RankEntry> map){
         map.putIfAbsent("gracz",new RanksFile.RankEntry(
-                "&8[&7Gracz&8]","",9999,"",Set.of()));
+                "&8[&7Gracz&8]","",9999,"",Set.of("tools.spawn","tools.lokalizacje")));
     }
     private CompletableFuture<Void> ensureDefault(){
         if(definitions.ranks().ranks().containsKey("gracz"))return CompletableFuture.completedFuture(null);
@@ -207,9 +207,9 @@ public final class RankManager {
         });
     }
     public CompletableFuture<Void> addPermission(String name,String permission) {
-        if (name.equals("gracz") && (permission.equals("*") || adminPermissions.contains(permission)))
+        if ("gracz".equals(name) && !ToolsAccess.publicNode(permission))
             return CompletableFuture.failedFuture(new IllegalArgumentException(
-                    "Ranga podstawowa Gracz nie może otrzymać uprawnień administratora."));
+                    "Ranga Gracz może mieć wyłącznie uprawnienia publiczne."));
         return updateDefinitions(map -> {
             var r=require(map,name);
             Set<String> perms=new HashSet<>(r.permissions());perms.add(permission);

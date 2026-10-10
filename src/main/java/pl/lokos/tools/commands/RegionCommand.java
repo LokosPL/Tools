@@ -55,7 +55,7 @@ public final class RegionCommand implements BasicCommand {
     @Override public void execute(CommandSourceStack source,String[] args) {
         CommandSender sender=source.getSender();
         if (!ToolsAccess.admin(sender,ranks,commandPermission)) {
-            display.error(sender,"Brak uprawnień do edycji regionów.");
+            display.unknown(sender);
             return;
         }
         if(args.length==0 || args[0].equalsIgnoreCase("pomoc")) {help(sender);return;}

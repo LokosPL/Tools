@@ -40,12 +40,27 @@ class ToolsAccessTest {
         assertTrue(ToolsAccess.allowed(false,wildcard,id,"tools.region.admin",true));
     }
 
+    @Test void menuAndSpawnRequireExplicitRankPermission() {
+        UUID id=UUID.randomUUID();
+        var empty=new RankSnapshot(Map.of("gracz",GRACZ),
+                Map.of("gracz",Set.of()),Map.of(),Map.of());
+        assertFalse(ToolsAccess.allowed(false,empty,id,"tools.spawn",false));
+        assertFalse(ToolsAccess.allowed(false,empty,id,"tools.lokalizacje",false));
+        assertFalse(ToolsAccess.allowed(false,empty,id,"tools.lokalizacje.instant",false));
+
+        var defaultPublic=new RankSnapshot(Map.of("gracz",GRACZ),
+                Map.of("gracz",Set.of("tools.spawn","tools.lokalizacje")),Map.of(),Map.of());
+        assertTrue(ToolsAccess.allowed(false,defaultPublic,id,"tools.spawn",false));
+        assertTrue(ToolsAccess.allowed(false,defaultPublic,id,"tools.lokalizacje",false));
+        assertFalse(ToolsAccess.allowed(false,defaultPublic,id,"tools.lokalizacje.instant",false));
+    }
+
     @Test void expiredOrUnloadedRankCannotElevatePlayer() {
         UUID id=UUID.randomUUID();
         var expired=snapshot(id,Set.of(),Set.of("*"),System.currentTimeMillis()-5000);
         assertFalse(ToolsAccess.allowed(false,expired,id,"tools.admin",true));
         assertFalse(ToolsAccess.allowed(false,RankSnapshot.empty(),id,"tools.region.admin",true));
         assertTrue(ToolsAccess.allowed(true,RankSnapshot.empty(),id,"tools.region.admin",true));
-        assertTrue(ToolsAccess.allowed(false,RankSnapshot.empty(),id,"tools.spawn",false));
+        assertFalse(ToolsAccess.allowed(false,RankSnapshot.empty(),id,"tools.spawn",false));
     }
 }

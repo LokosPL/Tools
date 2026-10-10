@@ -18,8 +18,6 @@ public final class ToolsAccess {
     public static boolean allowed(boolean op, RankSnapshot snapshot, UUID uuid,
                                   String node, boolean administrative) {
         if (op) return true;
-        if (!administrative && ("tools.spawn".equals(node)
-                || "tools.lokalizacje".equals(node))) return true; // jawny operator Paper; źródło OP sprawdzane osobno
         if (snapshot==null || node==null || uuid==null) return false;
         RankSnapshot.Rank rank=snapshot.forPlayer(uuid);
         if (rank==null) return false; // brak wczytanej bazy = brak przywilejów
@@ -41,8 +39,9 @@ public final class ToolsAccess {
 
     public static boolean allowed(Player player, RankManager ranks, String node,
                                   boolean administrative) {
-        return ranks!=null && allowed(player.isOp(),ranks.snapshot(),
-                player.getUniqueId(),node,administrative);
+        // OP zachowuje dostęp również podczas uruchamiania modułu SQL.
+        return player.isOp() || (ranks != null && allowed(false,ranks.snapshot(),
+                player.getUniqueId(),node,administrative));
     }
 
     public static boolean admin(CommandSender sender, RankManager ranks, String node) {

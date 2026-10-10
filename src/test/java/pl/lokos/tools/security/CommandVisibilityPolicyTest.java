@@ -14,5 +14,8 @@ class CommandVisibilityPolicyTest {
         assertFalse(CommandVisibilityPolicy.nativeAdministrative("spawn"));
         assertFalse(CommandVisibilityPolicy.nativeAdministrative("lokalizacje"));
         assertFalse(CommandVisibilityPolicy.nativeAdministrative("minecraft:msg"));
+        assertTrue(CommandVisibilityPolicy.nativeAdministrative("minecraft:tp"));
+        assertTrue(CommandVisibilityPolicy.nativeAdministrative("gamemode"));
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("minecraft:msg"));
     }
 }

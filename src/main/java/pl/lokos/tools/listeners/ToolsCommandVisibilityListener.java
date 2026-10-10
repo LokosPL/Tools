@@ -29,6 +29,8 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"ranga",config.ranga());
         register(nodes,"region",config.region());
         register(nodes,"lokalizacje",config.lokalizacje());
+        nodes.put("spawn", "tools.spawn");
+        nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
         for(String name:List.of("whitelist","bialalista","wl",
                 "minecraft:whitelist","tools:whitelist","tools:bialalista","tools:wl"))
@@ -69,7 +71,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
             String required=rootPermissions.get(root);
             // Wszystkie nazwy przestrzeni technicznej Bukkit/Minecraft ukrywamy
             // zwykłym graczom, także bez prefiksu /.
-            if(!technicalAdmin && CommandVisibilityPolicy.technical(root))return true;
+            if(!technicalAdmin && CommandVisibilityPolicy.hideFromUnprivileged(root))return true;
             if(required!=null)return !canUse(player,required);
             return !technicalAdmin && CommandVisibilityPolicy.nativeAdministrative(root);
         });
@@ -84,7 +86,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
         Player player=event.getPlayer();
         boolean forbidden;
         if(required!=null)forbidden=!canUse(player,required);
-        else forbidden=CommandVisibilityPolicy.nativeAdministrative(command)
+        else forbidden=CommandVisibilityPolicy.hideFromUnprivileged(command)
                 && !ToolsAccess.admin(player,ranks,"tools.admin");
         if(!forbidden)return;
         event.setCancelled(true);

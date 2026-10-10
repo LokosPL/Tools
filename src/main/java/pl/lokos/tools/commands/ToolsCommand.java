@@ -54,7 +54,7 @@ public final class ToolsCommand implements BasicCommand {
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (!ToolsAccess.admin(sender,ranks,permission)) {
-            display.error(sender,"Nie masz uprawnień do zarządzania serwerem.");
+            display.unknown(sender);
             return;
         }
         if (args.length == 0 || args[0].equalsIgnoreCase("pomoc") || args[0].equalsIgnoreCase("help")) {
