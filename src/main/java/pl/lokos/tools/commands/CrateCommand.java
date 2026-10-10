@@ -22,7 +22,11 @@ public final class CrateCommand implements BasicCommand {
     }
     @Override public String permission(){return permission;}
     @Override public boolean canUse(CommandSender sender){
-        return ToolsAccess.permitted(sender,ranks,permission);
+        // Uprawnienie komendy może zostać dostosowane w JSON.
+        // Operacje tworzące klucze i usuwające skrzynie zawsze wymagają
+        // osobnego administracyjnego node'a Tools, również przy TAB i aliasach.
+        return ToolsAccess.permitted(sender,ranks,permission)
+                && ToolsAccess.admin(sender,ranks,"tools.skrzynia.admin");
     }
     @Override public void execute(CommandSourceStack source,String[] args){
         CommandSender sender=source.getSender();

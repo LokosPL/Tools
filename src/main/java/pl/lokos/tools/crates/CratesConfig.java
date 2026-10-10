@@ -7,6 +7,7 @@ public final class CratesConfig {
     private boolean enabled=true;
     private int maximumPlacedCrates=100;
     private int afkKeyMinutes=60;
+    private int afkActivityWindowMinutes=5;
     private double ordinaryKeyChanceFromHostileMob=0.02;
     private double specialKeyChanceFromHostileMob=0.0005;
     private boolean particles=true;
@@ -34,6 +35,7 @@ public final class CratesConfig {
     public boolean enabled(){return enabled;}
     public int maximumPlacedCrates(){return maximumPlacedCrates;}
     public int afkKeyMinutes(){return afkKeyMinutes;}
+    public int afkActivityWindowMinutes(){return afkActivityWindowMinutes;}
     public double ordinaryKeyChanceFromHostileMob(){return ordinaryKeyChanceFromHostileMob;}
     public double specialKeyChanceFromHostileMob(){return specialKeyChanceFromHostileMob;}
     public boolean particles(){return particles;}
@@ -42,6 +44,7 @@ public final class CratesConfig {
     public void validate(){
         if(maximumPlacedCrates<5||maximumPlacedCrates>500||
                 afkKeyMinutes<10||afkKeyMinutes>1440||
+                afkActivityWindowMinutes<1||afkActivityWindowMinutes>60||
                 ordinaryKeyChanceFromHostileMob<0||ordinaryKeyChanceFromHostileMob>0.25||
                 specialKeyChanceFromHostileMob<0||specialKeyChanceFromHostileMob>0.05||
                 pools==null||pools.size()>20)
