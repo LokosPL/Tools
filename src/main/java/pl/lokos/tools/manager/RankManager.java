@@ -84,6 +84,7 @@ public final class RankManager {
                     }
                 }
                 ensureDefault(imported);
+                if(!definitions.ranks().publicGuiDefaultsInstalled())grantPublicGuiOnce(imported);
                 definitions.saveRanks(RanksFile.from(imported,definitions.ranks().settings()));
                 plugin.getLogger().info("Rangi gotowe w Ranks.json: "+imported.size());
             }
