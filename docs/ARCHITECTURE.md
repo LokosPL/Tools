@@ -1,4 +1,4 @@
-# Architektura i audyt bezpieczeństwa — Tools 1.7.0
+# Architektura i audyt bezpieczeństwa — Tools 1.8.0
 
 > Stan na 10 października 2026 r. Wersja projektu: Paper 26.3, Java 25.
 
@@ -18,14 +18,37 @@
 
 **Granice**: Nie każdy możliwy ciężki algorytm posiada osobną implementację asynchroniczną; dane Bukkit muszą pozostać na głównym wątku. Narzędzie nie gwarantuje zerowego TPS ani kompletnego profilowania wszystkich pluginów. Przy niedostępności bazy i nagłym przerwaniu procesu ostatnie niezapisane zdarzenia mogą zostać utracone.
 
-## 2. Komendy i uprawnienia
+## 2. Komendy i własny system uprawnień
 
-- Wszystkie komendy są rejestrowane w kodzie przez \`Paper BasicCommand\` (bazuje na Brigadier). Istnieją walidatory zakresów, dat/czasów, UUID, nazw i podpowiedzi. Nie jest to jednak pełna migracja do biblioteki Cloud z deklaratywnymi typami argumentów — obecna implementacja zachowuje zgodność komend.
-- \`LuckPermsBridge\` jest **opcjonalnym** adapterem do LuckPerms 5.5. Dostępny tylko przy aktywnym LuckPerms, nie instaluje go i nie zmienia automatycznie wszystkich rang Tools w grupy LuckPerms.
-- \`/tools lp nadaj <nick> <node> <czas|*> [świat]\` nadaje własną permisję z czasem i opcjonalnym kontekstem \`world\`.
-- \`/tools lp dziedzicz <nick> <grupa> <czas|*> [świat]\` nadaje węzeł dziedziczenia grupy LP (grupa musi być wcześniej poprawnie skonfigurowana w LuckPerms).
-- \`/tools lp sprawdz <nick> <node> [świat]\` bada wynik uprawnienia z API LP (uwzględnia dziedziczenie i konteksty).
-- Pozostaje autorski system rang i grantów Tools; grupy LP nie są automatycznie importowane/eksportowane. Przy LuckPerms odświeżanie uprawnień odbywa się także po zmianie świata. Polecenia LP są administracyjne i dostępne tylko z uprawnieniem \`tools.admin\`.
+- Narzędzia są rejestrowane w Java przez Paper BasicCommand/Brigadier.
+- **Brak własny system rang i jakichkolwiek zależności od zewnętrznych pluginów rang.**
+- Definicje rang i przypisanych uprawnień są w Ranks.json. Nadania i daty wygaśnięcia graczy w bazie MySQL/MariaDB/SQLite.
+- Gwiazdka `*` oznacza pełne uprawnienia w obrębie istniejącego systemu Tools, wraz z istniejącym mechanizmem przywracania poprzedniego OP.
+- GUI rang wyświetla wyłącznie własne uprawnienia Tools. Nie importuje uprawnień innych pluginów.
+
+### 2.1. Whitelist i logowanie
+
+- `Whitelist.json` jest generowany z wartości w Java, osobny writer zapisuje atomowo w tle.
+- Tryby: `PRACE_TECHNICZNE`, `CHWILOWA_PRZERWA`, `NOWA_EDYCJA`, `AKTUALIZACJA`.
+- `/whitelist`, `/whitelist włącz <tryb>`, `/whitelist wyłącz`, `/whitelist dodaj <nick>`, `/whitelist usuń <nick>`, `/whitelist lista`.
+- GUI z główkami graczy, po kliknięciu można usunąć wpis. Zabezpieczone jest przez `tools.whitelist.admin`.
+- `AsyncPlayerPreLoginEvent` odrzuca nieuprawnionych przed wejściem. Po aktywacji whitelisty już podłączeni gracze spoza listy są rozłączani.
+- Przy planowym `onDisable` plugin wysyła zdefiniowany w Java komunikat wyłączenia.
+
+**Krytyczne ograniczenie offline-mode:** lista sprawdza nick, ale sam nick nie dowodzi własności konta. Gracz może podszyć się pod inny nick, także nick administratora na whiteliście! Do publicznego serwera offline-mode należy osobno rozwiązać problem uwierzytelniania kont (np. własny bezpieczny system sesji i potwierdzania tożsamości). Samo pobranie skórki premium nie jest uwierzytelnieniem.
+
+### 2.2. Premium skin i antybot
+
+- Własny moduł pobiera skórki oficjalnych kont po nazwie na osobnym wątku i ustawia tylko tekstury, nigdy UUID ani uprawnienia. Obowiązuje cache 6h, timeout i limit jednoczesnych żądań. Nie działa bez dostępności usług profili Mojang/Minecraft.
+- `Security.json` z Java-defaultami: `premiumSkins`, `antiBot`, oba włączone domyślnie.
+- Antybot: limit prób na IP, krótki cache zaufanych par nick/IP po udanym wejściu, whitelistowani gracze pomijają ograniczenie. Bez DNS, SQL i HTTP podczas logowania.
+- **Nie zapewnia pełnej ochrony przed botnetem/proxy ani atakiem DDoS**. Pakiety ataku należy ograniczać także na warstwie sieci i proxy.
+
+### 2.3. Spawn i lokalizacje
+
+- `/spawn` używa `RegionManager.mainSpawn()` i tej samej logiki `teleportAsync`/odliczania co `/lokalizacje`. Wymaga ustawienia głównego punktu `/region spawn`.
+- Główne lokalizacje widoczne są w pierwszym menu. Kliknięcie otwiera główny teleport i listę podlokalizacji w oddzielnym ekranie. Menu nie pokazuje już niepotrzebnych wymiarów i nazwy świata.
+- Własne nazwy, uprawnienia i opisy GUI nie korzystają z pluginów zewnętrznych.
 
 ## 3. Dane i migracje
 
@@ -73,4 +96,3 @@ Uruchom \`mvn clean verify\` z Java 25. GitHub Actions buduje JAR i testuje rzec
 2. Uruchom Tools, sprawdź log Flyway oraz \`/tools zdrowie\`.
 3. Sprawdź \`/ranga lista\`, nadanie rangi \`*\`, region i teleportację na testowym serwerze.
 4. Sprawdź \`/tools przeladuj\` po zmianie header/footer; upewnij się, że zmiana SQL zostaje odrzucona.
-5. Opcjonalnie zainstaluj LuckPerms i sprawdź grupę kontekstową w dwóch światach; brak LP nie może blokować startu Tools.
