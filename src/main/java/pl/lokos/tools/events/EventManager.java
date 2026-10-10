@@ -135,7 +135,7 @@ public final class EventManager implements Listener,AutoCloseable {
         if(!(event.getView().getTopInventory().getHolder() instanceof Menu))return;
         event.setCancelled(true);
         if(event.getRawSlot()==22 && event.getWhoClicked() instanceof Player player)
-            Bukkit.getScheduler().runTask(plugin,player::closeInventory);
+            Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void drag(InventoryDragEvent event){

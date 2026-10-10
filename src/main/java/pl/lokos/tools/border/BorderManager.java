@@ -7,6 +7,7 @@ import org.bukkit.event.*;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.JsonConfigManager;
+import pl.lokos.tools.events.StateFile;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.BossBarHub;
 import pl.lokos.tools.manager.RegionManager;
@@ -132,7 +133,7 @@ public final class BorderManager implements Listener,AutoCloseable {
         if(!state().paused()){
             String day=LocalDate.now(ZoneOffset.UTC).toString();
             for(Player p:Bukkit.getOnlinePlayers()){
-                if(p.getGameMode()==GameMode.SPECTATOR ||p.isAfk())continue;
+                if(p.getGameMode()==GameMode.SPECTATOR)continue;
                 long activity=lastActive.getOrDefault(p.getUniqueId(),0L);
                 if(now-activity>config.afkAfterMinutes()*60000L)continue;
                 String key=day+":"+p.getUniqueId();
