@@ -8,6 +8,13 @@ public final class CratesConfig {
     private int maximumPlacedCrates=100;
     private int afkKeyMinutes=60;
     private int afkActivityWindowMinutes=5;
+    private boolean afkRequireActivity=false;
+    private boolean afkBossbarEnabled=true;
+    private int afkBonusEveryMinutes=60;
+    private int afkMaxKeysPerReward=4;
+    private String afkBossbar="&#70D6E8✦ AFK &#A8A8B7│ Klucz za: &#FFD166{time}"
+            +" &#A8A8B7│ Seria: &#89E5B0{streak}m"
+            +" &#A8A8B7│ Nagroda: &#FFD166{keys}x";
     private double ordinaryKeyChanceFromHostileMob=0.02;
     private double specialKeyChanceFromHostileMob=0.0005;
     private boolean particles=true;
@@ -36,6 +43,11 @@ public final class CratesConfig {
     public int maximumPlacedCrates(){return maximumPlacedCrates;}
     public int afkKeyMinutes(){return afkKeyMinutes;}
     public int afkActivityWindowMinutes(){return afkActivityWindowMinutes;}
+    public boolean afkRequireActivity(){return afkRequireActivity;}
+    public boolean afkBossbarEnabled(){return afkBossbarEnabled;}
+    public int afkBonusEveryMinutes(){return afkBonusEveryMinutes;}
+    public int afkMaxKeysPerReward(){return afkMaxKeysPerReward;}
+    public String afkBossbar(){return afkBossbar;}
     public double ordinaryKeyChanceFromHostileMob(){return ordinaryKeyChanceFromHostileMob;}
     public double specialKeyChanceFromHostileMob(){return specialKeyChanceFromHostileMob;}
     public boolean particles(){return particles;}
@@ -45,6 +57,12 @@ public final class CratesConfig {
         if(maximumPlacedCrates<5||maximumPlacedCrates>500||
                 afkKeyMinutes<10||afkKeyMinutes>1440||
                 afkActivityWindowMinutes<1||afkActivityWindowMinutes>60||
+                afkBonusEveryMinutes<10||afkBonusEveryMinutes>1440||
+                afkMaxKeysPerReward<1||afkMaxKeysPerReward>16||
+                afkBossbar==null||afkBossbar.length()>300||
+                !afkBossbar.contains("{time}")||
+                !afkBossbar.contains("{keys}")||
+                !afkBossbar.contains("{streak}")||
                 ordinaryKeyChanceFromHostileMob<0||ordinaryKeyChanceFromHostileMob>0.25||
                 specialKeyChanceFromHostileMob<0||specialKeyChanceFromHostileMob>0.05||
                 pools==null||pools.size()>20)
