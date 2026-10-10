@@ -41,6 +41,28 @@ class ChatConfigTest {
                 .get(user.toString()).untilMillis());
     }
 
+    @Test void inGameChangesPreserveExistingUnknownJsonFields() throws Exception {
+        JsonConfigManager json=new JsonConfigManager(folder);
+        json.load("Chat.json",ChatConfig.class,ChatConfig::new,ChatConfig::validate);
+        Path path=folder.resolve("Chat.json");
+        var object=com.google.gson.JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+        object.addProperty("administratorNote","Zachowaj ten tekst");
+        Files.writeString(path,object.toString());
+        var changed=ChatConfigEditor.apply(path,data->{
+            data.addProperty("announcementIntervalSeconds",45);
+            data.addProperty("slowMaxMessages",4);
+            data.addProperty("slowWindowSeconds",8);
+        });
+        assertEquals(45,changed.announcementIntervalSeconds());
+        assertEquals(4,changed.slowMaxMessages());
+        assertEquals(8,changed.slowWindowSeconds());
+        assertTrue(Files.readString(path).contains("Zachowaj ten tekst"));
+        String before=Files.readString(path);
+        assertThrows(IOException.class,()->ChatConfigEditor.apply(path,data->
+                data.addProperty("announcementIntervalSeconds",1)));
+        assertEquals(before,Files.readString(path));
+    }
+
     @Test void invalidInputsAreRejected(){
         var bad=new Gson().fromJson("{\"slowWindowSeconds\":0}",ChatConfig.class);
         assertThrows(IllegalArgumentException.class,bad::validate);

@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 /** Moderacja czatu: każda zmiana wymaga własnej permisji admina, a zapis jest asynchroniczny. */
 public final class ChatCommand implements BasicCommand {
     private static final List<String> ACTIONS=List.of("status","wlacz","wylacz","wyczysc",
-            "ranga","wycisz","odcisz","wyciszeni","ogloszenia","przeladuj","pomoc");
+            "ranga","wycisz","odcisz","wyciszeni","slow","ogloszenia","przeladuj","pomoc");
     private final JavaPlugin plugin;
     private final ChatManager chats;
     private final RankManager ranks;
@@ -52,6 +52,8 @@ public final class ChatCommand implements BasicCommand {
                     Messages.info(sender,"Slow: &#FFD166"+chats.config().slowMaxMessages()
                             +" &7wiadomości na &#FFD166"+chats.config().slowWindowSeconds()+" s");
                     Messages.info(sender,"Wyciszeni: &#FFD166"+chats.activeMutes(System.currentTimeMillis()).size());
+                    Messages.info(sender,"Ogłoszenia co: &#FFD166"+
+                            chats.config().announcementIntervalSeconds()+" &7sekund");
                     Messages.info(sender,"Ogłoszenia: "+(state.announcementsEnabled()
                             && chats.config().announcementsEnabled()?"&#70D6E8Włączone":"&#A8A8B7Wyłączone"));
                 }
@@ -132,15 +134,39 @@ public final class ChatCommand implements BasicCommand {
                                 +" &8• &7"+until+" &8• &7"+entry.mute().reason());
                     }
                 }
+                case "slow" -> {
+                    requireCount(args,3);
+                    int amount=Integer.parseInt(args[1]);
+                    int window=Integer.parseInt(args[2]);
+                    save(sender,()->chats.setSlow(amount,window),
+                            "Ustawiono limit: "+amount+" wiadomości na "+window+" sekund.");
+                }
                 case "ogloszenia","ogłoszenia" -> {
-                    requireCount(args,2);
-                    boolean enabled=switch(args[1].toLowerCase(Locale.ROOT)){
-                        case "wlacz","włącz" -> true;
-                        case "wylacz","wyłącz" -> false;
-                        default -> throw new IllegalArgumentException("Wpisz wlacz lub wylacz.");
-                    };
-                    save(sender,()->chats.setAnnouncements(enabled),
-                            enabled?"Włączono automatyczne wiadomości.":"Wyłączono automatyczne wiadomości.");
+                    if(args.length<2){usage(sender);return;}
+                    String option=args[1].toLowerCase(Locale.ROOT);
+                    if(option.equals("interwal") || option.equals("odstep")){
+                        requireCount(args,3);
+                        int seconds=Integer.parseInt(args[2]);
+                        save(sender,()->chats.setAnnouncementInterval(seconds),
+                                "Automatyczne wiadomości będą wysyłane co "+seconds+" sekund.");
+                    }else if(option.equals("lista")){
+                        requireCount(args,2);
+                        Messages.title(sender,"AUTOMATYCZNE WIADOMOŚCI");
+                        Messages.info(sender,"Odstęp: &#FFD166"+
+                                chats.config().announcementIntervalSeconds()+" &7sekund");
+                        int index=0;
+                        for(String line:chats.config().announcements())
+                            Messages.line(sender,"&#FFD166"+(++index)+". &#A8A8B7"+line);
+                    }else {
+                        requireCount(args,2);
+                        boolean enabled=switch(option){
+                            case "wlacz","włącz" -> true;
+                            case "wylacz","wyłącz" -> false;
+                            default -> throw new IllegalArgumentException("Wpisz wlacz, wylacz, lista lub interwal.");
+                        };
+                        save(sender,()->chats.setAnnouncements(enabled),
+                                enabled?"Włączono automatyczne wiadomości.":"Wyłączono automatyczne wiadomości.");
+                    }
                 }
                 case "przeladuj","przeładuj" -> {
                     requireCount(args,1);
@@ -177,7 +203,7 @@ public final class ChatCommand implements BasicCommand {
         if(args.length==2){
             String action=args[0].toLowerCase(Locale.ROOT);
             if(action.equals("ogloszenia") || action.equals("ogłoszenia"))
-                return prefix(List.of("wlacz","wylacz"),args[1]);
+                return prefix(List.of("wlacz","wylacz","lista","interwal"),args[1]);
             if(action.equals("ranga")){
                 List<String> options=new ArrayList<>(List.of("wszyscy"));
                 if(ranks!=null)options.addAll(ranks.snapshot().ranks().keySet());

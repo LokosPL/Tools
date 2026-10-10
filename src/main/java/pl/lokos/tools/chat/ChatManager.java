@@ -2,6 +2,9 @@ package pl.lokos.tools.chat;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -114,20 +117,51 @@ public final class ChatManager implements AutoCloseable {
         return activeMutes(now).stream().filter(e->e.mute().name().equalsIgnoreCase(nick)).findFirst();
     }
 
+    /** Zmiany w Chat.json zachowują wszystkie nieznane pola administratora. */
+    public CompletableFuture<Void> setAnnouncementInterval(int seconds) {
+        if(seconds<20 || seconds>86400)
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "Odstęp ogłoszeń musi wynosić 20-86400 sekund."));
+        return editConfig(json->json.addProperty("announcementIntervalSeconds",seconds));
+    }
+    public CompletableFuture<Void> setSlow(int limit,int seconds) {
+        if(limit<1 || limit>20 || seconds<1 || seconds>60)
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "Slow: od 1 do 20 wiadomości na 1-60 sekund."));
+        return editConfig(json->{
+            json.addProperty("slowMaxMessages",limit);
+            json.addProperty("slowWindowSeconds",seconds);
+        });
+    }
+
+    private CompletableFuture<Void> editConfig(Consumer<JsonObject> edit) {
+        return CompletableFuture.supplyAsync(()->{
+            try{return ChatConfigEditor.apply(folder.resolve("Chat.json"),edit);}
+            catch(IOException problem){throw new CompletionException(problem);}
+        },writer).thenCompose(this::installConfig);
+    }
+    private CompletableFuture<Void> installConfig(ChatConfig fresh) {
+        CompletableFuture<Void> result=new CompletableFuture<>();
+        if(!plugin.isEnabled()){
+            result.completeExceptionally(new IllegalStateException("Plugin został wyłączony."));
+            return result;
+        }
+        try {
+            plugin.getServer().getScheduler().runTask(plugin,()->{
+                config=fresh;
+                nextAnnouncementAt=System.currentTimeMillis()+fresh.announcementIntervalSeconds()*1000L;
+                result.complete(null);
+            });
+        }catch(RuntimeException problem){result.completeExceptionally(problem);}
+        return result;
+    }
+
     public CompletableFuture<Void> reloadConfig(){
         return CompletableFuture.supplyAsync(()->{
             try{return new JsonConfigManager(folder).load("Chat.json",ChatConfig.class,
                     ChatConfig::new,ChatConfig::validate);}
             catch(IOException e){throw new CompletionException(e);}
-        },writer).thenCompose(fresh->{
-            var completion=new CompletableFuture<Void>();
-            plugin.getServer().getScheduler().runTask(plugin,()->{
-                config=fresh;
-                nextAnnouncementAt=System.currentTimeMillis()+fresh.announcementIntervalSeconds()*1000L;
-                completion.complete(null);
-            });
-            return completion;
-        });
+        },writer).thenCompose(this::installConfig);
     }
 
     /** Wywoływane raz na sekundę na głównym wątku; ogłoszenia nie zużywają limitu graczy. */
