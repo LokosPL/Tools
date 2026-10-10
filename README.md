@@ -1,3 +1,96 @@
+# Tools 1.13.0-SNAPSHOT — eventy, skrzynie i rozrost mapy
+
+## Uruchamianie eventów
+
+- `/event lista`, `/event status`, `/event wlacz zima 2h`,
+  `/event zakoncz` — administracja z `tools.event.admin`.
+- **Maksymalnie jeden event naraz**, także po restarcie. Stan, czas końca
+  i postęp graczy w `EventState.json`; konfiguracja szans w `Events.json`.
+- Publiczne informatory z GUI: `/zima`, `/halloween`, `/wielkanoc`,
+  `/lato`, `/zabojstwa`, `/meteory`, `/zniwa`, `/wedkowanie`.
+- Standardowa szansa zdobycia pamiątki eventowej wynosi **2%** od
+  odpowiedniej aktywności: zima — kopanie, Halloween — wrogie moby,
+  Wielkanoc — kwiaty/trawa, lato i wędkowanie — połowy, PvP — zabójstwa,
+  meteory — rudy, żniwa — uprawy. Powtórne zabijanie tego samego gracza
+  ma pięciominutowe ograniczenie.
+- Zima generuje efekt opadania płatków śniegu wokół graczy w Overworld,
+  także w ciepłych biomach, **bez zmiany biome, flag regionów lub bloków**.
+  Nie jest to fizyczna zamiana całego świata w śnieżny biom.
+- Zbieranie pamiątek daje po 10 sztukach jeden klucz eventowy.
+  Skrzynia eventowa losuje przedmiot aktualnego wydarzenia.
+- Każde wydarzenie ma własny przedmiot w `SpecialItems.json` (łącznie
+  osiem nowych przedmiotów, plus istniejące Buty Szybkości).
+
+## Pięć skrzyń
+
+- `/skrzynia` lub `/skrzynia gui`: panel administracyjny.
+  Kliknij skrzynię, otrzymasz blok z unikatową metką, a następnie
+  postaw go **w granicach głównego regionu Spawn**. Wymaga permisji
+  `tools.skrzynia.admin` i możliwości stawiania bloków w regionie.
+- `/skrzynia klucz eventowa Steve 1` wydaje klucze;
+  `/skrzynia usun` usuwa skrzynię, na którą patrzysz;
+  `/skrzynia lista` pokazuje liczbę skrzyń.
+- Zwykła, Premium, AFK, Eventowa i Specjalna mają oddzielne tabele
+  nagród w `Crates.json`. Stan bloków i minut AFK w `CratesState.json`.
+- Klucze zwykłe/specjalne wypadają czasem z mobów; klucz AFK
+  co 60 minut przebywania online; klucz eventowy za pamiątki; premium
+  obecnie przez admina.
+- W regionach można kliknąć **wyłącznie zarejestrowaną skrzynię Tools**
+  nawet przy fladze zakazującej otwierania pojemników. Nie zmienia to
+  ochrony pozostałych skrzyń, budowania, kopania i interakcji.
+- Ochrona przed zniszczeniem, TNT, tłokami, hopperami, podwójnymi chestami
+  i przenoszeniem przedmiotów przez zwykły ekwipunek. Loot losowany
+  jest po sprawdzeniu pasującego klucza i miejsca w ekwipunku.
+- Hologramy TextDisplay i lekkie particle istnieją tylko przy wczytanych chunkach.
+  Dane skrzyń pozostają zapisane po wyłączeniu serwera.
+
+## Granica świata
+
+- `WorldBorder.json`: domyślnie **1500 × 1500** wokół głównego spawnu,
+  automatyczne powiększanie co 7 dni po zebraniu 120 graczogodzin.
+  Awaryjnie po 14 dniach mały krok. Aktywność AFK nie jest naliczana
+  po pięciu minutach bez ruchu; limit 240 min/UUID/dobę.
+- Rozmiar i dzienny postęp przechowuje `WorldBorderState.json`.
+  Działki/regiony istniejące poza nowym limitem **nie są obcinane**:
+  pierwszy rozmiar jest zwiększany tak, by objąć wszystkie istniejące
+  regiony; niestandardowo większej granicy też nie zmniejszamy.
+- Nowe regiony Tools poza aktywnym WorldBorder nie mogą być tworzone.
+  Inne światy, np. Nether, nie podlegają tej jednej granicy Overworld.
+- `/granica status`, `/granica pauza`, `/granica wznow`,
+  `/granica rozbuduj 500` — uprawnienie `tools.granica.admin`.
+- **Pregeneracja nowych chunków nie jest jeszcze wykonywana przez Tools**.
+  Zmiana WorldBorder może przyciągnąć graczy do nowych chunków, więc
+  przed dużym eventem zalecana jest pregeneracja kontrolowanym narzędziem
+  lub test wydajności na kopii świata.
+- Jeden `BossBarHub` wyświetla paski we właściwej kolejności:
+  **event → combat-log → broadcast → rozrost świata**. Nie usuwa
+  bossbarów innych pluginów.
+
+## Poprawki istniejących komend
+
+- `/fly Steve wlacz` i `/fly wlacz Steve` włączają latanie innej osobie
+  tylko z `tools.fly.others`. Tak samo `/vanish Steve wlacz`
+  i `/vanish wlacz Steve`, z `tools.vanish.others`.
+- Autouzupełnianie argumentów nie ujawnia vanisha ani operacji,
+  których nie wolno wykonać. Nowe komendy także mają oddzielne
+  pliki `plugins/Tools/commands/*.json` generowane z Javy.
+
+## Zasady aktualizacji
+
+Najpierw **wykonaj kopię świata i całego folderu `plugins/Tools`**,
+wgraj JAR i wykonaj pełny restart. Konfiguracje są generowane z klas
+Java, stare wpisy są zachowywane. Nie używamy LuckPerms, nie przenosimy
+SQL na główny wątek ani nie rejestrujemy komend w `plugin.yml`.
+
+Testy Maven/JUnit potwierdzają m.in. walidację plików, granice regionów,
+serię uprawnień, stan jedynego eventu, zapisy skrzyń i losowanie.
+**Nie zastępują próby na serwerze Paper z graczami**.
+Konieczne testy: stawianie skrzyń na chronionym spawnie, wybuchy,
+relog podczas eventu, zużywanie kluczy, warunki PvP, opady w różnych biomach
+i zmiana WorldBorder przy istniejących działkach.
+
+---
+
 # Tools 1.12.0-SNAPSHOT — ochrona, walka i przedmioty
 
 ## Antycheat i ochrona wydajności
