@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.JsonConfigManager;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,14 +53,24 @@ public final class PrivateMessageManager implements AutoCloseable {
         lastSent.remove(uuid);
     }
     public synchronized CompletableFuture<Void> disable(UUID uuid,boolean disable){
-        return mutate(s->s.withDisabled(uuid,disable));
+        return mutate(s->{
+            StateChanges.requireChange(s.disabled(uuid)==disable,
+                    disable?"Prywatne wiadomości są już wyłączone.":"Prywatne wiadomości są już włączone.");
+            return s.withDisabled(uuid,disable);
+        });
     }
     public synchronized CompletableFuture<Void> ignore(UUID owner,UUID target,String name,boolean ignored){
-        return mutate(s->s.withIgnore(owner,target,name,ignored));
+        return mutate(s->{
+            StateChanges.requireChange(s.ignores(owner,target)==ignored,
+                    ignored?"Już ignorujesz wiadomości od "+name+".":"Nie ignorujesz wiadomości od "+name+".");
+            return s.withIgnore(owner,target,name,ignored);
+        });
     }
     private synchronized CompletableFuture<Void> mutate(UnaryOperator<PrivateMessageState> modify){
         if(closing)return CompletableFuture.failedFuture(new IllegalStateException("Moduł MSG został wyłączony."));
-        PrivateMessageState next=modify.apply(state);
+        PrivateMessageState next;
+        try {next=modify.apply(state);}
+        catch(StateChanges.Unchanged unchanged){return CompletableFuture.failedFuture(unchanged);}
         state=next;
         return CompletableFuture.runAsync(()->writeState(next),writer);
     }
@@ -84,7 +95,11 @@ public final class PrivateMessageManager implements AutoCloseable {
             try{return new JsonConfigManager(folder).load("PrivateMessages.json",
                     PrivateMessageConfig.class,PrivateMessageConfig::new,PrivateMessageConfig::validate);}
             catch(IOException e){throw new CompletionException(e);}
-        },writer).thenAccept(fresh->config=fresh);
+        },writer).thenAccept(fresh->{
+            StateChanges.requireChange(!GSON.toJsonTree(fresh).equals(GSON.toJsonTree(config)),
+                    "Ustawienia prywatnych wiadomości są już aktualne.");
+            config=fresh;
+        });
     }
     @Override public synchronized void close(){closing=true;writer.shutdown();}
 }

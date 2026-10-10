@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.JsonConfigManager;
+import pl.lokos.tools.helpers.StateChanges;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.manager.RankSnapshot;
@@ -68,22 +69,46 @@ public final class ChatManager implements AutoCloseable {
     public void leave(UUID uuid){limiter.remove(uuid);operators.remove(uuid);}
 
     public synchronized CompletableFuture<Void> setEnabled(boolean value){
-        return change(s->s.withEnabled(value));
+        return change(s->{
+            StateChanges.requireChange(s.enabled()==value,
+                    value?"Czat jest już włączony.":"Czat jest już wyłączony.");
+            return s.withEnabled(value);
+        });
     }
     public synchronized CompletableFuture<Void> setAnnouncements(boolean value){
-        return change(s->s.withAnnouncements(value));
+        return change(s->{
+            StateChanges.requireChange(s.announcementsEnabled()==value,
+                    value?"Automatyczne wiadomości są już włączone.":"Automatyczne wiadomości są już wyłączone.");
+            return s.withAnnouncements(value);
+        });
     }
     public synchronized CompletableFuture<Void> setRank(String rank){
-        return change(s->s.withRank(rank));
+        return change(s->{
+            StateChanges.requireChange(Objects.equals(s.minimumRank(),rank),
+                    "Czat ma już ustawiony ten sam dostęp rang.");
+            return s.withRank(rank);
+        });
     }
     public synchronized CompletableFuture<Void> silence(UUID id,String nick,long until,String reason){
-        return change(s->s.withMute(id,new ChatStateFile.Mute(nick,until,reason)));
+        return change(s->{
+            var existing=s.muted().get(id.toString());
+            StateChanges.requireChange(existing!=null && existing.active(System.currentTimeMillis()),
+                    "Gracz "+nick+" jest już wyciszony na czacie. Aby zmienić wyciszenie, najpierw go odcisz.");
+            return s.withMute(id,new ChatStateFile.Mute(nick,until,reason));
+        });
     }
     public synchronized CompletableFuture<Void> unsilence(UUID id){
-        return change(s->s.withoutMute(id));
+        return change(s->{
+            var existing=s.muted().get(id.toString());
+            StateChanges.requireChange(existing==null || !existing.active(System.currentTimeMillis()),
+                    "Ten gracz nie jest już wyciszony na czacie.");
+            return s.withoutMute(id);
+        });
     }
     private synchronized CompletableFuture<Void> change(UnaryOperator<ChatStateFile> operation){
-        var updated=operation.apply(state);
+        ChatStateFile updated;
+        try {updated=operation.apply(state);}
+        catch(StateChanges.Unchanged unchanged){return CompletableFuture.failedFuture(unchanged);}
         // Natychmiast blokuje dalsze wypowiedzi; zapis odbywa się sekwencyjnie w IO.
         state=updated;
         return CompletableFuture.runAsync(()->save(updated),writer);
@@ -158,9 +183,13 @@ public final class ChatManager implements AutoCloseable {
 
     public CompletableFuture<Void> reloadConfig(){
         return CompletableFuture.supplyAsync(()->{
-            try{return new JsonConfigManager(folder).load("Chat.json",ChatConfig.class,
-                    ChatConfig::new,ChatConfig::validate);}
-            catch(IOException e){throw new CompletionException(e);}
+            try {
+                ChatConfig fresh=new JsonConfigManager(folder).load("Chat.json",ChatConfig.class,
+                    ChatConfig::new,ChatConfig::validate);
+                StateChanges.requireChange(GSON.toJsonTree(fresh).equals(GSON.toJsonTree(config)),
+                        "Ustawienia Chat.json są już aktualne.");
+                return fresh;
+            } catch(IOException e){throw new CompletionException(e);}
         },writer).thenCompose(this::installConfig);
     }
 

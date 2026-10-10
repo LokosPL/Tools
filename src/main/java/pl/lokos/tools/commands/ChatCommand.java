@@ -190,6 +190,7 @@ public final class ChatCommand implements BasicCommand {
             plugin.getServer().getScheduler().runTask(plugin,()->{
                 if(error==null)Messages.success(sender,success);
                 else {
+                    if(pl.lokos.tools.helpers.StateChanges.reportUnchanged(sender,error))return;
                     plugin.getLogger().warning("Nie zapisano czatu: "+error);
                     Messages.error(sender,"Zmiana działa w pamięci, lecz nie udało się zapisać ChatState.json.");
                 }

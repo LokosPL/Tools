@@ -1,6 +1,7 @@
 package pl.lokos.tools.chat;
 
 import com.google.gson.*;
+import pl.lokos.tools.helpers.StateChanges;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -18,7 +19,10 @@ public final class ChatConfigEditor {
         }catch(RuntimeException failure){
             throw new IOException("Nieprawidłowy Chat.json.",failure);
         }
+        JsonObject before=object.deepCopy();
         edit.accept(object);
+        StateChanges.requireChange(object.equals(before),
+                "Te ustawienia czatu mają już podane wartości.");
         ChatConfig updated;
         try {
             updated=GSON.fromJson(object,ChatConfig.class);

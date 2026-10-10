@@ -175,6 +175,7 @@ public final class PrivateMessageCommand implements BasicCommand {
             plugin.getServer().getScheduler().runTask(plugin,()->{
                 if(!player.isOnline())return;
                 if(error!=null) {
+                    if(pl.lokos.tools.helpers.StateChanges.reportUnchanged(player,error))return;
                     plugin.getLogger().warning("Nie udało się zapisać MSG: "+error);
                     Messages.error(player,"Nie udało się zapisać ustawienia wiadomości.");
                 } else Messages.success(player,success);
