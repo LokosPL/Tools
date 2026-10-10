@@ -54,6 +54,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     private final NamespacedKey keyType;
     private final NamespacedKey placementType;
     private final Map<String,TextDisplay> displays=new HashMap<>();
+    private final Map<String,String> lastLabel=new HashMap<>();
     private long ticks;
 
     public CrateManager(JavaPlugin plugin,RankManager ranks,RegionManager regions,
@@ -302,6 +303,7 @@ public final class CrateManager implements Listener,AutoCloseable {
         if(position==null)throw new IllegalArgumentException("Wskazany blok nie jest skrzynią Tools.");
         storage.update(old->old.without(position.key()));
         TextDisplay tag=displays.remove(position.key());if(tag!=null)tag.remove();
+        lastLabel.remove(position.key());
         block.setType(Material.AIR,false);
     }
     @EventHandler(priority=EventPriority.HIGHEST)
@@ -438,7 +440,9 @@ public final class CrateManager implements Listener,AutoCloseable {
         String name=position.kind().color()+"✦ SKRZYNIA "+position.kind().title().toUpperCase(Locale.ROOT);
         if(position.kind()==CrateType.EVENTOWA && events.active()!=null)
             name+="\n&#70D6E8"+events.active().title();
-        display.text(Colors.color(name+"\n&#A8A8B7» Prawy klik, aby otworzyć"));
+        String rendered=name+"\n&#A8A8B7» Prawy klik, aby otworzyć";
+        if(!rendered.equals(lastLabel.put(key,rendered)))
+            display.text(Colors.color(rendered));
     }
     @EventHandler public void chunkUnload(ChunkUnloadEvent event){
         for(var iterator=displays.entrySet().iterator();iterator.hasNext();){
@@ -447,12 +451,12 @@ public final class CrateManager implements Listener,AutoCloseable {
             if(display.getWorld().equals(event.getWorld()) &&
                     display.getLocation().getBlockX()>>4==event.getChunk().getX() &&
                     display.getLocation().getBlockZ()>>4==event.getChunk().getZ()){
-                display.remove();iterator.remove();
+                display.remove();iterator.remove();lastLabel.remove(entry.getKey());
             }
         }
     }
     @Override public void close(){
         for(TextDisplay display:displays.values())display.remove();
-        displays.clear();storage.close();
+        displays.clear();lastLabel.clear();storage.close();
     }
 }

@@ -162,7 +162,10 @@ public final class EventManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void place(BlockPlaceEvent event){
-        if(recentlyPlaced.size()>30000)recentlyPlaced.clear();
+        if(recentlyPlaced.size()>30000){
+            Iterator<String> oldest=recentlyPlaced.keySet().iterator();
+            if(oldest.hasNext()){oldest.next();oldest.remove();}
+        }
         recentlyPlaced.put(position(event.getBlockPlaced()),System.currentTimeMillis());
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
@@ -230,7 +233,11 @@ public final class EventManager implements Listener,AutoCloseable {
                         10,3,10,0.015);
             }
         }
-        if(lastPvpKill.size()>5000)lastPvpKill.clear();
+        if(lastPvpKill.size()>5000){
+            long now=System.currentTimeMillis();
+            lastPvpKill.entrySet().removeIf(e->
+                    now-e.getValue()>config.minimumPvPKillIntervalSeconds()*1000L);
+        }
         if(recentlyPlaced.size()>20000)recentlyPlaced.entrySet().removeIf(
                 e->System.currentTimeMillis()-e.getValue()>3600000L);
     }
