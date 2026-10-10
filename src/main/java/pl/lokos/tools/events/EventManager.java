@@ -48,6 +48,10 @@ public final class EventManager implements Listener,AutoCloseable {
         private Menu(EventType type){this.type=type;}
         @Override public Inventory getInventory(){return inv;}
     }
+    public static final class ChallengeMenu implements InventoryHolder {
+        private Inventory inv;
+        @Override public Inventory getInventory(){return inv;}
+    }
     private final JavaPlugin plugin;
     private final EventConfig config;
     private final StateFile<EventState> storage;
@@ -145,6 +149,65 @@ public final class EventManager implements Listener,AutoCloseable {
         ItemMeta c=close.getItemMeta();
         c.displayName(Colors.color("&#FF727F✘ Zamknij panel"));
         close.setItemMeta(c);inv.setItem(26,close);
+        ItemStack challenges=new ItemStack(Material.WRITABLE_BOOK);
+        ItemMeta cm=challenges.getItemMeta();
+        cm.displayName(Colors.color("&#89E5B0✦ WYZWANIA EVENTOWE"));
+        cm.lore(GuiTheme.lore("&#A8A8B7» Trzy unikalne cele dla każdego wydarzenia.",
+                "&#FFD166» Nagrody: klucze eventowe",
+                "&#70D6E8» Kliknij, aby sprawdzić."));
+        challenges.setItemMeta(cm);inv.setItem(24,challenges);
+        player.openInventory(inv);
+    }
+    /** Trzy poziomy wyzwań dla aktywnego wydarzenia. */
+    public void openChallenges(Player player){
+        EventType type=active();
+        if(type==null){
+            Messages.error(player,"Nie ma aktywnego eventu.");
+            openHub(player);
+            return;
+        }
+        ChallengeMenu holder=new ChallengeMenu();
+        Inventory inv=Bukkit.createInventory(holder,27,Colors.color("&#89E5B0✦ WYZWANIA: "+type.title()));
+        holder.inv=inv;
+        ItemStack bg=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
+        for(int i=0;i<27;i++)inv.setItem(i,bg);
+        int progress=state().challengePoints(player.getUniqueId())
+                +challengeBuffer.getOrDefault(player.getUniqueId(),0);
+        int mask=state().challengeAwarded(player.getUniqueId());
+        int[] goals=EventChallenges.goals(type);
+        List<String> titles=EventChallenges.names(type);
+        int[] slots={10,13,16};
+        for(int i=0;i<3;i++){
+            boolean done=(mask&(1<<i))!=0;
+            ItemStack icon=new ItemStack(done?Material.EMERALD:Material.PAPER);
+            ItemMeta meta=icon.getItemMeta();
+            meta.displayName(Colors.color(done?"&#89E5B0✔ "+titles.get(i):
+                    "&#FFD166✦ "+titles.get(i)));
+            meta.lore(GuiTheme.lore("&#A8A8B7Cel: "+EventChallenges.action(type),
+                    "&#A8A8B7Postęp: &#FFD166"+Math.min(progress,goals[i])+"/"+goals[i],
+                    "&#A8A8B7Nagroda: &#89E5B0"+config.challengeKeyRewards().get(i)+" klucz(e)",
+                    done?"&#89E5B0✔ Ukończone":"&#70D6E8» Liczy się tylko uczciwa akcja.",
+                    "&#A8A8B7» Nagrody są wypłacane automatycznie."));
+            icon.setItemMeta(meta);
+            inv.setItem(slots[i],icon);
+        }
+        ItemStack info=new ItemStack(Material.NETHER_STAR);
+        ItemMeta im=info.getItemMeta();
+        im.displayName(Colors.color("&#89E5B0✦ Twój postęp"));
+        im.lore(GuiTheme.lore("&#A8A8B7Event: "+type.title(),
+                "&#A8A8B7Punkty: &#FFD166"+progress,
+                "&#A8A8B7Klucze do wypłaty: &#FFD166"+
+                        state().pendingKeys(player.getUniqueId()),
+                "&#A8A8B7Przy pełnym ekwipunku odbierz klucze później.",
+                "&#70D6E8» /eventy wyzwania"));
+        info.setItemMeta(im);inv.setItem(4,info);
+        ItemStack back=new ItemStack(Material.ARROW);
+        ItemMeta bm=back.getItemMeta();
+        bm.displayName(Colors.color("&#70D6E8← Lista eventów"));
+        back.setItemMeta(bm);inv.setItem(22,back);
+        ItemStack close=new ItemStack(Material.BARRIER);
+        ItemMeta cm=close.getItemMeta();cm.displayName(Colors.color("&#FF727F✘ Zamknij"));
+        close.setItemMeta(cm);inv.setItem(26,close);
         player.openInventory(inv);
     }
     public void open(Player player,EventType type){
@@ -179,6 +242,12 @@ public final class EventManager implements Listener,AutoCloseable {
             p.lore(lines);prize.setItemMeta(p);
         }
         inv.setItem(15,prize);
+        ItemStack challenge=new ItemStack(Material.WRITABLE_BOOK);
+        ItemMeta challengeMeta=challenge.getItemMeta();
+        challengeMeta.displayName(Colors.color("&#89E5B0✦ Wyzwania tego eventu"));
+        challengeMeta.lore(GuiTheme.lore("&#A8A8B7Trzy cele z nagrodami za postęp.",
+                "&#70D6E8» Kliknij, aby przejść do wyzwań."));
+        challenge.setItemMeta(challengeMeta);inv.setItem(13,challenge);
         ItemStack back=new ItemStack(Material.ARROW);
         ItemMeta bm=back.getItemMeta();
         bm.displayName(Colors.color("&#70D6E8← Wszystkie eventy"));
@@ -191,12 +260,25 @@ public final class EventManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void click(InventoryClickEvent event){
+        if(event.getView().getTopInventory().getHolder() instanceof ChallengeMenu){
+            event.setCancelled(true);
+            if(!(event.getWhoClicked() instanceof Player player))return;
+            if(event.getRawSlot()==22)
+                Bukkit.getScheduler().runTask(plugin,()->openHub(player));
+            else if(event.getRawSlot()==26)
+                Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
+            return;
+        }
         if(!(event.getView().getTopInventory().getHolder() instanceof Menu holder))return;
         event.setCancelled(true);
         if(!(event.getWhoClicked() instanceof Player player))return;
         if(holder.type==null){
             if(event.getRawSlot()==26){
                 Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
+                return;
+            }
+            if(event.getRawSlot()==24){
+                Bukkit.getScheduler().runTask(plugin,()->openChallenges(player));
                 return;
             }
             int[] slots={10,11,12,13,14,15,16,22};
@@ -209,13 +291,17 @@ public final class EventManager implements Listener,AutoCloseable {
         }
         if(event.getRawSlot()==18){
             Bukkit.getScheduler().runTask(plugin,()->openHub(player));
+        }else if(event.getRawSlot()==13){
+            Bukkit.getScheduler().runTask(plugin,()->openChallenges(player));
         }else if(event.getRawSlot()==22){
             Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
         }
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void drag(InventoryDragEvent event){
-        if(event.getView().getTopInventory().getHolder() instanceof Menu)event.setCancelled(true);
+        if(event.getView().getTopInventory().getHolder() instanceof Menu ||
+                event.getView().getTopInventory().getHolder() instanceof ChallengeMenu)
+            event.setCancelled(true);
     }
     /** Punkt za rzeczywiście ukończoną akcję. Zapis zbiorczy co kilka sekund. */
     private void challengeAction(Player player,EventType type){
