@@ -174,7 +174,7 @@ public final class EventManager implements Listener,AutoCloseable {
         if(!(event.getWhoClicked() instanceof Player player))return;
         if(holder.type==null){
             if(event.getRawSlot()==26){
-                Bukkit.getScheduler().runTask(plugin,player::closeInventory);
+                Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
                 return;
             }
             int[] slots={10,11,12,13,14,15,16,22};
@@ -188,7 +188,7 @@ public final class EventManager implements Listener,AutoCloseable {
         if(event.getRawSlot()==18){
             Bukkit.getScheduler().runTask(plugin,()->openHub(player));
         }else if(event.getRawSlot()==22){
-            Bukkit.getScheduler().runTask(plugin,player::closeInventory);
+            Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
         }
     }
     @EventHandler(priority=EventPriority.HIGHEST)
