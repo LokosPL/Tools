@@ -99,8 +99,10 @@ public final class ChatCommand implements BasicCommand {
                     String nick=target.getName();
                     UUID id=target.getUniqueId();
                     String finalReason=reason;
-                    save(sender,()->chats.silence(id,nick,until,finalReason),"Wyciszono gracza "+nick+".");
-                    Messages.error(target,"Zostałeś wyciszony. &7Powód: &f"+finalReason);
+                    save(sender,()->chats.silence(id,nick,until,finalReason),
+                            "Wyciszono gracza "+nick+".",
+                            ()->{if(target.isOnline())Messages.error(target,
+                                    "Zostałeś wyciszony. &7Powód: &f"+finalReason);});
                 }
                 case "odcisz" -> {
                     requireCount(args,2);
@@ -117,9 +119,12 @@ public final class ChatCommand implements BasicCommand {
                         Messages.unchanged(sender,"Ten gracz nie jest już wyciszony na czacie.");return;
                     }
                     var entry=match.get();
-                    save(sender,()->chats.unsilence(entry.uuid()),"Cofnięto wyciszenie "+entry.mute().name()+".");
-                    Player online=Bukkit.getPlayer(entry.uuid());
-                    if(online!=null)Messages.success(online,"Możesz ponownie pisać na czacie.");
+                    save(sender,()->chats.unsilence(entry.uuid()),
+                            "Cofnięto wyciszenie "+entry.mute().name()+".",
+                            ()->{
+                                Player online=Bukkit.getPlayer(entry.uuid());
+                                if(online!=null)Messages.success(online,"Możesz ponownie pisać na czacie.");
+                            });
                 }
                 case "wyciszeni" -> {
                     if(args.length>2){usage(sender);return;}
@@ -189,11 +194,17 @@ public final class ChatCommand implements BasicCommand {
     }
     private static void usage(CommandSender sender){CommandTextRegistry.help(sender,"chat");}
     private void save(CommandSender sender,Supplier<CompletableFuture<Void>> update,String success){
+        save(sender,update,success,()->{});
+    }
+    private void save(CommandSender sender,Supplier<CompletableFuture<Void>> update,
+                      String success,Runnable afterSuccess){
         update.get().whenComplete((v,error)->{
             if(!plugin.isEnabled())return;
             plugin.getServer().getScheduler().runTask(plugin,()->{
-                if(error==null)Messages.success(sender,success);
-                else {
+                if(error==null){
+                    Messages.success(sender,success);
+                    afterSuccess.run();
+                }else {
                     if(pl.lokos.tools.helpers.StateChanges.reportUnchanged(sender,error))return;
                     plugin.getLogger().warning("Nie zapisano czatu: "+error);
                     Messages.error(sender,"Zmiana działa w pamięci, lecz nie udało się zapisać ChatState.json.");
