@@ -89,7 +89,8 @@ public final class BorderManager implements Listener,AutoCloseable {
             double preexisting=world.getWorldBorder().getSize();
             if(preexisting<59999900d)diameter=Math.max(diameter,(int)Math.ceil(preexisting));
             long now=System.currentTimeMillis();
-            storage.update(old->old.started(world.getUID(),center.getX(),center.getZ(),diameter,now));
+            final int initialSize=diameter;
+            storage.update(old->old.started(world.getUID(),center.getX(),center.getZ(),initialSize,now));
             state=storage.get();
         }
         // Zachowaj całą mapę istniejących działek; nie zmniejszaj borderu przy aktualizacji.
