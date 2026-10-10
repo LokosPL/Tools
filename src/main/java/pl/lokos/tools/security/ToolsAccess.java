@@ -18,7 +18,8 @@ public final class ToolsAccess {
     public static boolean allowed(boolean op, RankSnapshot snapshot, UUID uuid,
                                   String node, boolean administrative) {
         if (op) return true;
-        if ("tools.spawn".equals(node) && !administrative) return true; // jawny operator Paper; źródło OP sprawdzane osobno
+        if (!administrative && ("tools.spawn".equals(node)
+                || "tools.lokalizacje".equals(node))) return true; // jawny operator Paper; źródło OP sprawdzane osobno
         if (snapshot==null || node==null || uuid==null) return false;
         RankSnapshot.Rank rank=snapshot.forPlayer(uuid);
         if (rank==null) return false; // brak wczytanej bazy = brak przywilejów

@@ -20,6 +20,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.NamespacedKey;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.config.CommandTextRegistry;
+import pl.lokos.tools.security.ToolsAccess;
 import pl.lokos.tools.manager.RegionManager;
 import pl.lokos.tools.region.*;
 
@@ -68,7 +69,7 @@ public final class RegionProtectionListener implements Listener {
     public void wand(PlayerInteractEvent e) {
         if (e.getClickedBlock()==null || !isWand(e.getItem())) return;
         Player player=e.getPlayer();
-        if (!player.hasPermission(adminPermission)) return;
+        if (!ToolsAccess.admin(player,regions.ranks(),adminPermission)) return;
         boolean first=e.getAction()==Action.LEFT_CLICK_BLOCK;
         boolean second=e.getAction()==Action.RIGHT_CLICK_BLOCK;
         if (!first && !second) return;

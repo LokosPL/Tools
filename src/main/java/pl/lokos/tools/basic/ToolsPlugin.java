@@ -253,7 +253,6 @@ public final class ToolsPlugin extends JavaPlugin {
         return config;
     }
 
-    public RankManager ranks() { return rankManager; }
     public MonitoringService monitoring() { return monitoring; }
     public ConfigRegistry configurations() {
         return configurations;

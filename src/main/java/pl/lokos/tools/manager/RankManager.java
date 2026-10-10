@@ -173,6 +173,10 @@ public final class RankManager {
         });
     }
     public CompletableFuture<Void> togglePermission(String name,String permission){
+        if ("gracz".equals(name) &&
+                !ToolsAccess.publicNode(permission))
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "Ranga Gracz może mieć wyłącznie uprawnienia publiczne."));
         return updateDefinitions(map->{
             RanksFile.RankEntry r=require(map,name);
             Set<String> perms=new HashSet<>(r.permissions());

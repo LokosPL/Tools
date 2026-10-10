@@ -34,7 +34,7 @@ import java.util.function.Supplier;
 public final class RegionCommand implements BasicCommand {
     private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("region");
     private static final List<String> ACTIONS=List.of("stworz","stwórz","edytuj","usun","lista",
-            "info","spawn","różdżka","rozdzka","podregion","ochrona","bypass","stan","pomoc");
+            "info","spawn","różdżka","rozdzka","podregion","ochrona","stan","pomoc");
     private final JavaPlugin plugin;
     private final RegionManager regions;
     private final RegionSelection selection;
@@ -69,7 +69,6 @@ public final class RegionCommand implements BasicCommand {
                 case "podregion" -> nested(sender,args);
                 case "ochrona" -> protection(sender,args);
                 case "spawn" -> spawn(sender,args);
-                case "bypass" -> bypass(sender,args);
                 case "stan" -> status(sender,args);
                 case "różdżka","rozdzka" -> wand(sender,args);
                 case "edytuj" -> edit(sender,args);
@@ -86,13 +85,6 @@ public final class RegionCommand implements BasicCommand {
         }
     }
 
-    private void bypass(CommandSender sender,String[] args) {
-        if(args.length!=1){failSyntax(sender,"Nie podawaj argumentów.","/region bypass");return;}
-        Player player=requirePlayer(sender);
-        boolean enabled=regions.toggleBypass(player);
-        display.info(sender,CommandTextRegistry.text("region",enabled?"bypassEnabled":"bypassDisabled"));
-    }
-
     private void status(CommandSender sender,String[] args) {
         if(args.length!=1){failSyntax(sender,"Nie podawaj argumentów.","/region stan");return;}
         Player player=requirePlayer(sender);
@@ -101,12 +93,10 @@ public final class RegionCommand implements BasicCommand {
         display.info(sender,"Wczytane: "+(state.ready()?"&aTak":"&cNie")
                 +" &8• &7Regionów: &a"+state.regions());
         display.info(sender,"Aktualny obszar: &f"+(state.region()==null?"poza regionem":state.region()));
-        display.info(sender,"Omijanie ochrony: "+(state.bypass()?"&cAKTYWNE":"&aWYŁĄCZONE"));
         if(state.region()!=null){
             display.info(sender,"Budowanie: "+(state.buildingAllowed()?"&aDozwolone":"&cZablokowane"));
             display.info(sender,"Niszczenie: "+(state.breakingAllowed()?"&aDozwolone":"&cZablokowane"));
         }
-        display.hint(sender,"Przełącz omijanie wyłącznie do testów: &a/region bypass");
     }
 
     private Player requirePlayer(CommandSender sender) {
