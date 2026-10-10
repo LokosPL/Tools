@@ -58,6 +58,7 @@ public final class ToolsPlugin extends JavaPlugin {
     private RankVisualManager rankVisuals;
     private RegionManager regionManager;
     private RegionTeleportManager regionTeleports;
+    private PlayerStatusBar statusBar;
     private RegionBorderPreview borderPreview;
     private InventoryRegistry inventories;
     private BukkitTask autosaveTask;
@@ -157,19 +158,21 @@ public final class ToolsPlugin extends JavaPlugin {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
             RegionSelection selection=new RegionSelection();
+            this.statusBar=services.register(PlayerStatusBar.class,new PlayerStatusBar(regionManager));
+            regionTeleports.setStatusBar(statusBar);
             this.borderPreview=new RegionBorderPreview(this);
             RegionMenuFactory menus=new RegionMenuFactory(regionManager,rankManager,menuKey,config.regions().teleportSeconds());
             new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey,configurations.commands(),regionTeleports);
             getServer().getPluginManager().registerEvents(
-                    new RegionProtectionListener(regionManager,selection,wandKey,configurations.commands().region().permission()),this);
+                    new RegionProtectionListener(regionManager,selection,wandKey,configurations.commands().region().permission(),statusBar),this);
             RegionPlayerListener playerRegions=new RegionPlayerListener(
-                    this,regionManager,regionTeleports,config.regions().barTitle());
+                    this,regionManager,regionTeleports,statusBar);
             getServer().getPluginManager().registerEvents(playerRegions,this);
             getServer().getPluginManager().registerEvents(
                     new RegionMenuListener(this,menus,regionManager,regionTeleports,borderPreview,configurations.commands().region().permission(),configurations.commands().lokalizacje().permission()),this);
             regionManager.start();
             getServer().getScheduler().runTaskTimer(this,
-                    monitoring.measured("regiony.actionbar", playerRegions::actionbar),20L,20L);
+                    monitoring.measured("regiony.actionbar", playerRegions::actionbar),5L,5L);
         }
 
         getServer().getPluginManager().registerEvents(

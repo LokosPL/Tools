@@ -34,7 +34,7 @@ public final class Messages {
         notifySound(to,true);
     }
     public static void unknown(CommandSender to) {
-        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7Nieznana komenda lub brak uprawnień.")));
+        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7Nieznana komenda.")));
         notifySound(to,false);
     }
     public static void error(CommandSender to,String value) {

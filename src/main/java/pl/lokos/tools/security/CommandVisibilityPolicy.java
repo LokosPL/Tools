@@ -1,0 +1,34 @@
+package pl.lokos.tools.security;
+
+import java.util.Locale;
+import java.util.Set;
+
+/** Odfiltrowanie technicznych /bukkit:* i wybranych administracyjnych vanilla. */
+public final class CommandVisibilityPolicy {
+    private static final Set<String> PRIVATE_ROOTS = Set.of(
+            "plugins","pl","about","version","ver","reload","rl",
+            "whitelist","bialalista","wl",
+            "op","deop","stop","save-all","save-on","save-off",
+            "ban","ban-ip","pardon","pardon-ip","banlist",
+            "debug","perf","datapack","function"
+    );
+    private CommandVisibilityPolicy() {}
+
+    public static boolean technical(String command) {
+        String name = command.toLowerCase(Locale.ROOT);
+        return name.startsWith("bukkit:") || name.startsWith("minecraft:")
+                || name.startsWith("paper:");
+    }
+
+    public static boolean nativeAdministrative(String command) {
+        String name = command.toLowerCase(Locale.ROOT);
+        if (name.startsWith("bukkit:") || name.startsWith("paper:")) return true;
+        if (name.startsWith("minecraft:"))
+            name = name.substring("minecraft:".length());
+        return PRIVATE_ROOTS.contains(name);
+    }
+
+    public static boolean hideFromUnprivileged(String command) {
+        return technical(command) || nativeAdministrative(command);
+    }
+}

@@ -22,6 +22,7 @@ import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.config.CommandTextRegistry;
 import pl.lokos.tools.security.ToolsAccess;
 import pl.lokos.tools.manager.RegionManager;
+import pl.lokos.tools.manager.PlayerStatusBar;
 import pl.lokos.tools.region.*;
 
 import java.util.List;
@@ -32,12 +33,15 @@ import java.util.UUID;
 public final class RegionProtectionListener implements Listener {
     private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("region");
     private final RegionManager regions;
+    private final PlayerStatusBar statusBar;
     private final RegionSelection selection;
     private final NamespacedKey wandKey;
     private final String adminPermission;
 
-    public RegionProtectionListener(RegionManager regions, RegionSelection selection, NamespacedKey wandKey,String adminPermission) {
+    public RegionProtectionListener(RegionManager regions, RegionSelection selection, NamespacedKey wandKey,
+                                   String adminPermission, PlayerStatusBar statusBar) {
         this.regions=regions;this.selection=selection;this.wandKey=wandKey;this.adminPermission=adminPermission;
+        this.statusBar=statusBar;
     }
 
     private boolean denies(Player player, Location loc, RegionFlag flag) {
@@ -55,8 +59,7 @@ public final class RegionProtectionListener implements Listener {
     }
     private void blocked(Player player) {
         // actionbar zamiast zalewania chatu przy kazdym uderzeniu.
-        player.sendActionBar(pl.lokos.tools.helpers.Colors.color(
-                CommandTextRegistry.text("region","protectedAction")));
+        statusBar.protectedArea(player);
     }
 
     public boolean isWand(ItemStack item) {
@@ -306,8 +309,7 @@ public final class RegionProtectionListener implements Listener {
         Region next=regions.at(e.getTo());
         if(next!=null && !regions.canEnter(e.getPlayer(),next)) {
             e.setCancelled(true);
-            e.getPlayer().sendActionBar(pl.lokos.tools.helpers.Colors.color(
-                    CommandTextRegistry.text("region","noEntry")));
+            statusBar.deniedEntry(e.getPlayer());
         }
     }
 

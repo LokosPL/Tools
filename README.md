@@ -1,3 +1,24 @@
+# Tools 1.9.1 — podpowiedzi uprawnień i stabilny action bar
+
+### Bezpieczeństwo
+- `/tools`, `/ranga`, `/region`, `/whitelist` i aliasy są ukrywane dla nieuprawnionych graczy.
+- `/minecraft:whitelist`, `/bukkit:about`, `/bukkit:plugins`, `/bukkit:help` oraz pozostałe techniczne komendy z prefiksami `bukkit:`, `minecraft:` i `paper:` nie są wyświetlane w podpowiedziach użytkownikom bez dostępu administratora.
+- Techniczne komendy administracyjne (`plugins`, `version`, `reload` itd.) są również blokowane przy ręcznym wpisaniu; wyświetla się krótki komunikat **Nieznana komenda.**
+- Komendy nadal sprawdzają realne rangi Tools na etapie wykonania i sugestii, a nie tylko `sender.hasPermission`. `/spawn` i `/lokalizacje` pozostają publiczne.
+- Uprawnienia nie należą do LuckPerms ani innego pluginu.
+
+### Wspólny action bar
+- Pasek statusu jest aktualizowany co 5 ticków z jednym źródłem (bez SQL w ticku): lokalizacja, aktualny poziom Minecraft i procent postępu XP.
+- Ostrzeżenie **Obszar chroniony** jest dołączane po prawej stronie przez około 2,35 s. Krótkie komunikaty teleportacji pojawiają się w tym samym obszarze, bez usuwania lokalizacji.
+- `/reload` wyświetla rezultat na czacie administratora. Nie zasłania paska wszystkich graczy i nie wymusza restartu Paper.
+- Zmiany obsługiwanych komunikatów ochrony można edytować w `commands/region.json`, np. `messages.protectedAction`.
+
+**Uwaga:** interfejs action bara współdzieli jeden kanał Minecrafta. Jeśli **inny plugin** stale wysyła swoje action bary, może on nadal nadpisywać wiadomości Tools. Ten patch synchronizuje nadawców należących do Tools.
+
+Weryfikacja: `mvn clean verify` Java 25, testy MariaDB/SQLite, `CommandVisibilityPolicyTest` i `PlayerStatusBarTest`. Ręcznie sprawdź wejście bez OP na rzeczywistym Paper oraz zaktualizuj serwer pełnym restartem po podmianie pliku JAR.
+
+---
+
 # Tools 1.9.0 — naprawa uprawnień, regiony i jednolite GUI
 
 **Bezpieczna aktualizacja:** wykonaj kopię `Ranks.json`, `Regions.json` i MySQL przed aktualizacją. Aktualizacja nie usuwa rang ani przypisań graczy.

@@ -22,6 +22,11 @@ public final class RegionTeleportManager {
     private final RankManager ranks;
     private final ToolsConfig.Regions settings;
     private final Map<UUID, Pending> pending=new HashMap<>();
+    private PlayerStatusBar statusBar;
+    public void setStatusBar(PlayerStatusBar statusBar) { this.statusBar=statusBar; }
+    private void notice(Player player,String message) {
+        if (statusBar!=null) statusBar.notice(player,message,1200);
+    }
 
     private record Pending(BukkitTask task, Location origin) {}
 
@@ -62,13 +67,12 @@ public final class RegionTeleportManager {
                 }
                 if(remaining==0) {
                     finish();
-                    player.sendActionBar(Colors.color("&aᴛᴇʟᴇᴘᴏʀᴛᴀᴄᴊᴀ &8» &7Trwa przenoszenie..."));
+                    notice(player,"&#86E6BCTeleportacja &8» &7Trwa przenoszenie…");
                     // Paper teleportAsync wczytuje chunk bez blokowania tickow.
                     teleportNow(player,name,target);
                     return;
                 }
-                player.sendActionBar(Colors.color("&a&lTELEPORTACJA &8» &7Do &a"+name+
-                        "&7 za &a"+remaining+" s &8| &7Nie ruszaj się"));
+                notice(player,"&#86E6BCTeleportacja: &7"+name+" &8• &#FFD166"+remaining+" s");
                 player.playSound(player.getLocation(),Sound.BLOCK_NOTE_BLOCK_HAT,0.4f,1.2f);
                 player.getWorld().spawnParticle(Particle.END_ROD,player.getLocation().add(0,0.15,0),8,0.4,0.12,0.4,0.025);
                 remaining--;
@@ -109,7 +113,7 @@ public final class RegionTeleportManager {
         if(previous!=null) {
             previous.task().cancel();
             if(notify && player.isOnline())
-                player.sendActionBar(Colors.color("&c&lTELEPORTACJA &8» &7Przerwano odliczanie."));
+                notice(player,"&#FF737F✘ &7Teleportacja przerwana");
         }
     }
 

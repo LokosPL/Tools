@@ -87,6 +87,7 @@ public final class WhitelistListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST)
     public void playerCommand(PlayerCommandPreprocessEvent event){
+        if(event.isCancelled()) return;
         String raw=event.getMessage();
         if(!raw.startsWith("/"))return;
         handleVanilla(event.getPlayer(),raw.substring(1),()->event.setCancelled(true));
@@ -102,13 +103,17 @@ public final class WhitelistListener implements Listener {
         String root=parts[0].toLowerCase(Locale.ROOT);
         if(root.equals("whitelist") || root.equals("minecraft:whitelist")){
             cancel.run();
+            if(!ToolsAccess.admin(sender,((ToolsPlugin)plugin).ranks(),"tools.whitelist.admin")) {
+                pl.lokos.tools.helpers.Messages.unknown(sender);
+                return;
+            }
             command.handle(sender,Arrays.copyOfRange(parts,1,parts.length));
             return;
         }
         if(root.equals("reload") || root.equals("minecraft:reload") || root.equals("bukkit:reload")){
             cancel.run();
             if(!ToolsAccess.admin(sender,((ToolsPlugin)plugin).ranks(),"tools.admin")){
-                display.error(sender,"Brak uprawnienia tools.admin.");return;
+                pl.lokos.tools.helpers.Messages.unknown(sender);return;
             }
             display.info(sender,"Sprawdzanie konfiguracji Tools w tle...");
             for(Player online:Bukkit.getOnlinePlayers())

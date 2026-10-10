@@ -101,6 +101,7 @@ public final class WhitelistCommand implements BasicCommand {
         });
     }
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args) {
+        if (!ToolsAccess.admin(source.getSender(),ranks.get(),permission())) return List.of();
         if (args.length==1) return prefix(List.of("włącz","wyłącz","dodaj","usuń","lista","gui"),args[0]);
         if (args.length==2) {
             if (Set.of("włącz","wlacz").contains(args[0].toLowerCase(Locale.ROOT)))

@@ -1,0 +1,18 @@
+package pl.lokos.tools.security;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class CommandVisibilityPolicyTest {
+    @Test void technicalNamespacedCommandsStayInvisibleToOrdinaryPlayers() {
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("bukkit:about"));
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("bukkit:plugins"));
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("minecraft:whitelist"));
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("bukkit:help"));
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("plugins"));
+        assertTrue(CommandVisibilityPolicy.hideFromUnprivileged("reload"));
+        assertFalse(CommandVisibilityPolicy.nativeAdministrative("spawn"));
+        assertFalse(CommandVisibilityPolicy.nativeAdministrative("lokalizacje"));
+        assertFalse(CommandVisibilityPolicy.nativeAdministrative("minecraft:msg"));
+    }
+}

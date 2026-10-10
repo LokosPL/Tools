@@ -440,6 +440,7 @@ public final class RankCommand implements BasicCommand {
 
     @Override
     public Collection<String> suggest(CommandSourceStack source, String[] args) {
+        if (!ToolsAccess.admin(source.getSender(),ranks,commandPermission)) return List.of();
         if (args.length == 0) return ACTIONS;
         if (args.length == 1) return filter(ACTIONS, args[0]);
         String action = args[0].toLowerCase(Locale.ROOT);

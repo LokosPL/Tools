@@ -10,6 +10,7 @@ import pl.lokos.tools.config.CommandsFile;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.security.ToolsAccess;
+import pl.lokos.tools.security.CommandVisibilityPolicy;
 
 import java.util.*;
 
@@ -28,9 +29,13 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"ranga",config.ranga());
         register(nodes,"region",config.region());
         register(nodes,"lokalizacje",config.lokalizacje());
+        // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
+        for(String name:List.of("whitelist","bialalista","wl",
+                "minecraft:whitelist","tools:whitelist","tools:bialalista","tools:wl"))
+            nodes.put(name,"tools.whitelist.admin");
         this.rootPermissions=Map.copyOf(nodes);
         this.adminNodes=Set.of(config.tools().permission(),config.ranga().permission(),
-                config.region().permission());
+                config.region().permission(),"tools.whitelist.admin");
         this.ranks=ranks;
     }
 
@@ -58,9 +63,15 @@ public final class ToolsCommandVisibilityListener implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST)
     public void send(PlayerCommandSendEvent event){
         Player player=event.getPlayer();
+        boolean technicalAdmin=ToolsAccess.admin(player,ranks,"tools.admin");
         event.getCommands().removeIf(command -> {
-            String required=rootPermissions.get(command.toLowerCase(Locale.ROOT));
-            return required!=null && !canUse(player,required);
+            String root=command.toLowerCase(Locale.ROOT);
+            String required=rootPermissions.get(root);
+            // Wszystkie nazwy przestrzeni technicznej Bukkit/Minecraft ukrywamy
+            // zwykłym graczom, także bez prefiksu /.
+            if(!technicalAdmin && CommandVisibilityPolicy.technical(root))return true;
+            if(required!=null)return !canUse(player,required);
+            return !technicalAdmin && CommandVisibilityPolicy.nativeAdministrative(root);
         });
     }
 
@@ -70,8 +81,13 @@ public final class ToolsCommandVisibilityListener implements Listener {
         if(raw==null || !raw.startsWith("/"))return;
         String command=raw.substring(1).split("\\s+",2)[0].toLowerCase(Locale.ROOT);
         String required=rootPermissions.get(command);
-        if(required==null || canUse(event.getPlayer(),required))return;
+        Player player=event.getPlayer();
+        boolean forbidden;
+        if(required!=null)forbidden=!canUse(player,required);
+        else forbidden=CommandVisibilityPolicy.nativeAdministrative(command)
+                && !ToolsAccess.admin(player,ranks,"tools.admin");
+        if(!forbidden)return;
         event.setCancelled(true);
-        Messages.unknown(event.getPlayer());
+        Messages.unknown(player);
     }
 }

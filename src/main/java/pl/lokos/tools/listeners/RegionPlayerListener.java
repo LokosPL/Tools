@@ -14,6 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.manager.RegionManager;
 import pl.lokos.tools.manager.RegionTeleportManager;
+import pl.lokos.tools.manager.PlayerStatusBar;
 import pl.lokos.tools.region.Region;
 
 /** Pierwsze wejscie, respawn i actionbar aktualnego podregionu. */
@@ -21,10 +22,10 @@ public final class RegionPlayerListener implements Listener {
     private final JavaPlugin plugin;
     private final RegionManager regions;
     private final RegionTeleportManager teleports;
-    private final String title;
+    private final PlayerStatusBar statusBar;
 
-    public RegionPlayerListener(JavaPlugin plugin,RegionManager regions,RegionTeleportManager teleports,String title) {
-        this.plugin=plugin;this.regions=regions;this.teleports=teleports;this.title=title;
+    public RegionPlayerListener(JavaPlugin plugin,RegionManager regions,RegionTeleportManager teleports,PlayerStatusBar statusBar) {
+        this.plugin=plugin;this.regions=regions;this.teleports=teleports;this.statusBar=statusBar;
     }
 
     @EventHandler(priority=EventPriority.MONITOR)
@@ -51,7 +52,10 @@ public final class RegionPlayerListener implements Listener {
     }
 
     @EventHandler
-    public void quit(PlayerQuitEvent e) {teleports.cancel(e.getPlayer(),false);}
+    public void quit(PlayerQuitEvent e) {
+        teleports.cancel(e.getPlayer(),false);
+        statusBar.remove(e.getPlayer().getUniqueId());
+    }
 
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void hurt(EntityDamageEvent e) {
@@ -59,18 +63,6 @@ public final class RegionPlayerListener implements Listener {
     }
 
     public void actionbar() {
-        if(!regions.ready())return;
-        for(Player player:Bukkit.getOnlinePlayers()) {
-            if(teleports.busy(player)) continue;
-            Region r=regions.visibleAt(player.getLocation());
-            if(r!=null) {
-                String parent=r.parent();
-                String path=parent==null?"&a"+r.name()
-                        :"&a"+parent+" &8→ &a"+r.name();
-                if(regions.inHalo(player.getLocation()))
-                    path="&a"+r.name()+" &8→ &7strefa ochronna";
-                player.sendActionBar(Colors.color(title+path));
-            }
-        }
+        statusBar.tick();
     }
 }
