@@ -35,11 +35,15 @@ public final class CommandsFile {
     private Entry region=new Entry(true,"Zarządzanie regionami",List.of(),"tools.region.admin");
     private Entry lokalizacje=new Entry(true,"Teleportacja do lokalizacji",List.of("lokacje"),"tools.lokalizacje");
     private Entry chat=new Entry(true,"Zarządzanie czatem",List.of("czat"),"tools.chat.admin");
+    private Entry msg=new Entry(true,"Prywatne wiadomości",List.of("tell","w"),"tools.msg.use");
+    private Entry reply=new Entry(true,"Odpowiedź na prywatną wiadomość",List.of("r","replay"),"tools.msg.use");
     public Entry tools(){return tools;}
     public Entry ranga(){return ranga;}
     public Entry region(){return region;}
     public Entry lokalizacje(){return lokalizacje;}
     public Entry chat(){return chat;}
+    public Entry msg(){return msg;}
+    public Entry reply(){return reply;}
     public void validate(){
         if(serverName==null||serverName.isBlank()||serverName.length()>32)
             throw new IllegalArgumentException("serverName powinno mieć 1-32 znaki");
@@ -49,8 +53,10 @@ public final class CommandsFile {
         tools.validate("tools");ranga.validate("ranga");region.validate("region");lokalizacje.validate("lokalizacje");
         if(chat==null)throw new IllegalArgumentException("Brakuje Commands.chat");
         chat.validate("chat");
-        Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat"));
-        for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat))for(String alias:entry.aliases()){
+        if(msg==null || reply==null)throw new IllegalArgumentException("Brak konfiguracji msg/reply.");
+        msg.validate("msg");reply.validate("reply");
+        Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply"));
+        for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))
                 throw new IllegalArgumentException("Powtórzony alias komendy: "+alias);
         }

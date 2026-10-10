@@ -34,6 +34,15 @@ public final class ToolsPermissionCatalog {
         add(list,"tools.whitelist.admin","Zarządzanie whitelistą",
                 "Panel i komendy whitelisty.",
                 "Włączanie trybów przerwy, dodawanie i usuwanie graczy.");
+        add(list,"tools.msg.staff","Wiadomości do administracji",
+                "Umożliwia pisanie prywatnych wiadomości do chronionej administracji.",
+                "Bez tej permisji zwykli gracze mogą wysyłać MSG tylko do niechronionych odbiorców.");
+        add(list,"tools.msg.protected","Chroniona skrzynka MSG",
+                "Blokuje prywatne wiadomości od graczy bez tools.msg.staff.",
+                "Rangi administracyjne są chronione automatycznie, nawet bez tego uprawnienia.");
+        add(list,"tools.msg.bypass.cooldown","Bez limitu MSG",
+                "Omija odstęp czasowy pomiędzy prywatnymi wiadomościami.",
+                "Nie omija wyciszenia ani wyłączenia prywatnych wiadomości.");
         add(list,commands.chat().permission(),"Zarządzanie czatem",
                 "Zmiana stanu czatu, czyszczenie, wyciszenia i dostęp rang.",
                 "Komenda /chat z pełną kontrolą moderacji.");

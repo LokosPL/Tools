@@ -30,6 +30,8 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"region",config.region());
         register(nodes,"lokalizacje",config.lokalizacje());
         register(nodes,"chat",config.chat());
+        register(nodes,"msg",config.msg());
+        register(nodes,"reply",config.reply());
         nodes.put("spawn", "tools.spawn");
         nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
@@ -60,6 +62,8 @@ public final class ToolsCommandVisibilityListener implements Listener {
     }
 
     private boolean canUse(Player player,String permission){
+        // MSG jest publiczne domyślnie, a odrębne uprawnienia Tools chronią administrację.
+        if("tools.msg.use".equals(permission))return player.hasPermission(permission);
         return ToolsAccess.allowed(player,ranks,permission,adminNodes.contains(permission));
     }
 

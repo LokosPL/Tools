@@ -14,6 +14,12 @@ class ToolsCommandVisibilityListenerTest {
         assertEquals("tools.region.admin",perms.get("tools:region"));
         assertEquals("tools.lokalizacje",perms.get("lokalizacje"));
         assertEquals("tools.lokalizacje",perms.get("lokacje"));
+        assertEquals("tools.msg.use",perms.get("msg"));
+        assertEquals("tools.msg.use",perms.get("tell"));
+        assertEquals("tools.msg.use",perms.get("w"));
+        assertEquals("tools.msg.use",perms.get("reply"));
+        assertEquals("tools.msg.use",perms.get("r"));
+        assertEquals("tools.msg.use",perms.get("replay"));
         assertEquals("tools.chat.admin",perms.get("chat"));
         assertEquals("tools.chat.admin",perms.get("czat"));
         assertEquals("tools.chat.admin",perms.get("tools:chat"));

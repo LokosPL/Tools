@@ -13,7 +13,8 @@ class ToolsPermissionCatalogTest {
                         "tools.region.admin","tools.spawn",
                         "tools.ranga.admin","tools.admin","tools.whitelist.admin","*",
                         "tools.chat.admin","tools.chat.bypass.slow",
-                        "tools.chat.bypass.lock","tools.chat.bypass.mute"),
+                        "tools.chat.bypass.lock","tools.chat.bypass.mute",
+                        "tools.msg.staff","tools.msg.protected","tools.msg.bypass.cooldown"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));
         assertFalse(catalog.isManaged("minecraft.command.help"));

@@ -50,6 +50,8 @@ import pl.lokos.tools.config.HotReloadService;
 import pl.lokos.tools.tasks.AutosaveTask;
 import pl.lokos.tools.chat.ChatManager;
 import pl.lokos.tools.chat.ChatListener;
+import pl.lokos.tools.msg.PrivateMessageManager;
+import pl.lokos.tools.msg.PrivateMessageListener;
 import pl.lokos.tools.listeners.UnknownCommandListener;
 
 import java.io.IOException;
@@ -75,6 +77,7 @@ public final class ToolsPlugin extends JavaPlugin {
     private RankListener rankListener;
     private WhitelistService whitelistService;
     private ChatManager chatManager;
+    private PrivateMessageManager privateMessages;
     private WhitelistCommand pendingWhitelistCommand;
     private WhitelistMenu pendingWhitelistMenu;
 
@@ -165,13 +168,22 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        try {
+            privateMessages=services.register(PrivateMessageManager.class,
+                    new PrivateMessageManager(this,getDataFolder().toPath()));
+        } catch(IOException error){
+            getLogger().severe("Nie można uruchomić prywatnych wiadomości: "+error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        getServer().getPluginManager().registerEvents(new PrivateMessageListener(privateMessages),this);
         chatManager.refreshOperators();
         getServer().getPluginManager().registerEvents(new ChatListener(this,chatManager),this);
         getServer().getPluginManager().registerEvents(new UnknownCommandListener(),this);
         getServer().getScheduler().runTaskTimer(this,
                 monitoring.measured("chat.wiadomosci",chatManager::tick),20L,20L);
         new CommandRegistry(this).register(configurations.commands(), database,
-                repository, playerData, rankManager, rankMenus, monitoring, reloadService, chatManager);
+                repository, playerData, rankManager, rankMenus, monitoring, reloadService, chatManager,privateMessages);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
@@ -253,6 +265,7 @@ public final class ToolsPlugin extends JavaPlugin {
             database.shutdown(pending);
         }
         if (chatManager != null) chatManager.close();
+        if (privateMessages != null) privateMessages.close();
         if (services != null) services.close();
         getLogger().info("Tools został wyłączony.");
     }

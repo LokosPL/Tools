@@ -126,7 +126,8 @@ public final class HotReloadService implements AutoCloseable {
     private static boolean sameCommands(CommandsFile a, CommandsFile b) {
         return same(a.tools(), b.tools()) && same(a.ranga(), b.ranga())
                 && same(a.region(), b.region()) && same(a.lokalizacje(), b.lokalizacje())
-                && same(a.chat(), b.chat());
+                && same(a.chat(), b.chat())
+                && same(a.msg(), b.msg()) && same(a.reply(), b.reply());
     }
 
     private static boolean same(CommandsFile.Entry a, CommandsFile.Entry b) {

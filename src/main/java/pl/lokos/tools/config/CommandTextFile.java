@@ -39,7 +39,7 @@ public final class CommandTextFile {
                 throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
         }
     }
-    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat");}
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply");}
 
     public static CommandTextFile defaults(String name){
         CommandTextFile file=switch(name){
@@ -112,6 +112,21 @@ public final class CommandTextFile {
                             "noRank","&7Nie znaleziono takiej rangi.",
                             "muted","&7Wyciszono &f{nick}&7.",
                             "unmuted","&7Cofnięto wyciszenie &f{nick}&7."));
+            case "msg" -> new CommandTextFile("PRYWATNE WIADOMOŚCI",List.of(
+                    "&#70D6E8/msg &7<nick> <wiadomość>",
+                    "&#70D6E8/msg wlacz &8• &7Włącz własne wiadomości prywatne",
+                    "&#70D6E8/msg wylacz &8• &7Wyłącz wysyłanie i odbieranie wiadomości",
+                    "&#70D6E8/msg wycisz &7<nick> &8• &7Ignoruj wiadomości tej osoby",
+                    "&#70D6E8/msg odcisz &7<nick> &8• &7Przestań ignorować",
+                    "&#70D6E8/msg wyciszeni &8• &7Lista ignorowanych",
+                    "&#70D6E8/r &7<wiadomość> &8• &7Odpowiedz rozmówcy"),
+                    Map.of("self","Nie możesz pisać do siebie.",
+                            "offline","Ten gracz nie jest online.",
+                            "disabled","Odbiorca ma wyłączone prywatne wiadomości."));
+            case "reply" -> new CommandTextFile("ODPOWIEDŹ",List.of(
+                    "&#70D6E8/reply &7<wiadomość> &8• &7Odpowiedz ostatniemu rozmówcy",
+                    "&#70D6E8/r &7<wiadomość> &8• &7Skrót do /reply"),
+                    Map.of("noPartner","Brak dostępnego rozmówcy."));
             case "whitelist" -> new CommandTextFile("WHITELIST",List.of(
                     "&#73D6C1/whitelist &8— &7Otwórz panel",
                     "&#73D6C1/whitelist włącz &7<prace_techniczne|chwilowa_przerwa|nowa_edycja|aktualizacja>",
