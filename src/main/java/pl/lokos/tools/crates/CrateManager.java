@@ -1,6 +1,7 @@
 package pl.lokos.tools.crates;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.*;
@@ -24,6 +25,7 @@ import pl.lokos.tools.events.StateFile;
 import pl.lokos.tools.helpers.*;
 import pl.lokos.tools.items.SpecialItemService;
 import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.manager.BossBarHub;
 import pl.lokos.tools.manager.RegionManager;
 import pl.lokos.tools.region.Region;
 import pl.lokos.tools.security.ToolsAccess;
@@ -59,6 +61,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     private final RegionManager regions;
     private final SpecialItemService items;
     private final EventManager events;
+    private final BossBarHub bossBars;
     private final CratesConfig config;
     private final StateFile<CratesState> storage;
     private final NamespacedKey keyType;
@@ -66,12 +69,16 @@ public final class CrateManager implements Listener,AutoCloseable {
     private final Map<String,TextDisplay> displays=new HashMap<>();
     private final Map<String,String> lastLabel=new HashMap<>();
     private final CrateActivityWindow activity=new CrateActivityWindow();
+    private final AfkStayTracker afkStay=new AfkStayTracker();
+    private final Map<UUID,BossBar> afkBars=new HashMap<>();
     private final Map<UUID,Long> lastOpened=new HashMap<>();
     private long ticks;
 
     public CrateManager(JavaPlugin plugin,RankManager ranks,RegionManager regions,
-                        SpecialItemService items,EventManager events,Path folder) throws IOException{
+                        SpecialItemService items,EventManager events,BossBarHub bossBars,
+                        Path folder) throws IOException{
         this.plugin=plugin;this.ranks=ranks;this.regions=regions;this.items=items;this.events=events;
+        this.bossBars=bossBars;
         config=new JsonConfigManager(folder).load("Crates.json",CratesConfig.class,
                 CratesConfig::new,CratesConfig::validate);
         storage=new StateFile<>(folder,"CratesState.json",CratesState.class,
@@ -138,9 +145,17 @@ public final class CrateManager implements Listener,AutoCloseable {
         Messages.title(player,"TWOJE KLUCZE");
         for(CrateType type:CrateType.values())
             Messages.info(player,"&#70D6E8"+type.title()+" &#A8A8B7» &#FFD166"+keyCount(player,type));
-        Messages.info(player,"&#A8A8B7Postęp AFK: &#FFD166"+
-                state().afkMinutes().getOrDefault(player.getUniqueId().toString(),0)
-                +"/"+config.afkKeyMinutes()+" minut.");
+        int saved=state().afkMinutes().getOrDefault(player.getUniqueId().toString(),0);
+        long stay=afkStay.seconds(player.getUniqueId());
+        int remaining=AfkStayTracker.remainingSeconds(saved,stay,config.afkKeyMinutes());
+        int nextKeys=AfkStayTracker.rewardKeys(stay+remaining,config.afkKeyMinutes(),
+                config.afkBonusEveryMinutes(),config.afkMaxKeysPerReward());
+        Messages.info(player,"&#A8A8B7Postęp AFK: &#FFD166"+saved
+                +"/"+config.afkKeyMinutes()+" minut");
+        Messages.info(player,"&#A8A8B7Kolejny klucz za: &#FFD166"+
+                AfkStayTracker.countdown(remaining)+" &#A8A8B7│ nagroda: &#89E5B0"
+                +nextKeys+"x AFK");
+        Messages.info(player,"&#A8A8B7Ciągły pobyt w strefie: &#FFD166"+(stay/60)+" minut.");
     }
     /** Panel publiczny wyświetla nagrody, ale nie otwiera skrzyń na odległość. */
     public void browseMenu(Player player){
@@ -558,40 +573,44 @@ public final class CrateManager implements Listener,AutoCloseable {
         else if(roll<config.specialKeyChanceFromHostileMob()+config.ordinaryKeyChanceFromHostileMob())
             giveKey(player,CrateType.ZWYKLA,1);
     }
-    /** Wyłącznie region o nazwie afk, bez dopasowywania nazw częściowych. */
+    /** Strefa o dokładnej nazwie afk, również jeśli zawiera inne podregiony. */
     private boolean inAfkRegion(Location location){
-        if(regions==null||!regions.ready()||location==null)return false;
-        // Sprawdzamy wskazany region AFK, nie region o największym priorytecie.
-        // Dzięki temu podregiony nie zatrzymują naliczania wewnątrz strefy AFK.
-        for(Region region:regions.index().all().values())
-            if("afk".equalsIgnoreCase(region.name()))
-                return region.contains(location.getWorld().getUID(),
-                        location.getBlockX(),location.getBlockZ());
-        return false;
+        if(regions==null||!regions.ready()||location==null||location.getWorld()==null)return false;
+        return AfkRegionPolicy.contains(regions.index(),location.getWorld().getUID(),
+                location.getBlockX(),location.getBlockZ());
     }
-    /** Zapis aktywności bez SQL i bez interakcji z wątkiem I/O. */
+
+    private void leaveAfk(UUID uuid){
+        afkStay.leave(uuid);
+        if(afkBars.remove(uuid)!=null)bossBars.afk(uuid,null);
+    }
+
     @EventHandler(priority=EventPriority.MONITOR)
     public void activityJoin(PlayerJoinEvent event){
         activity.remove(event.getPlayer().getUniqueId());
+        leaveAfk(event.getPlayer().getUniqueId());
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void activityQuit(PlayerQuitEvent event){
-        activity.remove(event.getPlayer().getUniqueId());
-        lastOpened.remove(event.getPlayer().getUniqueId());
+        UUID uuid=event.getPlayer().getUniqueId();
+        activity.remove(uuid);
+        leaveAfk(uuid);
+        lastOpened.remove(uuid);
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void activityMove(PlayerMoveEvent event){
         Location to=event.getTo(),from=event.getFrom();
-        if(to==null||event.getPlayer().isInsideVehicle())return;
+        if(to==null)return;
         if(!inAfkRegion(to)){
             activity.remove(event.getPlayer().getUniqueId());
+            leaveAfk(event.getPlayer().getUniqueId());
             return;
         }
-        // Obrót głowy, kamera w bezruchu i przejazd wagonikiem nie liczą się.
+        if(event.getPlayer().isInsideVehicle())return;
+        // Kamera w bezruchu nie jest aktywnością; można ją opcjonalnie wymagać.
         if(from.getBlockX()==to.getBlockX()&&from.getBlockY()==to.getBlockY()
                 && from.getBlockZ()==to.getBlockZ())return;
-        if(inAfkRegion(event.getPlayer().getLocation()))
-            activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void activityInteract(PlayerInteractEvent event){
@@ -609,39 +628,103 @@ public final class CrateManager implements Listener,AutoCloseable {
             activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
     }
 
+    /** Jeden pasek na gracza, bez nadpisywania bossbara eventów i ActionBara regionów. */
+    private void showAfkBar(Player player,int progressMinutes){
+        if(!config.afkBossbarEnabled())return;
+        UUID uuid=player.getUniqueId();
+        BossBar bar=afkBars.get(uuid);
+        if(bar==null){
+            bar=BossBar.bossBar(Component.empty(),0f,
+                    BossBar.Color.BLUE,BossBar.Overlay.PROGRESS);
+            afkBars.put(uuid,bar);
+            bossBars.afk(uuid,bar);
+        }
+        long stay=afkStay.seconds(uuid);
+        int remaining=AfkStayTracker.remainingSeconds(progressMinutes,stay,config.afkKeyMinutes());
+        int nextKeys=AfkStayTracker.rewardKeys(stay+remaining,config.afkKeyMinutes(),
+                config.afkBonusEveryMinutes(),config.afkMaxKeysPerReward());
+        String title=config.afkBossbar()
+                .replace("{time}",AfkStayTracker.countdown(remaining))
+                .replace("{streak}",Long.toString(stay/60))
+                .replace("{keys}",Integer.toString(nextKeys));
+        bar.name(Colors.color(title));
+        float total=config.afkKeyMinutes()*60f;
+        bar.progress(Math.max(0f,Math.min(1f,1f-remaining/total)));
+    }
+
     public void tick(){
-        if(!config.enabled())return;
+        if(!config.enabled()){
+            for(UUID uuid:new ArrayList<>(afkBars.keySet()))leaveAfk(uuid);
+            afkStay.clear();
+            return;
+        }
         ticks++;
-        if(ticks%60==0){
-            Map<String,Integer> count=new HashMap<>(storage.get().afkMinutes());
-            long now=System.currentTimeMillis();
-            for(Player player:Bukkit.getOnlinePlayers()){
-                if(!inAfkRegion(player.getLocation())){
-                    activity.remove(player.getUniqueId());
-                    continue;
-                }
-                if(!activity.recentlyActive(player.getUniqueId(),now,
-                        config.afkActivityWindowMinutes()))continue;
-                String id=player.getUniqueId().toString();
-                int next=count.getOrDefault(id,0)+1;
-                if(next>=config.afkKeyMinutes()){
-                    count.put(id,0);
-                    giveKey(player,CrateType.AFK,1);
-                    Messages.info(player,"&#70D6E8✦ Nagroda za aktywność: klucz AFK.");
-                }else count.put(id,next);
+        // Naliczanie odbywa się tylko w realnie wykonanych tickach Paper.
+        // Samo stanie w miejscu liczy się domyślnie jako pobyt w AFK.
+        Map<String,Integer> progress=new HashMap<>(storage.get().afkMinutes());
+        Map<UUID,Integer> earned=new LinkedHashMap<>();
+        boolean changed=false;
+        long now=System.currentTimeMillis();
+        for(Player player:Bukkit.getOnlinePlayers()){
+            UUID uuid=player.getUniqueId();
+            boolean eligible=inAfkRegion(player.getLocation());
+            if(eligible&&config.afkRequireActivity()){
+                eligible=activity.recentlyActive(uuid,now,config.afkActivityWindowMinutes());
             }
-            storage.update(old->old.withAfk(count));
+            if(!eligible){
+                leaveAfk(uuid);
+                continue;
+            }
+            if(afkStay.tick(uuid)){
+                String id=uuid.toString();
+                int next=progress.getOrDefault(id,0)+1;
+                if(next>=config.afkKeyMinutes()){
+                    progress.put(id,0);
+                    earned.put(uuid,AfkStayTracker.rewardKeys(afkStay.seconds(uuid),
+                            config.afkKeyMinutes(),config.afkBonusEveryMinutes(),
+                            config.afkMaxKeysPerReward()));
+                }else progress.put(id,next);
+                changed=true;
+            }
+            showAfkBar(player,progress.getOrDefault(uuid.toString(),0));
+        }
+        if(changed){
+            storage.update(old->old.withAfk(progress)).whenComplete((ignored,error)->{
+                if(!plugin.isEnabled())return;
+                Bukkit.getScheduler().runTask(plugin,()->{
+                    if(error!=null){
+                        plugin.getLogger().severe("Nie zapisano postępu AFK: "+error);
+                        for(UUID uuid:earned.keySet()){
+                            Player player=Bukkit.getPlayer(uuid);
+                            if(player!=null)
+                                Messages.error(player,"Nie zapisano nagrody AFK. Powiadom administrację.");
+                        }
+                        return;
+                    }
+                    for(var reward:earned.entrySet()){
+                        Player player=Bukkit.getPlayer(reward.getKey());
+                        if(player==null||!player.isOnline()){
+                            plugin.getLogger().warning("Gracz "+reward.getKey()
+                                    +" wyszedł przed wydaniem "+reward.getValue()+" kluczy AFK.");
+                            continue;
+                        }
+                        giveKey(player,CrateType.AFK,reward.getValue());
+                        Messages.success(player,"Nagroda AFK: "+reward.getValue()+"x klucz!"
+                                +" &#A8A8B7Bonus za ciągły pobyt.");
+                    }
+                });
+            });
         }
         if(!config.particles()&&!config.holograms())return;
         for(CratesState.Position position:storage.get().crates()){
             UUID worldId=UUID.fromString(position.world());
             World world=Bukkit.getWorld(worldId);
             if(world==null||!world.isChunkLoaded(position.x()>>4,position.z()>>4))continue;
-            Block block=world.getBlockAt(position.x(),position.y(),position.z());
-            if(block.getType()!=Material.valueOf(position.kind().block()))continue;
+            Block crateBlock=world.getBlockAt(position.x(),position.y(),position.z());
+            if(crateBlock.getType()!=Material.valueOf(position.kind().block()))continue;
             if(config.holograms())hologram(position);
             if(config.particles()&&ticks%3==0){
-                Location loc=block.getLocation().add(0.5,1.05,0.5);
+                Location loc=crateBlock.getLocation().add(0.5,1.05,0.5);
                 if(world.getPlayers().stream().anyMatch(p->p.getLocation().distanceSquared(loc)<24*24))
                     world.spawnParticle(Particle.END_ROD,loc,3,0.28,0.2,0.28,0.002);
             }
@@ -682,6 +765,8 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
     @Override public void close(){
         for(TextDisplay display:displays.values())display.remove();
-        displays.clear();lastLabel.clear();activity.clear();lastOpened.clear();storage.close();
+        displays.clear();lastLabel.clear();activity.clear();lastOpened.clear();
+        for(UUID uuid:new ArrayList<>(afkBars.keySet()))leaveAfk(uuid);
+        afkStay.clear();storage.close();
     }
 }
