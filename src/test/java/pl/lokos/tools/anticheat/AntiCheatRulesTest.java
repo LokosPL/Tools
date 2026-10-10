@@ -18,6 +18,17 @@ class AntiCheatRulesTest {
         limiter.cleanup(13000);
         assertEquals(0,limiter.size());
     }
+    @Test void mapPressureDoesNotResetAnActiveAbuseCounter(){
+        var limiter=new RateWindow<String>(5000,2);
+        assertFalse(limiter.exceeded("abuser",1,10000));
+        assertTrue(limiter.exceeded("abuser",1,10001));
+        assertFalse(limiter.exceeded("other",1,10002));
+        // Dostęp do "abuser" odświeża kolejność LRU bez resetowania licznika.
+        assertTrue(limiter.exceeded("abuser",1,10003));
+        assertFalse(limiter.exceeded("third",1,10004));
+        assertTrue(limiter.exceeded("abuser",1,10005));
+        assertEquals(2,limiter.size());
+    }
     @Test void opStatusNotInStateOrDetectionConfiguration(){
         var json=new com.google.gson.Gson();
         var defaults=json.fromJson("{}",AntiCheatConfig.class);
