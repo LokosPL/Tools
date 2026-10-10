@@ -25,6 +25,9 @@ import pl.lokos.tools.helpers.GuiTheme;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.items.SpecialItemService;
 import pl.lokos.tools.manager.BossBarHub;
+import pl.lokos.tools.manager.RegionManager;
+import pl.lokos.tools.region.Region;
+import pl.lokos.tools.region.RegionFlag;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -46,15 +49,16 @@ public final class EventManager implements Listener,AutoCloseable {
     private final StateFile<EventState> storage;
     private final SpecialItemService items;
     private final BossBarHub bars;
+    private final RegionManager regions;
     private final NamespacedKey tokenKey;
-    private final Map<String,Long> lastPvpKill=new HashMap<>();
     private final Map<String,Long> recentlyPlaced=new LinkedHashMap<>();
     private CrateManager crates;
     private BossBar bar;
     private int visualsCounter;
 
-    public EventManager(JavaPlugin plugin,Path folder,SpecialItemService items,BossBarHub bars) throws IOException{
-        this.plugin=plugin;this.items=items;this.bars=bars;
+    public EventManager(JavaPlugin plugin,Path folder,SpecialItemService items,
+                        BossBarHub bars,RegionManager regions) throws IOException{
+        this.plugin=plugin;this.items=items;this.bars=bars;this.regions=regions;
         config=new JsonConfigManager(folder).load("Events.json",EventConfig.class,
                 EventConfig::new,EventConfig::validate);
         storage=new StateFile<>(folder,"EventState.json",EventState.class,EventState::new,EventState::validate);
@@ -212,16 +216,29 @@ public final class EventManager implements Listener,AutoCloseable {
         Player killer=event.getEntity().getKiller();
         if(killer!=null)reward(killer,type);
     }
+    /** Nie punktuj walki na spawnie ani w regionie z zakazem PvP. */
+    private boolean protectedPvP(Location loc){
+        if(regions==null||!regions.ready())return true; // brak wczytanych regionów = brak nagród
+        Region spawn=regions.mainSpawn();
+        if(spawn!=null && spawn.contains(loc.getWorld().getUID(),loc.getBlockX(),loc.getBlockZ()))
+            return true;
+        return regions.protectedLocation(loc,RegionFlag.PVP);
+    }
     @EventHandler(priority=EventPriority.MONITOR)
     public void playerDeath(PlayerDeathEvent event){
         if(active()!=EventType.ZABOJSTWA)return;
         Player victim=event.getEntity(),killer=victim.getKiller();
-        if(killer==null||killer.equals(victim)||
-                killer.getGameMode()==GameMode.CREATIVE||killer.getGameMode()==GameMode.SPECTATOR)return;
+        if(killer==null)return;
+        if(!PvPKillPolicy.eligible(killer.getUniqueId(),victim.getUniqueId(),
+                killer.getGameMode()==GameMode.SURVIVAL,
+                victim.getGameMode()==GameMode.SURVIVAL,
+                protectedPvP(killer.getLocation()),protectedPvP(victim.getLocation())))return;
         long now=System.currentTimeMillis();
-        String pair=killer.getUniqueId()+":"+victim.getUniqueId();
-        if(now-lastPvpKill.getOrDefault(pair,0L)<config.minimumPvPKillIntervalSeconds()*1000L)return;
-        lastPvpKill.put(pair,now);
+        long interval=config.minimumPvPKillIntervalSeconds()*1000L;
+        if(!state().canRewardPvPKill(killer.getUniqueId(),victim.getUniqueId(),now,interval))return;
+        // Wpis antyfarmowy aktualizujemy przed losowaniem nagrody.
+        // Jeden asynchroniczny StateFile zapisuje też historię par po restarcie.
+        storage.update(old->old.withPvPKill(killer.getUniqueId(),victim.getUniqueId(),now,interval));
         reward(killer,EventType.ZABOJSTWA);
     }
     public void tick(){
@@ -244,11 +261,6 @@ public final class EventManager implements Listener,AutoCloseable {
                 player.spawnParticle(Particle.SNOWFLAKE,center,config.snowParticleCount(),
                         10,3,10,0.015);
             }
-        }
-        if(lastPvpKill.size()>5000){
-            long now=System.currentTimeMillis();
-            lastPvpKill.entrySet().removeIf(e->
-                    now-e.getValue()>config.minimumPvPKillIntervalSeconds()*1000L);
         }
         if(recentlyPlaced.size()>20000)recentlyPlaced.entrySet().removeIf(
                 e->System.currentTimeMillis()-e.getValue()>3600000L);
