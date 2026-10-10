@@ -54,8 +54,8 @@ public final class PrivateMessageManager implements AutoCloseable {
     public synchronized CompletableFuture<Void> disable(UUID uuid,boolean disable){
         return mutate(s->s.withDisabled(uuid,disable));
     }
-    public synchronized CompletableFuture<Void> ignore(UUID owner,UUID target,boolean ignored){
-        return mutate(s->s.withIgnore(owner,target,ignored));
+    public synchronized CompletableFuture<Void> ignore(UUID owner,UUID target,String name,boolean ignored){
+        return mutate(s->s.withIgnore(owner,target,name,ignored));
     }
     private synchronized CompletableFuture<Void> mutate(UnaryOperator<PrivateMessageState> modify){
         if(closing)return CompletableFuture.failedFuture(new IllegalStateException("Moduł MSG został wyłączony."));
