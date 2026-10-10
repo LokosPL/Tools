@@ -199,7 +199,7 @@ public final class StaffCommand implements BasicCommand {
         String text=String.join(" ",args).trim();
         if(text.isBlank()||text.length()>service.settings().helpopMaxLength())
             throw new IllegalArgumentException("Zgłoszenie musi mieć 1-"+service.settings().helpopMaxLength()+" znaków.");
-        List<Player> receivers=Bukkit.getOnlinePlayers().stream()
+        List<? extends Player> receivers=Bukkit.getOnlinePlayers().stream()
                 .filter(service::helpopStaff).toList();
         if(receivers.isEmpty()){
             Messages.error(sender,"Brak administracji online mogącej odebrać zgłoszenie.");return;
