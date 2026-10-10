@@ -53,6 +53,7 @@ public final class EventManager implements Listener,AutoCloseable {
     private final BossBarHub bars;
     private final RegionManager regions;
     private final NamespacedKey tokenKey;
+    private final MeteorShower meteors;
     private final Map<String,Long> recentlyPlaced=new LinkedHashMap<>();
     private CrateManager crates;
     private BossBar bar;
@@ -65,8 +66,18 @@ public final class EventManager implements Listener,AutoCloseable {
                 EventConfig::new,EventConfig::validate);
         storage=new StateFile<>(folder,"EventState.json",EventState.class,EventState::new,EventState::validate);
         tokenKey=new NamespacedKey(plugin,"event_token");
+        meteors=new MeteorShower(plugin,this,config,regions);
     }
     public void setCrates(CrateManager crates){this.crates=crates;}
+    public MeteorShower meteors(){return meteors;}
+    /** Nagroda z jednorazowo zebranego meteorytu; losowa pamiątka jest dodatkiem. */
+    void meteorCollected(Player player,int keys){
+        if(active()!=EventType.METEORY||crates==null)return;
+        crates.giveKey(player,CrateType.EVENTOWA,keys);
+        Messages.success(player,"&#FFD166☄ Znaleziono meteoryt! &#89E5B0+"+keys
+                +" klucz(e) eventowe.");
+        reward(player,EventType.METEORY);
+    }
     public EventConfig config(){return config;}
     public EventState state(){return storage.get();}
     public EventType active(){return storage.get().active(System.currentTimeMillis());}
@@ -143,7 +154,9 @@ public final class EventManager implements Listener,AutoCloseable {
                 active()==type?"&#70D6E8✔ Event jest aktywny.":"&#FF727F✘ Event obecnie nieaktywny.",
                 "&#A8A8B7» Postęp aktywnego eventu: &#FFD166"+(active()==type?state().progress(player.getUniqueId()):0)
                         +"/"+config.tokensForKey(),
-                "&#70D6E8» Zbieraj pamiątki podczas wydarzenia."));
+                "&#70D6E8» Zbieraj pamiątki podczas wydarzenia.",
+                type==EventType.METEORY?"&#FFD166☄ Meteoryty: "+meteors.activeCount()
+                        +" | /meteory gdzie":"&#A8A8B7» Realizuj cele swojego eventu."));
         header.setItemMeta(h);inv.setItem(11,header);
         ItemStack prize;
         try{prize=items.create(type.itemId());}
@@ -292,6 +305,7 @@ public final class EventManager implements Listener,AutoCloseable {
         reward(killer,EventType.ZABOJSTWA);
     }
     public void tick(){
+        meteors.tick();
         EventType type=active();
         if(type==null){
             if(state().type()!=null){
@@ -336,6 +350,7 @@ public final class EventManager implements Listener,AutoCloseable {
         bar.progress(Math.max(0,Math.min(1,(state().endsAt()-System.currentTimeMillis())/length)));
     }
     @Override public void close(){
+        meteors.close();
         bars.setGlobal(BossBarHub.Slot.EVENT,null,null);
         storage.close();
     }
