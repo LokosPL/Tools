@@ -18,7 +18,8 @@ public final class ChatStateFile {
     public boolean enabled(){return enabled;}
     public boolean announcementsEnabled(){return announcementsEnabled;}
     public String minimumRank(){return minimumRank;}
-    public Map<String,Mute> muted(){return Map.copyOf(muted);}
+    // Stan jest copy-on-write: widok bez kopiowania całej listy podczas każdej wiadomości.
+    public Map<String,Mute> muted(){return Collections.unmodifiableMap(muted);}
 
     public ChatStateFile withEnabled(boolean value) {
         return copy(value,announcementsEnabled,minimumRank,muted);

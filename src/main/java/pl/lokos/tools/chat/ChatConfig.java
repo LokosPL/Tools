@@ -12,10 +12,10 @@ public final class ChatConfig {
     private List<String> announcements = List.of(
             "Testowa automatyczna wiadomość 1",
             "Testowa automatyczna wiadomość 2");
-    private String chatDisabledMessage = "&#FF727F✘ &7Czat jest obecnie wyłączony.";
-    private String rankRestrictedMessage = "&#FF727F✘ &7Twoja ranga nie może teraz pisać na czacie.";
-    private String mutedMessage = "&#FF727F✘ &7Masz wyciszony czat. &8» &7{reason}";
-    private String slowMessage = "&#FF727F✘ &7Piszesz zbyt szybko. &7Limit: &#FFD166{count} &7wiadomości na &#FFD166{seconds} s.";
+    private String chatDisabledMessage = "Czat jest obecnie wyłączony.";
+    private String rankRestrictedMessage = "Twoja ranga nie może teraz pisać na czacie.";
+    private String mutedMessage = "Masz wyciszony czat. &8» &7{reason}";
+    private String slowMessage = "Piszesz zbyt szybko. &7Limit: &#FFD166{count} &7wiadomości na &#FFD166{seconds} s.";
 
     public int slowWindowSeconds(){return slowWindowSeconds;}
     public int slowMaxMessages(){return slowMaxMessages;}

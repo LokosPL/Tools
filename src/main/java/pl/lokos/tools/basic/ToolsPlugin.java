@@ -165,6 +165,7 @@ public final class ToolsPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+        chatManager.refreshOperators();
         getServer().getPluginManager().registerEvents(new ChatListener(this,chatManager),this);
         getServer().getPluginManager().registerEvents(new UnknownCommandListener(),this);
         getServer().getScheduler().runTaskTimer(this,

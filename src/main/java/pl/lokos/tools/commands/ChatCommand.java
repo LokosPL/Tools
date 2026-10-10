@@ -100,6 +100,14 @@ public final class ChatCommand implements BasicCommand {
                     requireCount(args,2);
                     var match=chats.findMute(args[1],System.currentTimeMillis());
                     if(match.isEmpty()){
+                        Player player=Bukkit.getPlayerExact(args[1]);
+                        if(player!=null) {
+                            UUID id=player.getUniqueId();
+                            match=chats.activeMutes(System.currentTimeMillis()).stream()
+                                    .filter(e->e.uuid().equals(id)).findFirst();
+                        }
+                    }
+                    if(match.isEmpty()){
                         Messages.error(sender,CommandTextRegistry.text("chat","notMuted"));return;
                     }
                     var entry=match.get();
