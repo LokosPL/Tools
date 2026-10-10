@@ -1,3 +1,58 @@
+# Tools 1.12.0-SNAPSHOT — ochrona, walka i przedmioty
+
+## Antycheat i ochrona wydajności
+- `/antycheat` lub `/ac`, `/ac status`, `/ac wlacz`, `/ac wylacz`:
+  przełączanie **detekcji ruchu, nieprawidłowego zasięgu i serii stawiania bloków**
+  dla wszystkich graczy, także OP. Wymaga `tools.antycheat.admin`.
+- `/ac powiadomienia wlacz`, `/ac powiadomienia wylacz`:
+  indywidualne powiadomienia moderatora z `tools.antycheat.alerts`.
+  Konfiguracja w `AntiCheat.json`, stan i wyciszone UUID w `AntiCheatState.json`.
+- Wszystkie detekcje są **ostrożne**: brak automatycznych banów i wyrzucania.
+  Potwierdzony długotrwały anomalny ruch może zostać skorygowany.
+  Elytra, latanie, pojazdy, efekty mikstur, teleportacja, knockback
+  i spadki TPS są uwzględniane przy kontroli szybkości.
+- Mechanizmy przeciążające serwer: progi dla aktualizacji redstone,
+  przenoszenia itemów przez hoppery, cykli tłoków, TNT i spawnów mobów
+  na chunk. **Zabezpieczenia wydajności działają również po `/ac wylacz`.**
+- Nie ma gwarancji wyłapania wszystkich cheatów ani ochrony przed atakami
+  pakietowymi/proxy — ten system działa w Paper API. Monitoruj na żywym
+  serwerze oraz skonfiguruj limity pakietów i chunków bezpośrednio w Paper.
+
+## Combat-log i respawn
+- `Combat.json`: domyślnie 18 sekund walki, osobne opcje walki z graczem
+  i mobami, wylogowania i spawnów. Bossbar pokazuje odliczanie.
+- Combat-tag powstaje wyłącznie przy nieanulowanym, dodatnim obrażeniu
+  od innego żywego przeciwnika (lub jego pocisku). Samouszkodzenie,
+  lawa, upadek, cancelowane hity i śmierć środowiskowa nie wyzwalają taga.
+- Wylogowanie w walce powoduje śmierć postaci (normalne zachowanie dropów),
+  z osobnym komunikatem. Standardowe komunikaty śmierci zastępowane są
+  czytelnymi polskimi tekstami dopasowanymi do przyczyny.
+- Po śmierci gracz wraca na główny Spawn regionów Tools; jeśli spawn nie jest
+  skonfigurowany, na spawn głównego świata Overworld.
+- Vanilla ogłoszenia zdobycia osiągnięć zostały wyłączone we wszystkich
+  światach przez gamerule `announceAdvancements=false`, także w światach
+  wczytywanych później. **Zdobywanie advancementów i toast klienta
+  nie są wyłączone** — do pełnej zmiany tej mechaniki potrzebne są
+  oddzielne zasoby/datapack i testy zgodności z rozgrywką.
+
+## GUI przedmiotów
+- `/przedmiot gui` otwiera panel dla siebie;
+  `/przedmiot gui <nick>` otwiera panel rozdawania wybranemu
+  graczowi online. Lewy klik daje 1, prawy 4 sztuki.
+- GUI jest zabezpieczone InventoryHolder, anulowaniem przesuwania itemów,
+  kontrolą UUID odbiorcy, dostępności miejsca i ponownym sprawdzaniem
+  `tools.przedmiot.admin` przy każdym kliknięciu.
+- Testowe `buty_szybkosci` pozostają w `SpecialItems.json`, bez
+  ingerowania w istniejące dane itemów i regionów.
+
+**Uruchomienie:** pełny restart Paper 26.3 z Java 25.
+Nowe pliki JSON powstają z domyślnych definicji Java bez usuwania danych.
+Przetestuj próbne PvP i walkę z mobami, wylogowanie podczas walki,
+śmierć i respawn, a także mechanizmy redstone na kopii świata.
+CI/Maven nie zastępuje testów na serwerze z graczami.
+
+---
+
 ## Świat survival, przedmioty eventowe i TAB (1.11.0-SNAPSHOT)
 
 - [Koncepcja rozrastającej się mapy](docs/granica-swiata-survival.md) opiera się na cyklach aktywności,
