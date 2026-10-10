@@ -568,6 +568,9 @@ public final class EventManager implements Listener,AutoCloseable {
         EventType type=active();
         if(type==null){
             if(state().type()!=null){
+                // Ostatnie akcje muszą trafić do trwałej kolejki nagród przed
+                // wyczyszczeniem zakończonego eventu.
+                flushChallenges();
                 storage.update(EventState::ended);
                 Bukkit.broadcast(Colors.color("&#FFD166✦ Event dobiegł końca."));
             }
