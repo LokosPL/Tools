@@ -9,6 +9,9 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.world.*;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -55,6 +58,7 @@ public final class CrateManager implements Listener,AutoCloseable {
     private final NamespacedKey placementType;
     private final Map<String,TextDisplay> displays=new HashMap<>();
     private final Map<String,String> lastLabel=new HashMap<>();
+    private final CrateActivityWindow activity=new CrateActivityWindow();
     private long ticks;
 
     public CrateManager(JavaPlugin plugin,RankManager ranks,RegionManager regions,
@@ -396,17 +400,51 @@ public final class CrateManager implements Listener,AutoCloseable {
         else if(roll<config.specialKeyChanceFromHostileMob()+config.ordinaryKeyChanceFromHostileMob())
             giveKey(player,CrateType.ZWYKLA,1);
     }
+    /** Zapis aktywności bez SQL i bez interakcji z wątkiem I/O. */
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void activityJoin(PlayerJoinEvent event){
+        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+    }
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void activityQuit(PlayerQuitEvent event){
+        activity.remove(event.getPlayer().getUniqueId());
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void activityMove(PlayerMoveEvent event){
+        Location to=event.getTo(),from=event.getFrom();
+        if(to==null||event.getPlayer().isInsideVehicle())return;
+        // Obrót głowy, kamera w bezruchu i przejazd wagonikiem nie liczą się.
+        if(from.getBlockX()==to.getBlockX()&&from.getBlockY()==to.getBlockY()
+                && from.getBlockZ()==to.getBlockZ())return;
+        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void activityInteract(PlayerInteractEvent event){
+        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void activityBreak(BlockBreakEvent event){
+        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void activityPlace(BlockPlaceEvent event){
+        activity.record(event.getPlayer().getUniqueId(),System.currentTimeMillis());
+    }
+
     public void tick(){
         ticks++;
         if(ticks%60==0){
             Map<String,Integer> count=new HashMap<>(storage.get().afkMinutes());
+            long now=System.currentTimeMillis();
             for(Player player:Bukkit.getOnlinePlayers()){
+                if(!activity.recentlyActive(player.getUniqueId(),now,
+                        config.afkActivityWindowMinutes()))continue;
                 String id=player.getUniqueId().toString();
                 int next=count.getOrDefault(id,0)+1;
                 if(next>=config.afkKeyMinutes()){
                     count.put(id,0);
                     giveKey(player,CrateType.AFK,1);
-                    Messages.info(player,"&#70D6E8✦ Nagroda za czas online: klucz AFK.");
+                    Messages.info(player,"&#70D6E8✦ Nagroda za aktywność: klucz AFK.");
                 }else count.put(id,next);
             }
             storage.update(old->old.withAfk(count));
@@ -461,6 +499,6 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
     @Override public void close(){
         for(TextDisplay display:displays.values())display.remove();
-        displays.clear();lastLabel.clear();storage.close();
+        displays.clear();lastLabel.clear();activity.clear();storage.close();
     }
 }
