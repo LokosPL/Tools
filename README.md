@@ -1,3 +1,23 @@
+## Świat survival, przedmioty eventowe i TAB (1.10.0-SNAPSHOT)
+
+- [Koncepcja rozrastającej się mapy](docs/granica-swiata-survival.md) opiera się na cyklach aktywności,
+  z ograniczeniem AFK. **To projekt, a nie uruchomiona granica świata.**
+- SpecialItems.json: testowa definicja buty_szybkosci, z ukrytym Unbreaking III,
+  efektami Speed II i Jump Boost I, opisem eventu oraz opcjonalnym modelem przedmiotu.
+- Administracyjne /przedmiot lista, /przedmiot info buty_szybkosci,
+  /przedmiot daj <nick> buty_szybkosci [1-16], permisja tools.przedmiot.admin.
+- Visuals.json: konfigurowalna paleta HEX komunikatów; jawne HEX w innych
+  JSON-ach pozostają nienaruszone.
+- Wieloargumentowy TAB działa również po /inventoryopen eq, /msg wycisz,
+  /gamemode <nick> i /chat slow, zgodnie z rangami i widocznością vanisha.
+
+Po instalacji wymagany pełny restart i sprawdzenie na Paper. Przedmiot jest
+wydawany tylko administratorowi przez komendę; definicja nie modyfikuje
+przedmiotów już posiadanych przez graczy. Efekty po zdjęciu butów mogą
+utrzymać się maksymalnie ok. 3 sekundy.
+
+---
+
 # Tools 1.10.0-SNAPSHOT — komendy administracyjne
 
 Nowe komendy są rejestrowane w Java przez Paper API, **nie** w `plugin.yml`.
