@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CommandsFileTest {
+    @Test void ToolsBorderNeverHijacksNativeWorldBorderCommand(){
+        assertTrue(new CommandsFile().granica().aliases().isEmpty());
+    }
     @Test void userCanCustomizeGlobalPrefix(){
         CommandsFile config=new Gson().fromJson("""
                 {"serverName":"Przygoda","messagePrefix":"&8[&a{server}&8] ",

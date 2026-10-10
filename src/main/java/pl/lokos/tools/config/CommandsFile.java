@@ -49,7 +49,7 @@ public final class CommandsFile {
     private Entry antycheat=new Entry(true,"Ochrona antycheat serwera",List.of("ac"),"tools.antycheat.admin");
     private Entry event=new Entry(true,"Zarządzanie wydarzeniami",List.of("wydarzenie"),"tools.event.admin");
     private Entry skrzynia=new Entry(true,"Zarządzanie skrzyniami",List.of("crates"),"tools.skrzynia.admin");
-    private Entry granica=new Entry(true,"Granica i rozrost świata",List.of("worldborder"),"tools.granica.admin");
+    private Entry granica=new Entry(true,"Granica i rozrost świata",List.of(),"tools.granica.admin");
     public Entry tools(){return tools;}
     public Entry ranga(){return ranga;}
     public Entry region(){return region;}
