@@ -73,14 +73,24 @@ public final class AntiCheatManager implements Listener, AutoCloseable {
     public synchronized CompletableFuture<Void> enabled(boolean value){
         if(state.enabled()==value)return CompletableFuture.failedFuture(new StateChanges.Unchanged(
                 value?"Antycheat jest już włączony.":"Antycheat jest już wyłączony."));
-        state=state.withEnabled(value);
-        return save(state);
+        AntiCheatState before=state,next=before.withEnabled(value);
+        state=next;
+        return persistTransition(before,next);
     }
     public synchronized CompletableFuture<Void> alerts(UUID player,boolean value){
         if(state.receives(player)==value)return CompletableFuture.failedFuture(new StateChanges.Unchanged(
                 value?"Powiadomienia antycheata są już włączone.":"Powiadomienia antycheata są już wyłączone."));
-        state=state.withAlerts(player,value);
-        return save(state);
+        AntiCheatState before=state,next=before.withAlerts(player,value);
+        state=next;
+        return persistTransition(before,next);
+    }
+    private CompletableFuture<Void> persistTransition(AntiCheatState before,AntiCheatState next){
+        return save(next).whenComplete((unused,error)->{
+            if(error!=null)synchronized(this){
+                // Nie nadpisujemy kolejnej zmiany wykonanej w międzyczasie.
+                if(state==next)state=before;
+            }
+        });
     }
     private CompletableFuture<Void> save(AntiCheatState snapshot){
         return CompletableFuture.runAsync(()->{
