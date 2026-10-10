@@ -14,6 +14,7 @@ import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.whitelist.*;
 import pl.lokos.tools.security.ToolsAccess;
 import pl.lokos.tools.basic.ToolsPlugin;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -78,9 +79,14 @@ public final class WhitelistListener implements Listener {
         else return;
         operation.whenComplete((ignored,error)->later(()->{
             if(!player.isOnline())return;
-            if(error!=null)display.error(player,"Nie zapisano zmian whitelisty.");
-            else if(player.getOpenInventory().getTopInventory().getHolder() instanceof WhitelistMenu.Holder)
-                menu.open(player,holder.page());
+            if(error!=null) {
+                if(StateChanges.reportUnchanged(player,error))return;
+                display.error(player,"Nie zapisano zmian whitelisty.");
+            } else {
+                display.success(player,"Zapisano zmianę whitelisty.");
+                if(player.getOpenInventory().getTopInventory().getHolder() instanceof WhitelistMenu.Holder)
+                    menu.open(player,holder.page());
+            }
         }));
     }
 

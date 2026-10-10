@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.JsonConfigManager;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,16 +48,23 @@ public final class WhitelistService implements AutoCloseable {
     public String refusal() { return state.kickText(); }
 
     public CompletableFuture<Void> enable(WhitelistMode mode) {
-        return change(previous -> previous.with(true, mode.name(), previous.players()));
+        return change(previous -> {
+            StateChanges.requireChange(previous.enabled() && previous.mode().equals(mode.name()),
+                    "Whitelist jest już włączona w trybie "+mode.title()+".");
+            return previous.with(true,mode.name(),previous.players());
+        });
     }
     public CompletableFuture<Void> disable() {
-        return change(previous -> previous.with(false, previous.mode(), previous.players()));
+        return change(previous -> {
+            StateChanges.requireChange(!previous.enabled(),"Whitelist jest już wyłączona.");
+            return previous.with(false,previous.mode(),previous.players());
+        });
     }
     public CompletableFuture<Void> add(String player) {
         String name = WhitelistConfig.normalize(player);
         return change(previous -> {
             Set<String> next = new LinkedHashSet<>(previous.players());
-            if (!next.add(name)) throw new IllegalArgumentException("Gracz jest już na whiteliście.");
+            StateChanges.requireChange(!next.add(name),"Gracz "+name+" jest już na whiteliście.");
             return previous.with(previous.enabled(), previous.mode(), next);
         });
     }
@@ -64,7 +72,7 @@ public final class WhitelistService implements AutoCloseable {
         String name = WhitelistConfig.normalize(player);
         return change(previous -> {
             Set<String> next = new LinkedHashSet<>(previous.players());
-            if (!next.remove(name)) throw new IllegalArgumentException("Tego gracza nie ma na whiteliście.");
+            StateChanges.requireChange(!next.remove(name),"Gracza "+name+" nie ma na whiteliście.");
             return previous.with(previous.enabled(), previous.mode(), next);
         });
     }

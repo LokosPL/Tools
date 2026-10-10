@@ -12,6 +12,7 @@ import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.security.ToolsAccess;
 import java.util.function.Supplier;
 import pl.lokos.tools.whitelist.*;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -48,11 +49,18 @@ public final class WhitelistCommand implements BasicCommand {
                 if(args.length != 2){usage(sender);return;}
                 try {
                     WhitelistMode mode=WhitelistMode.parse(args[1]);
-                    CompletableFuture<Void> activation=sender instanceof Player player
-                            && !service.state().players().contains(player.getName().toLowerCase(Locale.ROOT))
-                            ? service.add(player.getName()).thenCompose(ignored -> service.enable(mode))
-                            : service.enable(mode);
-                    update(sender,activation,"Włączono whitelistę: &f"+mode.title()+".");
+                    boolean alreadyEnabled=service.state().enabled()
+                            && service.state().mode().equals(mode.name());
+                    boolean needsAdd=sender instanceof Player player
+                            && !service.state().players().contains(player.getName().toLowerCase(Locale.ROOT));
+                    if(needsAdd) {
+                        Player player=(Player)sender;
+                        if(alreadyEnabled)
+                            update(sender,service.add(player.getName()),
+                                    "Dodano Cię do whitelisty. Tryb &f"+mode.title()+"&7 był już włączony.");
+                        else update(sender,service.add(player.getName()).thenCompose(ignored->service.enable(mode)),
+                                    "Włączono whitelistę: &f"+mode.title()+".");
+                    } else update(sender,service.enable(mode),"Włączono whitelistę: &f"+mode.title()+".");
                 } catch (IllegalArgumentException error) {display.error(sender,error.getMessage());}
             }
             case "wyłącz","wylacz","off" -> {
@@ -93,6 +101,7 @@ public final class WhitelistCommand implements BasicCommand {
             Bukkit.getScheduler().runTask(plugin,()->{
                 if(problem==null)display.success(s,message);
                 else {
+                    if(StateChanges.reportUnchanged(s,problem))return;
                     Throwable root=problem;
                     while(root instanceof CompletionException && root.getCause()!=null)root=root.getCause();
                     display.error(s,root.getMessage()==null?"Nie zapisano whitelisty.":root.getMessage());
