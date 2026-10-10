@@ -138,16 +138,19 @@ public final class StaffCommand implements BasicCommand {
         if(targets.isEmpty()){Messages.unchanged(sender,"Brak graczy online.");return;}
         Map<Player,Location> planned=new LinkedHashMap<>();
         for(Player target:targets) {
-            Location origin=target.getLocation();
-            // Wszystkie cele walidujemy PRZED pierwszą teleportacją,
-            // by błędny Y nie przeniósł tylko części graczy.
+            Location current=target.getLocation();
+            // Standardowo współrzędne i świat są względem wykonującego komendę,
+            // a z konsoli (bez pozycji) względem wskazanego celu.
+            Location origin=sender instanceof Player issuer?issuer.getLocation():current;
+            // Wszystkie cele walidujemy PRZED pierwszą teleportacją.
             double x=StaffParsers.coordinate(coords[0],origin.getX(),service.settings().maxTeleportCoordinate());
             double y=StaffParsers.coordinate(coords[1],origin.getY(),service.settings().maxTeleportCoordinate());
             double z=StaffParsers.coordinate(coords[2],origin.getZ(),service.settings().maxTeleportCoordinate());
-            if(y<target.getWorld().getMinHeight()||y>=target.getWorld().getMaxHeight())
-                throw new IllegalArgumentException("Y poza zakresem wysokości świata "+target.getWorld().getName()+".");
-            if(origin.distanceSquared(new Location(target.getWorld(),x,y,z))<0.01)continue;
-            planned.put(target,new Location(target.getWorld(),x,y,z,origin.getYaw(),origin.getPitch()));
+            if(y<origin.getWorld().getMinHeight()||y>=origin.getWorld().getMaxHeight())
+                throw new IllegalArgumentException("Y poza zakresem wysokości świata "+origin.getWorld().getName()+".");
+            Location destination=new Location(origin.getWorld(),x,y,z,current.getYaw(),current.getPitch());
+            if(current.getWorld().equals(destination.getWorld())&&current.distanceSquared(destination)<0.01)continue;
+            planned.put(target,destination);
         }
         if(planned.isEmpty()){
             Messages.unchanged(sender,"Wszyscy wskazani gracze są już na tych współrzędnych.");return;
