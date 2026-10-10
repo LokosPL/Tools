@@ -35,6 +35,15 @@ class ChatManagerIdempotencyTest {
         }
     }
 
+    @Test void chatClearThrottlesRepeatedAdministrativeActions() throws Exception {
+        try(ChatManager manager=new ChatManager(null,null,folder)){
+            assertTrue(manager.markChatCleared(10_000));
+            assertFalse(manager.markChatCleared(10_001));
+            assertFalse(manager.markChatCleared(14_999));
+            assertTrue(manager.markChatCleared(15_000));
+        }
+    }
+
     @Test void aRepeatedMuteIsReportedAsAlreadyMuted() throws Exception {
         UUID player=UUID.randomUUID();
         try(ChatManager manager=new ChatManager(null,null,folder)){
