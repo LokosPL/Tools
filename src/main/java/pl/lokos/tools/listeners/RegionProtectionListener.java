@@ -317,7 +317,7 @@ public final class RegionProtectionListener implements Listener {
         if(next!=null && !regions.canEnter(e.getPlayer(),next)) {
             e.setCancelled(true);
             e.getPlayer().sendActionBar(pl.lokos.tools.helpers.Colors.color(
-                    "&cʙʀᴀᴋ ᴅᴏꜱᴛᴇ̨ᴘᴜ &8» &7Wymagana wyższa ranga"));
+                    CommandTextRegistry.text("region","noEntry")));
         }
     }
 

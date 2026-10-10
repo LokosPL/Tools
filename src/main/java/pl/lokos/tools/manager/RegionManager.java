@@ -100,7 +100,19 @@ public final class RegionManager {
         }
         try{
             plugin.getServer().getScheduler().runTask(plugin,()->{
-                index=next;mainSpawn=file.mainSpawn();loaded=true;result.complete(null);
+                boolean first=!loaded;
+                index=next;mainSpawn=file.mainSpawn();loaded=true;
+                if(first){
+                    plugin.getLogger().info("Ochrona regionów aktywna. Wczytano: "+index.all().size()
+                            + " | Główny spawn: "+(mainSpawn==null?"nieustawiony":mainSpawn));
+                    if(index.all().isEmpty())plugin.getLogger().warning(
+                            "Regions.json nie zawiera regionów. Sprawdź import lub utwórz nowy region.");
+                    for(Region r:index.all().values()) {
+                        if(Bukkit.getWorld(r.world())==null)plugin.getLogger().warning(
+                                "Region '"+r.name()+"' należy do niezaładowanego świata UUID="+r.world());
+                    }
+                }
+                result.complete(null);
             });
         }catch(RuntimeException e){result.completeExceptionally(e);}
         return result;

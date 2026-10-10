@@ -1,3 +1,80 @@
+# Tools 1.8.1 — naprawa ochrony i teksty komend
+
+**Najważniejsza poprawka:** operatorzy (OP), ranga z `*` i gracze z
+`tools.region.bypass` NIE omijają już zabezpieczeń regionu automatycznie.
+Administrator włącza/wyłącza świadomie `/region bypass`. Tryb zeruje się po
+wyjściu z serwera. `/region stan` pokazuje status załadowania, liczbę regionów,
+aktywny region, omijanie oraz ustawienia budowania i niszczenia.
+
+`/ranga` pokazuje teraz tekstową pomoc. Panel jest dostępny osobno pod
+`/ranga menu`.
+
+## Oddzielne JSON-y dla każdej komendy
+
+Po pierwszym uruchomieniu powstaje:
+
+```text
+plugins/Tools/
+├── Commands.json       (włączanie komend, aliasy i uprawnienia)
+└── commands/
+    ├── region.json
+    ├── ranga.json
+    ├── tools.json
+    ├── lokalizacje.json
+    ├── spawn.json
+    └── whitelist.json
+```
+
+**Wszystkie wartości domyślne zdefiniowane są w Javie**, nie w plugin.yml
+ani w `src/main/resources`. Każdy plik ma:
+
+- `title`: tytuł pomocy;
+- `help`: kolejne wiersze pomocy; można zmienić kolor, tekst, kolejność i układ;
+- `messages`: nazwane szablony (np. `notReady`, `protectedAction`);
+- `replacements`: stałe fragmenty wszystkich komunikatów wysyłanych przez
+  odpowiednią klasę komendy i jej listenery, również przy wynikach async.
+  Klucz to oryginalny fragment, wartość to zastępujący go tekst.
+
+W tekstach dostępne są kolory Minecraft `&a`, `&l` i HEX `&#79D6C1`.
+Dla przykładu fragment w `commands/region.json`:
+
+```json
+{
+  "messages": {
+    "protectedAction": "&#FF7285Ten teren jest chroniony!"
+  },
+  "replacements": {
+    "Nie masz dostępu do edycji regionu.": "&#FF7285Nie możesz edytować tego regionu."
+  }
+}
+```
+
+**To przykład dwóch pól, nie cała zawartość pliku.** Edytuj plik wygenerowany
+przez plugin, nie zastępuj go tym przykładem. Pozostawiaj nazwy kluczy, modyfikuj
+wartości. Jeśli komunikat zawiera zmienne (np. nick lub nazwę rangi), możesz
+zmienić jego stałe fragmenty — dane dynamiczne zostają bez zmian.
+
+Po edycji wpisz `/reload` lub `/tools przeladuj`. Nie następuje restart
+Paper ani wszystkich wtyczek. Nie wolno zmieniać połączenia MySQL ani
+definicji regionów przez hot-reload.
+
+### Kontrola ochrony regionów
+
+1. Zrób kopię zapasową `plugins/Tools/Regions.json`.
+2. Stań w chronionym regionie i wpisz `/region stan`.
+3. Sprawdź, czy region jest rozpoznawany i `Omijanie ochrony: WYŁĄCZONE`.
+4. Spróbuj zniszczyć i postawić blok również jako OP. Domyślnie będzie to
+   zablokowane (chyba że świadomie włączyłeś odpowiednią flagę).
+5. Jeżeli trzeba przetestować bez blokad, wpisz `/region bypass`.
+   Wpisz ponownie, aby przywrócić ochronę.
+6. Jeśli `/region stan` pokazuje zero regionów lub obszar poza regionem,
+   sprawdź `Regions.json`, właściwy świat oraz log rozruchu.
+
+Stare `Regions.json`, dane MySQL i istniejące rangi pozostają zachowane.
+Przed testowaniem zrób kopię zapasową bazy i konfiguracji.
+
+---
+
 # Tools 1.8.0 — whitelist, spawn, skórki i zabezpieczenia
 
 **Wszystkie uprawnienia, rangi i ich zapis obsługuje sam Tools.** Wtyczka nie używa LuckPerms ani innych pluginów jako zależności.

@@ -19,6 +19,23 @@ class CommandTextRegistryTest {
             assertFalse(loaded.get(name).help().isEmpty());
         }
     }
+    @Test void rewritesDynamicMessagesFromSeparateCommandJson() throws Exception {
+        var registry=new CommandTextRegistry(temp);
+        registry.install(registry.loadSnapshot());
+        Path file=temp.resolve("commands").resolve("region.json");
+        var document=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+        document.getAsJsonObject("replacements").addProperty(
+                "Nie masz dostępu do edycji regionu.",
+                "&#FA7788Ten region nie należy do Ciebie.");
+        Files.writeString(file,new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(document));
+        registry.install(registry.loadSnapshot());
+        assertEquals("&#FA7788Ten region nie należy do Ciebie.",
+                CommandTextRegistry.rewrite("region","Nie masz dostępu do edycji regionu."));
+        assertEquals("Inna wiadomość",CommandTextRegistry.rewrite("region","Inna wiadomość"));
+        assertEquals("Nie masz dostępu do edycji regionu.",
+                CommandTextRegistry.rewrite("ranga","Nie masz dostępu do edycji regionu."));
+    }
+
     @Test void acceptsUserEditsAndRetainsPreviousOnInvalidInput() throws Exception {
         var registry=new CommandTextRegistry(temp);
         registry.install(registry.loadSnapshot());
