@@ -82,11 +82,10 @@ public final class ToolsCommandVisibilityListener implements Listener {
         event.getCommands().removeIf(command -> {
             String root=command.toLowerCase(Locale.ROOT);
             String required=rootPermissions.get(root);
-            // Wszystkie nazwy przestrzeni technicznej Bukkit/Minecraft ukrywamy
-            // zwykłym graczom, także bez prefiksu /.
-            if(!technicalAdmin && CommandVisibilityPolicy.hideFromUnprivileged(root))return true;
+            // Zarejestrowane komendy Tools mają pierwszeństwo przed blacklistą
+            // vanilla (/tp i /gamemode były na niej jeszcze przed ich wdrożeniem).
             if(required!=null)return !canUse(player,required);
-            return !technicalAdmin && CommandVisibilityPolicy.nativeAdministrative(root);
+            return !technicalAdmin && CommandVisibilityPolicy.hideFromUnprivileged(root);
         });
     }
 
