@@ -19,6 +19,17 @@ public record BorderState(String world,double centerX,double centerZ,int diamete
         copy.put(playerDay,count+1);
         return new BorderState(world,centerX,centerZ,diameter,cycleStarted,lastExpansion,paused,copy);
     }
+    /** Jeden snapshot i zapis na minutę zamiast jednego zapisu na każdego gracza. */
+    public BorderState countActivity(Collection<String> playerDays,int dailyCap){
+        if(playerDays.isEmpty())return this;
+        Map<String,Integer> copy=new HashMap<>(dailyMinutes);
+        boolean changed=false;
+        for(String id:playerDays){
+            int old=copy.getOrDefault(id,0);
+            if(old<dailyCap){copy.put(id,old+1);changed=true;}
+        }
+        return changed?new BorderState(world,centerX,centerZ,diameter,cycleStarted,lastExpansion,paused,copy):this;
+    }
     public int totalMinutes(){return dailyMinutes.values().stream().mapToInt(Integer::intValue).sum();}
     public BorderState expanded(int newDiameter,long now){
         return new BorderState(world,centerX,centerZ,newDiameter,now,now,paused,Map.of());

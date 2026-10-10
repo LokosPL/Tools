@@ -133,13 +133,14 @@ public final class BorderManager implements Listener,AutoCloseable {
         long now=System.currentTimeMillis();
         if(!state().paused()){
             String day=LocalDate.now(ZoneOffset.UTC).toString();
+            List<String> activePlayers=new ArrayList<>();
             for(Player p:Bukkit.getOnlinePlayers()){
                 if(p.getGameMode()==GameMode.SPECTATOR)continue;
                 long activity=lastActive.getOrDefault(p.getUniqueId(),0L);
                 if(now-activity>config.afkAfterMinutes()*60000L)continue;
-                String key=day+":"+p.getUniqueId();
-                storage.update(old->old.increment(key,config.dailyPlayerCapMinutes()));
+                activePlayers.add(day+":"+p.getUniqueId());
             }
+            storage.update(old->old.countActivity(activePlayers,config.dailyPlayerCapMinutes()));
             BorderState current=state();
             long cycleMs=config.cycleDays()*86400000L;
             long fallbackMs=config.fallbackDays()*86400000L;

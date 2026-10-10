@@ -95,7 +95,9 @@ public final class CommandsFile {
             throw new IllegalArgumentException("Brak konfiguracji Event/Skrzynia/Granica.");
         event.validate("event");skrzynia.validate("skrzynia");granica.validate("granica");
         Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply",
-                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot","antycheat","event","skrzynia","granica"));
+                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot",
+                "antycheat","event","skrzynia","granica","zima","halloween","wielkanoc",
+                "lato","zabojstwa","meteory","zniwa","wedkowanie"));
         for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply,
                 tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed,przedmiot,antycheat,event,skrzynia,granica))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))
