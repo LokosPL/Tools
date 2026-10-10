@@ -66,6 +66,7 @@ public final class EventManager implements Listener,AutoCloseable {
     private final Set<UUID> pendingDelivery=new HashSet<>();
     private long challengeSession;
     private long challengeSeconds;
+    private int challengeWritesPending;
     private CrateManager crates;
     private BossBar bar;
     private int visualsCounter;
@@ -349,11 +350,21 @@ public final class EventManager implements Listener,AutoCloseable {
         if(type==null)return CompletableFuture.completedFuture(null);
         int[] goals=EventChallenges.goals(type);
         List<Integer> rewards=config.challengeKeyRewards();
-        CompletableFuture<Void> future=storage.update(old->
-                old.challengeBatch(batch,type,session,goals,rewards));
+        challengeWritesPending++;
+        CompletableFuture<Void> future;
+        try{
+            future=storage.update(old->
+                    old.challengeBatch(batch,type,session,goals,rewards));
+        }catch(RuntimeException problem){
+            challengeWritesPending--;
+            batch.forEach((uuid,count)->challengeBuffer.merge(uuid,count,
+                    (a,b)->Math.min(1000,a+b)));
+            throw problem;
+        }
         future.whenComplete((ignored,error)->{
             if(!plugin.isEnabled())return;
             Bukkit.getScheduler().runTask(plugin,()->{
+                challengeWritesPending--;
                 if(error!=null){
                     plugin.getLogger().severe("Nie zapisano wyzwań eventowych: "+error);
                     if(state().startedAt()==session)
@@ -382,7 +393,9 @@ public final class EventManager implements Listener,AutoCloseable {
 
     /** Wypłata nagród po zapisie wyzwania; przy pełnym ekwipunku odbiór później. */
     public void deliverChallengeKeys(Player player){
-        if(crates==null||!player.isOnline())return;
+        // StateFile publikuje optymistyczny stan przed zapisem na dysk;
+        // nowe klucze wolno wydawać dopiero po zakończonej operacji zapisu.
+        if(crates==null||!player.isOnline()||challengeWritesPending>0)return;
         UUID uuid=player.getUniqueId();
         int amount=Math.min(16,state().pendingKeys(uuid));
         if(amount==0||!pendingDelivery.add(uuid))return;
