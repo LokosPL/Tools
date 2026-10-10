@@ -10,6 +10,12 @@ class ToolsCommandVisibilityListenerTest {
     @Test void hasAllRegisteredRootsAndAliasesForHiddenCommandFiltering(){
         ToolsCommandVisibilityListener listener=new ToolsCommandVisibilityListener(new CommandsFile(),null);
         Map<String,String> perms=listener.registeredRoots();
+        assertEquals("tools.event.admin",perms.get("event"));
+        assertEquals("tools.event.info",perms.get("zima"));
+        assertEquals("tools.event.info",perms.get("halloween"));
+        assertEquals("tools.event.info",perms.get("wielkanoc"));
+        assertEquals("tools.skrzynia.admin",perms.get("skrzynia"));
+        assertEquals("tools.granica.admin",perms.get("granica"));
         assertEquals("tools.tp",perms.get("tp"));
         assertEquals("tools.vanish.use",perms.get("vanish"));
         assertEquals("tools.helpop.use",perms.get("helpop"));

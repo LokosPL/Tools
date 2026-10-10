@@ -22,7 +22,9 @@ class ToolsPermissionCatalogTest {
                         "tools.fly","tools.fly.others","tools.fly.monitor",
                         "tools.broadcast","tools.inventoryopen","tools.inventoryopen.enderchest",
                         "tools.speed","tools.speed.others","tools.przedmiot.admin",
-                        "tools.antycheat.admin","tools.antycheat.alerts"),
+                        "tools.antycheat.admin","tools.antycheat.alerts",
+                        "tools.event.info","tools.event.admin","tools.skrzynia.admin",
+                        "tools.granica.admin"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));
         assertFalse(catalog.isManaged("minecraft.command.help"));
