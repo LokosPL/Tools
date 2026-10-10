@@ -1,3 +1,55 @@
+# Tools 1.13.0-SNAPSHOT — meteoryty, Tytani i wyzwania eventowe
+
+## Nowa rozgrywka — sezonowe wyzwania i ekspedycje
+
+- **Dziewięć wydarzeń**, w tym nowe **Łowy na Tytanów** (`/lowy`).
+  Administracja: `/event wlacz lowy 1h` lub `/event wlacz meteory 1h`.
+- `/eventy` otwiera panel eventów. `/eventy wyzwania` otwiera trzy zadania
+  bieżącego eventu (nazwy i progi są inne dla różnych typów). Każdy próg daje
+  automatycznie konfigurowalną liczbę kluczy eventowych (domyślnie 1, 2, 3).
+  Postępy i odblokowane progi są trwałe w `EventState.json` i zerują się
+  dopiero przy rozpoczęciu następnego eventu. Niewypłacone klucze z kolejki
+  przechodzą przez zmianę eventu i ponowne uruchomienie.
+- **Meteoryty**: podczas eventu co 180 sekund próba utworzenia meteorytu przy
+  graczach Survival w załadowanych chunkach. Obiekt z hologramem i efektem
+  cząsteczek można zebrać prawym przyciskiem. Zwykły daje 1 klucz; złoty
+  (5% szansy) daje 3 klucze i specjalny kilof z `SpecialItems.json`.
+  `/meteory gdzie` podaje współrzędne; `/meteory namierz` kieruje kompas
+  na najbliższy meteoryt we własnym świecie. Meteoryty nie niszczą bloków,
+  nie powodują wybuchów i nie wymuszają ładowania chunków.
+- **Łowy**: Tytani (nazwane, wzmocnione Huski) pojawiają się co 180 sekund
+  podczas aktywnego `/lowy`. Pokonanie daje klucz eventowy i punkt wyzwania.
+  Nie mogą niszczyć drzwi ani podnosić cudzych przedmiotów; mają ograniczony
+  czas życia, limit 2 sztuk oraz automatyczne sprzątanie po evencie.
+- Meteoryty i Tytani powstają **wyłącznie w dziczy**: nigdy wewnątrz
+  regionów Tools, w buforze spawnu ani poza WorldBorder. Wymagane są
+  załadowane chunki, płaskie bezpieczne podłoże oraz gracz Survival.
+  Jeżeli nie ma odpowiedniej lokacji, spawn zostaje pominięty zamiast
+  wymuszać generację świata.
+- W `Events.json`: `meteorEnabled`, `meteorSpawnIntervalSeconds`,
+  `meteorLifetimeSeconds`, `meteorMaxActive`, `meteorRareChance`,
+  `meteorRareKeys`, `eliteEnabled`, `eliteSpawnIntervalSeconds`,
+  `eliteLifetimeSeconds`, `eliteMaxActive`, `eliteKeysPerKill`,
+  `challengesEnabled`, `challengeKeyRewards`, `challengeFlushSeconds`
+  oraz przełączniki efektów i ogłoszeń. Wszystkie wartości domyślne są
+  w Javie i dopisywane do istniejącego JSON bez usuwania starych ustawień.
+- **AFK**: bonus za ciągły pobyt wyłącznie w regionie `afk` (w tym
+  podregionach), bossbar z odliczaniem, 1–4 klucze za kolejne pełne okresy.
+  Samo stanie w miejscu wystarcza, chyba że ustawiono
+  `afkRequireActivity=true`. Wyjście ze strefy zeruje serię, ale
+  zachowuje zapisany licznik pełnych minut.
+
+**Bezpieczeństwo aktualizacji:** wykonaj kopię świata oraz `plugins/Tools`,
+następnie wgraj nowy JAR i wykonaj pełny restart Paper 26.3 / Java 25.
+Obiekty meteorów i Tytanów są efemeryczne (znikają po restarcie),
+ale postępy wyzwań i kolejka nagród są trwałe. Testy JUnit/MariaDB nie
+zastępują testu rozgrywki z graczami. Odbiór fizycznych kluczy i zapis
+ekwipunku Minecraft nie tworzą wspólnej transakcji — przy awaryjnym
+zaniku zasilania możliwy jest przypadek ponowienia wypłaty; wymagany jest
+dodatkowy test odporności na crash przed wdrożeniem na duży serwer.
+
+---
+
 # Tools 1.13.0-SNAPSHOT — eventy, skrzynie i rozrost mapy
 
 ## Uruchamianie eventów
@@ -7,7 +59,7 @@
 - **Maksymalnie jeden event naraz**, także po restarcie. Stan, czas końca
   i postęp graczy w `EventState.json`; konfiguracja szans w `Events.json`.
 - Publiczne informatory z GUI: `/zima`, `/halloween`, `/wielkanoc`,
-  `/lato`, `/zabojstwa`, `/meteory`, `/zniwa`, `/wedkowanie`.
+  `/lato`, `/zabojstwa`, `/meteory`, `/zniwa`, `/wedkowanie`, `/lowy`.
 - Standardowa szansa zdobycia pamiątki eventowej wynosi **2%** od
   odpowiedniej aktywności: zima — kopanie, Halloween — wrogie moby,
   Wielkanoc — kwiaty/trawa, lato i wędkowanie — połowy, PvP — zabójstwa,
@@ -33,7 +85,7 @@
 - Zwykła, Premium, AFK, Eventowa i Specjalna mają oddzielne tabele
   nagród w `Crates.json`. Stan bloków i minut AFK w `CratesState.json`.
 - Klucze zwykłe/specjalne wypadają czasem z mobów; klucz AFK
-  co 60 minut przebywania online; klucz eventowy za pamiątki; premium
+  za pobyt w regionie `afk`; klucz eventowy za pamiątki; premium
   obecnie przez admina.
 - W regionach można kliknąć **wyłącznie zarejestrowaną skrzynię Tools**
   nawet przy fladze zakazującej otwierania pojemników. Nie zmienia to
@@ -63,7 +115,7 @@
   przed dużym eventem zalecana jest pregeneracja kontrolowanym narzędziem
   lub test wydajności na kopii świata.
 - Jeden `BossBarHub` wyświetla paski we właściwej kolejności:
-  **event → combat-log → broadcast → rozrost świata**. Nie usuwa
+  **event → combat-log → broadcast → rozrost świata → AFK**. Nie usuwa
   bossbarów innych pluginów.
 
 ## Poprawki istniejących komend
