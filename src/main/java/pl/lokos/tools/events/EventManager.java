@@ -95,18 +95,20 @@ public final class EventManager implements Listener,AutoCloseable {
     void meteorCollected(Player player,int keys,boolean rare){
         if(active()!=EventType.METEORY||crates==null)return;
         crates.giveKey(player,CrateType.EVENTOWA,keys);
+        boolean toolGranted=false;
         if(rare){
             try{
                 ItemStack prize=items.create(EventType.METEORY.itemId());
                 for(ItemStack overflow:player.getInventory().addItem(prize).values())
                     player.getWorld().dropItemNaturally(player.getLocation(),overflow);
+                toolGranted=true;
             }catch(RuntimeException error){
                 plugin.getLogger().severe("Nie wydano specjalnej nagrody ze złotego meteorytu: "+error);
             }
         }
         Messages.success(player,(rare?"&#FFD166✦ ZŁOTY METEORYT!":"&#FFD166☄ Znaleziono meteoryt!")
                 +" &#89E5B0+"+keys+" klucz(e) eventowe."
-                +(rare?" &#FFD166Bonus: specjalny kilof!":""));
+                +(toolGranted?" &#FFD166Bonus: specjalny kilof!":""));
         challengeAction(player,EventType.METEORY);
         reward(player,EventType.METEORY);
     }
@@ -364,7 +366,19 @@ public final class EventManager implements Listener,AutoCloseable {
                                 (a,b)->Math.min(1000,a+b)));
                 }else for(UUID uuid:batch.keySet()){
                     Player player=Bukkit.getPlayer(uuid);
-                    if(player!=null)deliverChallengeKeys(player);
+                    if(player==null)continue;
+                    int before=snapshot.challengeAwarded(uuid);
+                    int after=state().challengeAwarded(uuid);
+                    if(before!=after && state().startedAt()==session){
+                        List<String> titles=EventChallenges.names(type);
+                        for(int tier=0;tier<3;tier++)if((before&(1<<tier))==0
+                                &&(after&(1<<tier))!=0)
+                            Messages.success(player,"&#89E5B0✔ Wyzwanie ukończone: &#FFD166"
+                                    +titles.get(tier)+"!");
+                        if(player.getInventory().firstEmpty()<0)
+                            Messages.info(player,"&#FFD166✦ Nagrody zachowane. Zwolnij miejsce na klucze.");
+                    }
+                    deliverChallengeKeys(player);
                 }
             });
         });
