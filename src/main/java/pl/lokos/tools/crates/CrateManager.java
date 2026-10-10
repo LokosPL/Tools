@@ -183,13 +183,37 @@ public final class CrateManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void place(BlockPlaceEvent event){
+        // Nie pozwalamy dołączyć drugiej połowy chestu do skrzyni Tools.
+        Block block=event.getBlockPlaced();
+        if(block.getType()==Material.CHEST||block.getType()==Material.TRAPPED_CHEST){
+            for(org.bukkit.block.BlockFace face:List.of(
+                    org.bukkit.block.BlockFace.NORTH,org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.EAST,org.bukkit.block.BlockFace.WEST)){
+                Block neighbor=block.getRelative(face);
+                if(storage.get().get(at(neighbor))!=null){
+                    event.setCancelled(true);
+                    Messages.error(event.getPlayer(),"Nie można łączyć skrzyni Tools w podwójną skrzynię.");
+                    return;
+                }
+            }
+        }
         ItemStack held=event.getItemInHand();
         if(held==null||!held.hasItemMeta())return;
         String id=held.getItemMeta().getPersistentDataContainer()
                 .get(placementType,PersistentDataType.STRING);
         if(id==null)return;
         CrateType type=CrateType.parse(id);
-        Block block=event.getBlockPlaced();
+        if(block.getType()==Material.CHEST||block.getType()==Material.TRAPPED_CHEST){
+            for(org.bukkit.block.BlockFace face:List.of(
+                    org.bukkit.block.BlockFace.NORTH,org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.EAST,org.bukkit.block.BlockFace.WEST)){
+                if(block.getRelative(face).getType()==block.getType()){
+                    event.setCancelled(true);
+                    Messages.error(event.getPlayer(),"Zostaw jeden blok odstępu od innych skrzyń.");
+                    return;
+                }
+            }
+        }
         if(!admin(event.getPlayer())||!inSpawn(block)||type==null||
                 !block.getType().equals(Material.valueOf(type.block()))
                 ||storage.get().crates().size()>=config.maximumPlacedCrates()
