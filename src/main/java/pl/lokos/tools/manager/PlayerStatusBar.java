@@ -2,8 +2,8 @@ package pl.lokos.tools.manager;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.CommandTextRegistry;
+import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.region.Region;
 
@@ -12,38 +12,48 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Jedyny nadawca action bara Tools. Wykorzystuje tick Paper, nie tworzy
- * osobnego taska ani zapytań do bazy podczas odświeżania widoku.
+ * Jedyny nadawca action bara Tools. Brak regionu i powiadomień oznacza brak pakietu,
+ * nie pusty tekst kasujący komunikaty innych pluginów.
  */
 public final class PlayerStatusBar {
-    private record Notice(String message, long untilMillis) {}
+    public enum Priority { INFO, WARNING, PROTECTION }
+    private record Notice(String message, long untilMillis, Priority priority) {}
+
     private final RegionManager regions;
+    private final ToolsConfig.ActionBar settings;
     private final Map<UUID, Notice> notices = new HashMap<>();
     private final Map<UUID, Long> protectedCooldown = new HashMap<>();
 
-    public PlayerStatusBar(RegionManager regions) {
+    public PlayerStatusBar(RegionManager regions, ToolsConfig.ActionBar settings) {
         this.regions = regions;
+        this.settings = settings;
     }
 
-    /** Nie wysyła bezpośrednio actionbara, tylko ustawia krótki komunikat boczny. */
+    /** Wszystkie podsystemy przekazują powiadomienia tutaj, nigdy do sendActionBar. */
     public void notice(Player player, String message, long durationMillis) {
+        notice(player, message, durationMillis, Priority.INFO);
+    }
+
+    public void notice(Player player, String message, long durationMillis, Priority priority) {
+        if (!settings.enabled() || message == null || message.isBlank()) return;
         long now = System.currentTimeMillis();
-        notices.put(player.getUniqueId(),
-                new Notice(message, now + Math.max(250, Math.min(5000, durationMillis))));
+        UUID id = player.getUniqueId();
+        Notice previous = notices.get(id);
+        if (previous != null && previous.untilMillis() > now
+                && previous.priority().ordinal() > priority.ordinal()) return;
+        notices.put(id, new Notice(message, now + Math.max(250, Math.min(5000, durationMillis)), priority));
     }
 
     public void protectedArea(Player player) {
-        long now=System.currentTimeMillis();
-        if(now-protectedCooldown.getOrDefault(player.getUniqueId(),0L)<800L)return;
-        protectedCooldown.put(player.getUniqueId(),now);
-        String configured=CommandTextRegistry.text("region", "protectedAction");
-        if ("&#FF6B79Ten obszar jest chroniony.".equals(configured))
-            configured="&#FF727F⚠ &7Obszar chroniony";
-        notice(player, configured, 1700);
+        long now = System.currentTimeMillis();
+        UUID id = player.getUniqueId();
+        if (now - protectedCooldown.getOrDefault(id, 0L) < 800L) return;
+        protectedCooldown.put(id, now);
+        notice(player, settings.protectedMessage(), settings.protectionMillis(), Priority.PROTECTION);
     }
 
     public void deniedEntry(Player player) {
-        notice(player, CommandTextRegistry.text("region", "noEntry"), 2600);
+        notice(player, CommandTextRegistry.text("region", "noEntry"), 2600, Priority.WARNING);
     }
 
     public void remove(UUID uuid) {
@@ -52,37 +62,32 @@ public final class PlayerStatusBar {
     }
 
     public void tick() {
+        if (!settings.enabled()) return;
         long now = System.currentTimeMillis();
         for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID id = player.getUniqueId();
+            Notice current = notices.get(id);
+            if (current != null && current.untilMillis() <= now) {
+                notices.remove(id);
+                current = null;
+            }
             Region region = regions.visibleAt(player.getLocation());
-            String area = region == null ? "Dzicz" : region.name();
-            if (region != null && region.parent() != null)
-                area = region.parent() + " › " + region.name();
-            if (region != null && regions.inHalo(player.getLocation()))
-                area = region.name() + " / ochrona";
-            int xp = Math.max(0, Math.min(100, Math.round(player.getExp() * 100)));
-            Notice notice = notices.get(player.getUniqueId());
-            String extra = notice != null && notice.untilMillis() > now ? notice.message() : "";
-            if (notice != null && notice.untilMillis() <= now)
-                notices.remove(player.getUniqueId());
-            player.sendActionBar(Colors.color(format(area, player.getLevel(), xp, extra)));
+            String message = format(region == null ? null : region.name(),
+                    current == null ? null : current.message(), settings);
+            if (message != null) player.sendActionBar(Colors.color(message));
         }
     }
 
-    /**
-     * Pure function; długość ograniczona, więc alert nigdy nie całkowicie
-     * wypiera głównej lokalizacji i postępu z widoku gracza.
-     */
-    public static String format(String location, int level, int xpPercent, String notice) {
-        String safe = location == null ? "Dzicz" : location.replace('\n', ' ').replace('\r', ' ')
-                .replace('&', ' ');
+    /** Funkcja bez Bukkit API; null znaczy: nie wysyłaj żadnego action bara. */
+    public static String format(String region, String notice, ToolsConfig.ActionBar settings) {
+        if (!settings.enabled()) return null;
+        String extra = notice == null ? "" : notice.replace('\n', ' ').replace('\r', ' ').trim();
+        if (extra.length() > 180) extra = extra.substring(0, 177) + "…";
+        if (region == null || region.isBlank())
+            return extra.isBlank() ? null : extra;
+        String safe = region.replace('\n', ' ').replace('\r', ' ').replace('&', ' ');
         if (safe.length() > 24) safe = safe.substring(0, 21) + "…";
-        String base = "&#FFD166✦ &7Lokalizacja: &#FFE5A2" + safe
-                + " &8│ &7Poziom: &#71D7ED" + Math.max(0, level)
-                + " &8│ &7Postęp: &#86E6BC" + Math.max(0, Math.min(100, xpPercent)) + "%";
-        if (notice == null || notice.isBlank()) return base;
-        String side = notice.replace('\n', ' ').replace('\r', ' ');
-        if (side.length() > 105) side = side.substring(0, 102) + "…";
-        return base + " &8│ " + side;
+        String location = settings.locationTemplate().replace("{region}", safe);
+        return extra.isBlank() ? location : location + settings.separator() + extra;
     }
 }

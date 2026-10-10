@@ -159,7 +159,7 @@ public final class ToolsPlugin extends JavaPlugin {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");
             RegionSelection selection=new RegionSelection();
-            this.statusBar=services.register(PlayerStatusBar.class,new PlayerStatusBar(regionManager));
+            this.statusBar=services.register(PlayerStatusBar.class,new PlayerStatusBar(regionManager,config.regions().actionBar()));
             regionTeleports.setStatusBar(statusBar);
             this.borderPreview=new RegionBorderPreview(this);
             RegionMenuFactory menus=new RegionMenuFactory(regionManager,rankManager,menuKey,config.regions().teleportSeconds());
@@ -173,7 +173,9 @@ public final class ToolsPlugin extends JavaPlugin {
                     new RegionMenuListener(this,menus,regionManager,regionTeleports,borderPreview,configurations.commands().region().permission(),configurations.commands().lokalizacje().permission()),this);
             regionManager.start();
             getServer().getScheduler().runTaskTimer(this,
-                    monitoring.measured("regiony.actionbar", playerRegions::actionbar),5L,5L);
+                    monitoring.measured("regiony.actionbar", playerRegions::actionbar),
+                    config.regions().actionBar().refreshTicks(),
+                    config.regions().actionBar().refreshTicks());
         }
 
         getServer().getPluginManager().registerEvents(

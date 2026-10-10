@@ -18,6 +18,7 @@ public final class RegionsFile {
     }
     public void validate(){
         if(settings==null||regions==null)throw new IllegalArgumentException("Niekompletny Regions.json");
+        settings.validate();
         RegionIndex index=new RegionIndex(regions);
         if(mainSpawn!=null && index.byName(mainSpawn)==null)
             throw new IllegalArgumentException("Spawn wskazuje nieistniejący region");

@@ -80,9 +80,9 @@ public final class RegionManager {
         return index.at(at.getWorld().getUID(),at.getBlockX(),at.getBlockZ());
     }
     public Region mainSpawn(){return mainSpawn==null?null:index.byName(mainSpawn);}
+    /** Action bar pokazuje wyłącznie regiony, w których gracz faktycznie przebywa. */
     public Region visibleAt(Location location) {
-        Region region=at(location);
-        return region!=null?region:inHalo(location)?mainSpawn():null;
+        return at(location);
     }
     /** Zewnetrzny pas ochronny - NIGDY nie jest regionem ani lokalizacja w GUI. */
     public boolean inHalo(Location loc) {

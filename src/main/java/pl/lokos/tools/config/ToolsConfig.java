@@ -147,17 +147,52 @@ public final class ToolsConfig {
         private int spawnProtectionOutside = 50;
         private boolean cancelTeleportOnMove = true;
         private String barTitle = "&7ʟᴏᴋᴀʟɪᴢᴀᴄᴊᴀ &8» ";
+        // Wartości domyślne trafiają do Regions.json, nie do zasobów JAR.
+        private ActionBar actionBar = new ActionBar();
         public boolean enabled() { return enabled; }
         public int maxRadius() { return maxRadius; }
         public int teleportSeconds() { return teleportSeconds; }
         public int spawnProtectionOutside(){return spawnProtectionOutside;}
         public boolean cancelTeleportOnMove() { return cancelTeleportOnMove; }
         public String barTitle() { return barTitle; }
+        public ActionBar actionBar() { return actionBar; }
         public void validate() {
+            if (actionBar == null) throw new IllegalArgumentException("Brak regions.actionBar.");
+            actionBar.validate();
             if (maxRadius < 1 || maxRadius > 30000) throw new IllegalArgumentException("regions.maxRadius: 1-30000.");
             if(spawnProtectionOutside<0 || spawnProtectionOutside>2000)throw new IllegalArgumentException("spawnProtectionOutside: 0-2000");
             if (teleportSeconds < 1 || teleportSeconds > 30) throw new IllegalArgumentException("regions.teleportSeconds: 1-30.");
             if (barTitle == null || barTitle.length() > 100) throw new IllegalArgumentException("Niepoprawny regions.barTitle.");
+        }
+    }
+
+    /** Ustawienia jedynego nadawcy action bara Tools. */
+    public static final class ActionBar {
+        private boolean enabled = true;
+        private int refreshTicks = 10;
+        private int protectionMillis = 1800;
+        private String locationTemplate = "&#FFD166✦ &#A8A8B7Lokalizacja: &#70D6E8{region} &#FFD166✦";
+        private String separator = " &#A8A8B7│ ";
+        private String protectedMessage = "&#FF727F✘ Obszar chroniony";
+
+        public boolean enabled() { return enabled; }
+        public int refreshTicks() { return refreshTicks; }
+        public int protectionMillis() { return protectionMillis; }
+        public String locationTemplate() { return locationTemplate; }
+        public String separator() { return separator; }
+        public String protectedMessage() { return protectedMessage; }
+
+        public void validate() {
+            if (refreshTicks < 2 || refreshTicks > 100)
+                throw new IllegalArgumentException("regions.actionBar.refreshTicks: 2-100.");
+            if (protectionMillis < 250 || protectionMillis > 5000)
+                throw new IllegalArgumentException("regions.actionBar.protectionMillis: 250-5000.");
+            if (locationTemplate == null || !locationTemplate.contains("{region}")
+                    || locationTemplate.length() > 300)
+                throw new IllegalArgumentException("regions.actionBar.locationTemplate wymaga {region}.");
+            if (separator == null || separator.length() > 100
+                    || protectedMessage == null || protectedMessage.length() > 200)
+                throw new IllegalArgumentException("Nieprawidłowe teksty regions.actionBar.");
         }
     }
 
