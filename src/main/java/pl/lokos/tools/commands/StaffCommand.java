@@ -324,21 +324,16 @@ public final class StaffCommand implements BasicCommand {
     }
 
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args){
-        if(!canUse(source.getSender()))return List.of();
-        if(args.length!=1)return List.of();
-        List<String> suggestions=new ArrayList<>();
-        switch(kind){
-            case TP -> {suggestions.add("*");suggestions.add("~");}
-            case VANISH,FLY -> suggestions.addAll(List.of("wlacz","wylacz"));
-            case BROADCAST -> suggestions.addAll(List.of("30s","5m","2h","1d","wylacz"));
-            case GAMEMODE -> suggestions.addAll(List.of("1","2","3","4","survival","creative","adventure","spectator"));
-            case INVENTORYOPEN -> suggestions.addAll(List.of("eq","enderchest"));
-            case SPEED -> suggestions.addAll(List.of("1","2","5","10","walk","fly"));
-            default -> {}
+        CommandSender sender=source.getSender();
+        if(!canUse(sender)||args.length==0)return List.of();
+        Collection<String> visible=new ArrayList<>();
+        for(Player player:Bukkit.getOnlinePlayers()){
+            if(sender instanceof Player viewer){
+                if(!viewer.canSee(player)||player.equals(viewer))continue;
+            }
+            visible.add(player.getName());
         }
-        if(kind==Kind.TP||kind==Kind.VANISH||kind==Kind.FLY||kind==Kind.GAMEMODE||kind==Kind.SPEED)
-            for(Player player:Bukkit.getOnlinePlayers())suggestions.add(player.getName());
-        return suggestions.stream().distinct().filter(s->s.toLowerCase(Locale.ROOT)
-                .startsWith(args[0].toLowerCase(Locale.ROOT))).limit(60).toList();
+        return StaffSuggestions.forCommand(kind,args,visible,node->sub(sender,node),
+                sender instanceof Player);
     }
 }
