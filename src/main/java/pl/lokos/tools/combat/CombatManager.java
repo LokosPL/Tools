@@ -59,7 +59,9 @@ public final class CombatManager implements Listener {
         if(event.getEntity() instanceof Player victim)
             tag(victim,living,event.isCancelled());
         if(living instanceof Player attacker && event.getEntity() instanceof LivingEntity target)
-            if(!target.equals(attacker))tag(attacker,target,event.isCancelled());
+            if(!target.equals(attacker) && CombatRules.shouldTagAttacker(
+                    target instanceof Player,target instanceof Enemy))
+                tag(attacker,target,event.isCancelled());
     }
     private void tag(Player victim,LivingEntity attacker,boolean cancelled){
         if(!CombatRules.shouldTag(cancelled,true,!victim.equals(attacker),true,

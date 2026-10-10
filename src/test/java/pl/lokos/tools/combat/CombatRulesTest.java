@@ -17,6 +17,11 @@ class CombatRulesTest {
         assertFalse(CombatRules.shouldTag(false,true,true,true,false,true,false));
         assertFalse(CombatRules.shouldTag(false,true,true,true,true,false,true));
     }
+    @Test void killingPassiveAnimalsDoesNotStartLogoutCombat(){
+        assertFalse(CombatRules.shouldTagAttacker(false,false));
+        assertTrue(CombatRules.shouldTagAttacker(true,false));
+        assertTrue(CombatRules.shouldTagAttacker(false,true));
+    }
     @Test void polishDeathCausesStayDeterministic(){
         assertTrue(CombatRules.reason(EntityDamageEvent.DamageCause.LAVA).contains("lawie"));
         assertTrue(CombatRules.reason(EntityDamageEvent.DamageCause.FALL).contains("upadku"));

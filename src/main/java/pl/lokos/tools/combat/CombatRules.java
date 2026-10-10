@@ -12,6 +12,13 @@ public final class CombatRules {
         return !cancelled&&positiveDamage&&other&&attackerLiving&&
                 (attackerPlayer?playerTags:mobTags);
     }
+    /**
+     * Atak na pasywne zwierzę nie oznacza wejścia w walkę.
+     * W walce PvP i z wrogimi mobami tag obowiązuje obie strony.
+     */
+    public static boolean shouldTagAttacker(boolean targetPlayer,boolean hostileMob){
+        return targetPlayer||hostileMob;
+    }
     public static String reason(EntityDamageEvent.DamageCause cause){
         if(cause==null)return "zginął.";
         return switch(cause){
