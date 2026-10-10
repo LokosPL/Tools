@@ -25,7 +25,7 @@ public final class CommandRegistry {
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);
             plugin.registerCommand("tools",config.tools().description(),config.tools().aliases(),
-                    new ToolsCommand(plugin,database,repository,playerData,config.tools().permission(), monitoring,hotReload));
+                    new ToolsCommand(plugin,database,repository,playerData,config.tools().permission(), monitoring,hotReload,ranks));
         }
     }
     private void declare(String name,PermissionDefault value){

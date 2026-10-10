@@ -49,15 +49,13 @@ public final class CommandTextFile {
                     "&#73D6C1/region rozdzka &8• &#73D6C1/region podregion &7<rodzic> <nazwa>",
                     "&#73D6C1/region ochrona &7<region> <promień>",
                     "&#73D6C1/region edytuj &7<nazwa> &8• &#73D6C1/region spawn",
-                    "&#73D6C1/region stan &8• &#73D6C1/region bypass",
+                    "&#73D6C1/region stan &8• &7Sprawdź ochronę",
                     "&#73D6C1/region usun &7<nazwa> &8• &#73D6C1/region lista",
                     "&8&m                               "),
                     Map.of(
                             "notReady","&cRegiony nie zostały poprawnie wczytane. Sprawdź Regions.json i konsolę.",
                             "protectedAction","&#FF6B79Ten obszar jest chroniony.",
                             "noEntry","&cBrak dostępu do tego regionu. &7Wymagana wyższa ranga.",
-                            "bypassEnabled","&cTryb omijania ochrony włączony. &7Wyłącz: &#73D6C1/region bypass",
-                            "bypassDisabled","&aTryb omijania ochrony wyłączony.",
                             "noRegion","&cNie znaleziono regionu {region}.",
                             "saved","&aZapisano zmianę regionu.",
                             "saveError","&cNie udało się zapisać ustawień regionu."

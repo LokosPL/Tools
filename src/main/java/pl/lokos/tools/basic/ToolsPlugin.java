@@ -98,7 +98,7 @@ public final class ToolsPlugin extends JavaPlugin {
                 getServer().getPluginManager().addPermission(
                         new Permission("tools.whitelist.admin",PermissionDefault.OP));
             WhitelistMenu whitelistMenu=new WhitelistMenu(whitelistService);
-            WhitelistCommand whitelistCommand=new WhitelistCommand(this,whitelistService,whitelistMenu);
+            WhitelistCommand whitelistCommand=new WhitelistCommand(this,whitelistService,whitelistMenu,()->rankManager);
             registerCommand("whitelist","Zarządzanie whitelistą",
                     java.util.List.of("bialalista","wl"),whitelistCommand);
             this.pendingWhitelistCommand=whitelistCommand;
@@ -253,6 +253,7 @@ public final class ToolsPlugin extends JavaPlugin {
         return config;
     }
 
+    public RankManager ranks() { return rankManager; }
     public MonitoringService monitoring() { return monitoring; }
     public ConfigRegistry configurations() {
         return configurations;

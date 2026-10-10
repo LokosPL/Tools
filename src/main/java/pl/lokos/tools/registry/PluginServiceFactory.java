@@ -35,7 +35,9 @@ public final class PluginServiceFactory {
                 new RankRepository(services.require(DatabaseExecutor.class)));
         RankManager ranks = services.register(RankManager.class,
                 new RankManager(plugin, rankRepository, definitions.definitions()));
-        ranks.setManagedPermissions(new ToolsPermissionCatalog(definitions.commands()).managedNodes());
+        ToolsPermissionCatalog catalog=new ToolsPermissionCatalog(definitions.commands());
+        ranks.setManagedPermissions(catalog.managedNodes());
+        ranks.setAdminPermissions(catalog.administrativeNodes());
         RankVisualManager tab = services.register(RankVisualManager.class,
                 new RankVisualManager(plugin, ranks, config.ranks()));
         ranks.setVisuals(tab);

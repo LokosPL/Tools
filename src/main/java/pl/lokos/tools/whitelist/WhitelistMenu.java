@@ -7,6 +7,7 @@ import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.GuiTheme;
 
 import java.util.*;
 
@@ -32,8 +33,9 @@ public final class WhitelistMenu {
         int max = Math.max(0, (users.size() - 1) / 27);
         int page = Math.min(max, Math.max(0, requested));
         Holder holder = new Holder(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(holder, 54, Colors.color("&#63BFFF&lWHITELIST &8• &7" + (page+1)));
+        Inventory inv = Bukkit.createInventory(holder, 54, Colors.color(GuiTheme.title("WHITELIST • " + (page+1))));
         holder.inventory = inv;
+        GuiTheme.frame(inv);
         inv.setItem(4, icon(service.state().enabled() ? Material.LIME_DYE : Material.GRAY_DYE,
                 service.state().enabled() ? "&a&lWhitelist włączona" : "&7Whitelist wyłączona",
                 "&8Tryb: &f" + service.state().mode(), "&7Kliknij, aby zmienić stan"));
@@ -67,8 +69,8 @@ public final class WhitelistMenu {
     private static ItemStack icon(Material material,String name,String... lore) {
         ItemStack stack = new ItemStack(material);
         ItemMeta meta = stack.getItemMeta();
-        meta.displayName(Colors.color(name));
-        meta.lore(Arrays.stream(lore).map(Colors::color).toList());
+        meta.displayName(Colors.color(GuiTheme.itemTitle(name)));
+        meta.lore(GuiTheme.lore(lore));
         stack.setItemMeta(meta);
         return stack;
     }

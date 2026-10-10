@@ -16,7 +16,6 @@ public final class RegionCommandRegistry {
     public void register(RegionManager regions,RegionSelection selection,RegionMenuFactory menus,
                          RankManager ranks,ToolsConfig.Regions settings,NamespacedKey wandKey,
                          CommandsFile commands,RegionTeleportManager teleports){
-        permit("tools.region.bypass",PermissionDefault.OP);
         if(commands.region().enabled()){
             permit(commands.region().permission(),PermissionDefault.OP);
             plugin.registerCommand("region",commands.region().description(),commands.region().aliases(),

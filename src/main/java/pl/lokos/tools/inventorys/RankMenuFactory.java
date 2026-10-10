@@ -6,6 +6,7 @@ import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.GuiTheme;
 import pl.lokos.tools.helpers.ToolsPermissionCatalog;
 import pl.lokos.tools.config.CommandsFile;
 import pl.lokos.tools.manager.*;
@@ -39,8 +40,8 @@ public final class RankMenuFactory {
     private ItemStack item(Material type,String name,String action,String... lore) {
         ItemStack item=new ItemStack(type);
         ItemMeta meta=item.getItemMeta();
-        meta.displayName(Colors.color(name));
-        meta.lore(Arrays.stream(lore).map(Colors::color).toList());
+        meta.displayName(Colors.color(GuiTheme.itemTitle(name)));
+        meta.lore(GuiTheme.lore(lore));
         meta.getPersistentDataContainer().set(key,PersistentDataType.STRING,action);
         item.setItemMeta(meta);
         return item;
@@ -51,11 +52,9 @@ public final class RankMenuFactory {
     }
     private Inventory inventory(Player p,View view,String name,int page,String title) {
         Holder holder=new Holder(p.getUniqueId(),name,view,page);
-        Inventory inv=Bukkit.createInventory(holder,54,Colors.color(title));
+        Inventory inv=Bukkit.createInventory(holder,54,Colors.color(GuiTheme.title(title)));
         holder.inventory=inv;
-        ItemStack glass=item(Material.GRAY_STAINED_GLASS_PANE,"&8","noop");
-        for(int n=0;n<9;n++)inv.setItem(n,glass);
-        for(int n=45;n<54;n++)inv.setItem(n,glass);
+        GuiTheme.frame(inv);
         p.openInventory(inv);
         return inv;
     }
@@ -113,7 +112,7 @@ public final class RankMenuFactory {
             String permission=feature.permission();
             boolean active=granted.contains(permission);
             List<String> tooltip=new ArrayList<>();
-            tooltip.add("&8────────────────────────");
+            tooltip.add(GuiTheme.RULE);
             tooltip.add("&7Stan: "+(active?"&aWłączone":"&cWyłączone"));
             tooltip.add("&8 ");
             tooltip.add("&7Działanie:");

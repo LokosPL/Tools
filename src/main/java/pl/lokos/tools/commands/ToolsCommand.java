@@ -11,6 +11,8 @@ import pl.lokos.tools.helpers.PlayerDataHelper;
 import pl.lokos.tools.manager.PlayerDataManager;
 import pl.lokos.tools.diagnostics.MonitoringService;
 import pl.lokos.tools.config.HotReloadService;
+import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.security.ToolsAccess;
 import pl.lokos.tools.config.CommandTextRegistry;
 import java.util.concurrent.CompletionException;
 
@@ -28,10 +30,11 @@ public final class ToolsCommand implements BasicCommand {
     private final String permission;
     private final MonitoringService monitoring;
     private final HotReloadService reload;
+    private final RankManager ranks;
 
     public ToolsCommand(JavaPlugin plugin, DatabaseManager database, PlayerRepository repository,
                         PlayerDataManager playerData, String permission,
-                        MonitoringService monitoring, HotReloadService reload) {
+                        MonitoringService monitoring, HotReloadService reload, RankManager ranks) {
         this.plugin = plugin;
         this.database = database;
         this.repository = repository;
@@ -39,6 +42,7 @@ public final class ToolsCommand implements BasicCommand {
         this.permission = permission;
         this.monitoring = monitoring;
         this.reload = reload;
+        this.ranks = ranks;
     }
 
     @Override
@@ -49,6 +53,10 @@ public final class ToolsCommand implements BasicCommand {
     @Override
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
+        if (!ToolsAccess.admin(sender,ranks,permission)) {
+            display.error(sender,"Nie masz uprawnień do zarządzania serwerem.");
+            return;
+        }
         if (args.length == 0 || args[0].equalsIgnoreCase("pomoc") || args[0].equalsIgnoreCase("help")) {
             CommandTextRegistry.help(sender,"tools");
             return;

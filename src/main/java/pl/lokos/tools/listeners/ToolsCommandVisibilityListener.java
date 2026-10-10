@@ -9,6 +9,7 @@ import org.bukkit.event.player.PlayerCommandSendEvent;
 import pl.lokos.tools.config.CommandsFile;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.security.ToolsAccess;
 
 import java.util.*;
 
@@ -19,6 +20,7 @@ import java.util.*;
 public final class ToolsCommandVisibilityListener implements Listener {
     private final Map<String, String> rootPermissions;
     private final RankManager ranks;
+    private final Set<String> adminNodes;
 
     public ToolsCommandVisibilityListener(CommandsFile config, RankManager ranks) {
         Map<String, String> nodes=new HashMap<>();
@@ -27,6 +29,8 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"region",config.region());
         register(nodes,"lokalizacje",config.lokalizacje());
         this.rootPermissions=Map.copyOf(nodes);
+        this.adminNodes=Set.of(config.tools().permission(),config.ranga().permission(),
+                config.region().permission());
         this.ranks=ranks;
     }
 
@@ -43,12 +47,12 @@ public final class ToolsCommandVisibilityListener implements Listener {
 
     public Map<String,String> registeredRoots(){return rootPermissions;}
 
-    public static boolean allowed(Player player,RankManager ranks,String permission){
-        // Gracze bez aktywnej rangi korzystają z uprawnień rangi 'gracz'.
-        // Operator nadal może zarządzać serwerem.
-        return player.isOp() || (ranks!=null &&
-                (ranks.snapshot().permissionsFor(player.getUniqueId()).contains("*")
-                || ranks.snapshot().permissionsFor(player.getUniqueId()).contains(permission)));
+    public static boolean allowed(Player player,RankManager ranks,String permission) {
+        return ToolsAccess.allowed(player,ranks,permission,false);
+    }
+
+    private boolean canUse(Player player,String permission){
+        return ToolsAccess.allowed(player,ranks,permission,adminNodes.contains(permission));
     }
 
     @EventHandler(priority=EventPriority.HIGHEST)
@@ -56,7 +60,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
         Player player=event.getPlayer();
         event.getCommands().removeIf(command -> {
             String required=rootPermissions.get(command.toLowerCase(Locale.ROOT));
-            return required!=null && !allowed(player,ranks,required);
+            return required!=null && !canUse(player,required);
         });
     }
 
@@ -66,7 +70,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
         if(raw==null || !raw.startsWith("/"))return;
         String command=raw.substring(1).split("\\s+",2)[0].toLowerCase(Locale.ROOT);
         String required=rootPermissions.get(command);
-        if(required==null || allowed(event.getPlayer(),ranks,required))return;
+        if(required==null || canUse(event.getPlayer(),required))return;
         event.setCancelled(true);
         Messages.unknown(event.getPlayer());
     }

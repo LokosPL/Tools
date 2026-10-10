@@ -12,6 +12,8 @@ import pl.lokos.tools.config.HotReloadService;
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.whitelist.*;
+import pl.lokos.tools.security.ToolsAccess;
+import pl.lokos.tools.basic.ToolsPlugin;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -51,7 +53,7 @@ public final class WhitelistListener implements Listener {
         if(!(event.getWhoClicked() instanceof Player player)
                 || !holder.viewer().equals(player.getUniqueId())
                 || event.getClickedInventory()!=event.getView().getTopInventory()
-                || !player.hasPermission("tools.whitelist.admin"))return;
+                || !ToolsAccess.admin(player,((ToolsPlugin)plugin).ranks(),"tools.whitelist.admin"))return;
         String action=holder.action(event.getRawSlot());
         if(action==null)return;
         if(action.startsWith("page:")){
@@ -105,7 +107,7 @@ public final class WhitelistListener implements Listener {
         }
         if(root.equals("reload") || root.equals("minecraft:reload") || root.equals("bukkit:reload")){
             cancel.run();
-            if(!sender.hasPermission("tools.admin")){
+            if(!ToolsAccess.admin(sender,((ToolsPlugin)plugin).ranks(),"tools.admin")){
                 display.error(sender,"Brak uprawnienia tools.admin.");return;
             }
             display.info(sender,"Sprawdzanie konfiguracji Tools w tle...");

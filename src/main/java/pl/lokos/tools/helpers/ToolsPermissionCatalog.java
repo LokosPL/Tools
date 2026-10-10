@@ -12,6 +12,7 @@ public final class ToolsPermissionCatalog {
 
     private final List<Feature> features;
     private final Set<String> nodes;
+    private final Set<String> administrative;
 
     public ToolsPermissionCatalog(CommandsFile commands) {
         List<Feature> list=new ArrayList<>();
@@ -24,9 +25,9 @@ public final class ToolsPermissionCatalog {
         add(list,commands.region().permission(),"Administracja regionami",
                 "Tworzenie, usuwanie i edycja regionów.",
                 "Udostępnia /region, różdżkę, zmianę zasad i dostęp do panelu ochrony.");
-        add(list,"tools.region.bypass","Omijanie ochrony",
-                "Pozwala ignorować zabezpieczenia regionów.",
-                "Uprawnienie administracyjne: budowanie, walka i interakcje mimo blokad.");
+        add(list,"tools.spawn","Teleportacja na spawn",
+                "Standardowe przeniesienie na główną lokalizację serwera.",
+                "Bez uprawnień administracyjnych.");
         add(list,commands.ranga().permission(),"Zarządzanie rangami",
                 "Dostęp do /ranga i GUI uprawnień.",
                 "Umożliwia tworzenie rang, nadawanie, ustawianie pozycji oraz edycję.");
@@ -43,6 +44,8 @@ public final class ToolsPermissionCatalog {
         Set<String> names=new LinkedHashSet<>();
         for(Feature feature:features)if(!feature.permission().equals("*"))names.add(feature.permission());
         nodes=Set.copyOf(names);
+        administrative=Set.of(commands.region().permission(),commands.ranga().permission(),
+                commands.tools().permission(),"tools.whitelist.admin");
     }
 
     private static void add(List<Feature> list,String node,String name,String description,String details) {
@@ -53,6 +56,7 @@ public final class ToolsPermissionCatalog {
 
     public List<Feature> features(){return features;}
     public Set<String> managedNodes(){return nodes;}
+    public Set<String> administrativeNodes(){return administrative;}
     public List<String> suggestions(){return features.stream().map(Feature::permission).toList();}
     public boolean isManaged(String permission){
         return permission!=null && (permission.equals("*")||nodes.contains(permission));

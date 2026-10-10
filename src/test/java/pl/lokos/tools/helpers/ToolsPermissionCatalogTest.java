@@ -10,7 +10,7 @@ class ToolsPermissionCatalogTest {
     @Test void noBukkitVanillaOrOtherPluginPermissionCanLeakIntoGuiOrSuggestions(){
         ToolsPermissionCatalog catalog=new ToolsPermissionCatalog(new CommandsFile());
         assertEquals(Set.of("tools.lokalizacje","tools.lokalizacje.instant",
-                        "tools.region.admin","tools.region.bypass",
+                        "tools.region.admin","tools.spawn",
                         "tools.ranga.admin","tools.admin","tools.whitelist.admin","*"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));

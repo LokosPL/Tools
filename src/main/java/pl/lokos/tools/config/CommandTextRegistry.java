@@ -22,7 +22,24 @@ public final class CommandTextRegistry {
         Map<String,CommandTextFile> next=new LinkedHashMap<>();
         for(String name:CommandTextFile.names()) {
             CommandTextFile config=loader.load(name+".json",CommandTextFile.class,
-                    ()->CommandTextFile.defaults(name),CommandTextFile::validate);
+                    ()->CommandTextFile.defaults(name),CommandTextFile::validate, root -> {
+                        // Starszy plik z /region bypass aktualizujemy automatycznie.
+                        if(!name.equals("region") || !root.has("help")
+                                || !root.get("help").isJsonArray())return;
+                        com.google.gson.JsonArray clean=new com.google.gson.JsonArray();
+                        for(var item:root.getAsJsonArray("help")) {
+                            if(!item.isJsonPrimitive()) { clean.add(item); continue; }
+                            String line=item.getAsString();
+                            if(line.contains("/region bypass")) {
+                                if(!line.contains("/region stan"))continue;
+                                int split=line.indexOf(" &8•");
+                                line=split<0?line.substring(0,line.indexOf("/region bypass"))
+                                        :line.substring(0,split);
+                            }
+                            clean.add(line);
+                        }
+                        root.add("help",clean);
+                    });
             next.put(name,config);
         }
         return Map.copyOf(next);

@@ -24,8 +24,6 @@ public final class RegionManager {
     private volatile String mainSpawn;
     private volatile boolean loaded;
     private boolean closing;
-    /** Administrator włącza omijanie ochrony świadomie, nigdy automatycznie przez OP. */
-    private final Set<UUID> bypassToggles = new HashSet<>();
     private CompletableFuture<Void> queue=CompletableFuture.completedFuture(null);
     private CompletableFuture<Void> firstLoad;
 
@@ -201,41 +199,21 @@ public final class RegionManager {
             return modified(file,all,name);
         });
     }
-    public boolean bypass(Player p) {
-        // Sam status OP, ranga '*' ani posiadanie uprawnienia bypass NIE wystarczają.
-        return RegionBypassPolicy.active(
-                p.isOp() || p.hasPermission("tools.region.bypass"),
-                bypassToggles.contains(p.getUniqueId()));
-    }
-
-    public boolean bypassEnabled(Player p) { return bypass(p); }
-
-    public boolean toggleBypass(Player p) {
-        if (!p.isOp() && !p.hasPermission("tools.region.bypass"))
-            throw new IllegalArgumentException("Nie masz uprawnienia do trybu omijania ochrony.");
-        if (!bypassToggles.add(p.getUniqueId())) {
-            bypassToggles.remove(p.getUniqueId());
-            return false;
-        }
-        return true;
-    }
-
-    public void clearBypass(UUID uuid) { bypassToggles.remove(uuid); }
-
     public record ProtectionStatus(boolean ready, int regions, String region,
-                                   boolean bypass, boolean buildingAllowed, boolean breakingAllowed) {}
+                                   boolean buildingAllowed, boolean breakingAllowed) {}
 
     public ProtectionStatus protectionStatus(Player p) {
-        Region region=at(p.getLocation());
-        return new ProtectionStatus(ready(), index.all().size(), region == null ? null : region.name(),
-                bypass(p), region != null && index.enabled(region, RegionFlag.BUILD),
-                region != null && index.enabled(region, RegionFlag.BREAK));
+        Region r=at(p.getLocation());
+        return new ProtectionStatus(ready(),index.all().size(),r==null?null:r.name(),
+                r!=null && index.enabled(r,RegionFlag.BUILD),
+                r!=null && index.enabled(r,RegionFlag.BREAK));
     }
+
     public boolean allowed(Player player,Region region,RegionFlag flag) {
-        return region==null||bypass(player)||index.enabled(region,flag);
+        return region==null||index.enabled(region,flag);
     }
     public boolean canEnter(Player player,Region region) {
-        if(region==null||bypass(player))return true;
+        if(region==null)return true;
         RankSnapshot.Rank rank=ranks==null?null:ranks.snapshot().forPlayer(player.getUniqueId());
         Set<String> seen=new HashSet<>();
         while(region!=null&&seen.add(region.name())){
@@ -255,5 +233,5 @@ public final class RegionManager {
         Region.Spawn s=r.spawn();
         return new Location(world,s.x(),s.y(),s.z(),s.yaw(),s.pitch());
     }
-    public void shutdown(){closing=true; bypassToggles.clear();}
+    public void shutdown(){closing=true;}
 }

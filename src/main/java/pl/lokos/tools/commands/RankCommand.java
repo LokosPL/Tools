@@ -9,6 +9,7 @@ import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.RankRepository;
 import pl.lokos.tools.config.CommandTextRegistry;
+import pl.lokos.tools.security.ToolsAccess;
 
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.helpers.RankValidity;
@@ -51,6 +52,10 @@ public final class RankCommand implements BasicCommand {
     @Override
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
+        if (!ToolsAccess.admin(sender,ranks,commandPermission)) {
+            display.error(sender,"Brak uprawnień do zarządzania rangami.");
+            return;
+        }
         if (args.length == 0) {
             help(sender);
             return;

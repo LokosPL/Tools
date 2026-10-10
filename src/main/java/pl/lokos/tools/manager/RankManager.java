@@ -9,6 +9,7 @@ import pl.lokos.tools.database.RankRepository;
 import pl.lokos.tools.config.DefinitionFiles;
 import pl.lokos.tools.config.RanksFile;
 import pl.lokos.tools.helpers.ToolsPermissionCatalog;
+import pl.lokos.tools.security.ToolsAccess;
 import java.util.function.Function;
 import pl.lokos.tools.utils.ThreadChecks;
 
@@ -28,6 +29,7 @@ public final class RankManager {
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
     private final Set<UUID> opPending = new HashSet<>();
     private Set<String> managedPermissions = Set.of();
+    private Set<String> adminPermissions = Set.of();
     private volatile RankSnapshot snapshot = RankSnapshot.empty();
     private boolean stopping;
     private boolean expirePending;
@@ -47,6 +49,13 @@ public final class RankManager {
     /** Lista komend Tools kontrolowanych przez plugin; wywołana przed start(). */
     public void setManagedPermissions(Set<String> names) {
         this.managedPermissions=Set.copyOf(names);
+    }
+
+    public void setAdminPermissions(Set<String> names) {
+        this.adminPermissions=Set.copyOf(names);
+    }
+    public boolean canAdmin(Player player,String permission) {
+        return ToolsAccess.allowed(player,this,permission,true);
     }
 
     public RankSnapshot snapshot() {
@@ -194,6 +203,9 @@ public final class RankManager {
         });
     }
     public CompletableFuture<Void> addPermission(String name,String permission) {
+        if (name.equals("gracz") && (permission.equals("*") || adminPermissions.contains(permission)))
+            return CompletableFuture.failedFuture(new IllegalArgumentException(
+                    "Ranga podstawowa Gracz nie może otrzymać uprawnień administratora."));
         return updateDefinitions(map -> {
             var r=require(map,name);
             Set<String> perms=new HashSet<>(r.permissions());perms.add(permission);
@@ -281,6 +293,14 @@ public final class RankManager {
         ThreadChecks.requirePrimaryThread();
         if (stopping || !player.isOnline()) return;
         UUID uuid = player.getUniqueId();
+        // Przy cofnięciu rangi z '*' najpierw odbieramy odziedziczony OP,
+        // dopiero potem przebudowujemy PermissionAttachment.
+        RankSnapshot.Rank effective=snapshot.forPlayer(uuid);
+        boolean standardRank=effective==null || "gracz".equals(effective.name());
+        boolean allGranted=!standardRank && snapshot.permissionsFor(uuid).contains("*");
+        Boolean previousOperator=snapshot.opRestores().get(uuid);
+        if(!allGranted && previousOperator!=null && player.isOp()!=previousOperator)
+            player.setOp(previousOperator);
 
         PermissionAttachment old = attachments.remove(uuid);
         if (old != null) {
@@ -293,23 +313,37 @@ public final class RankManager {
         // obchodzeniu wyłączenia przez PermissionDefault.TRUE innego pluginu.
         for (String managed : managedPermissions) {
             attachment.setPermission(managed,
-                    ToolsPermissionCatalog.granted(granted, player.isOp(), managed));
+                    ToolsAccess.allowed(player.isOp(), snapshot, uuid, managed,
+                            adminPermissions.contains(managed)));
         }
+        // Ranga podstawowa może mieć tylko uprawnienia nieadministracyjne.
+        // Wildcard (*) nigdy nie jest dziedziczony z domyślnej rangi "gracz".
+        boolean standard = snapshot.forPlayer(uuid)==null
+                || "gracz".equals(snapshot.forPlayer(uuid).name());
         for (String permission : granted) {
             if (permission.equals("*")) {
-                for (Permission available : plugin.getServer().getPluginManager().getPermissions()) {
-                    attachment.setPermission(available.getName(), true);
+                if (!standard) {
+                    for (Permission available : plugin.getServer().getPluginManager().getPermissions()) {
+                        attachment.setPermission(available.getName(), true);
+                    }
                 }
-            } else {
+            } else if (!standard || ToolsAccess.publicNode(permission)) {
                 attachment.setPermission(permission, true);
             }
+        }
+        // Zapisane fałszywe uprawnienia zarządzane mają pierwszeństwo nad
+        // przypadkowym PermissionDefault.TRUE i innymi drogami nadania.
+        for (String managed : managedPermissions) {
+            attachment.setPermission(managed,
+                    ToolsAccess.allowed(player.isOp(), snapshot, uuid, managed,
+                            adminPermissions.contains(managed)));
         }
         attachments.put(uuid, attachment);
         // Odśwież listę komend Brigadiera po każdej zmianie rangi.
         player.updateCommands();
 
-        boolean all = snapshot.permissionsFor(uuid).contains("*");
-        Boolean original = snapshot.opRestores().get(uuid);
+        boolean all = allGranted;
+        Boolean original = previousOperator;
         if (all && original == null && opPending.add(uuid)) {
             boolean before = player.isOp();
             repository.rememberOp(uuid, before)

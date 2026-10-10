@@ -7,6 +7,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import net.kyori.adventure.text.Component;
 import pl.lokos.tools.helpers.Colors;
+import pl.lokos.tools.helpers.GuiTheme;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.manager.RankSnapshot;
 import pl.lokos.tools.manager.RegionManager;
@@ -42,8 +43,8 @@ public final class RegionMenuFactory {
     private ItemStack item(Material type,String name,String action,String... lore) {
         ItemStack stack=new ItemStack(type);
         ItemMeta meta=stack.getItemMeta();
-        meta.displayName(Colors.color(name));
-        meta.lore(Arrays.stream(lore).map(Colors::color).toList());
+        meta.displayName(Colors.color(GuiTheme.itemTitle(name)));
+        meta.lore(GuiTheme.lore(lore));
         meta.getPersistentDataContainer().set(key,PersistentDataType.STRING,action);
         stack.setItemMeta(meta);
         return stack;
@@ -54,11 +55,9 @@ public final class RegionMenuFactory {
     }
     private Inventory open(Player player,View view,String region,int page,String title) {
         Holder holder=new Holder(player.getUniqueId(),view,region,page);
-        Inventory inventory=Bukkit.createInventory(holder,54,Colors.color(title));
+        Inventory inventory=Bukkit.createInventory(holder,54,Colors.color(GuiTheme.title(title)));
         holder.inventory=inventory;
-        ItemStack bg=item(Material.GRAY_STAINED_GLASS_PANE,"&8","noop");
-        for(int slot=0;slot<9;slot++)inventory.setItem(slot,bg);
-        for(int slot=45;slot<54;slot++)inventory.setItem(slot,bg);
+        GuiTheme.frame(inventory);
         player.openInventory(inventory);
         return inventory;
     }

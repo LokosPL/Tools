@@ -7,6 +7,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.inventorys.RankMenuFactory;
 import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.security.ToolsAccess;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -29,7 +30,7 @@ public final class RankMenuListener implements Listener {
         if(!(event.getWhoClicked() instanceof Player p) || !h.owner().equals(p.getUniqueId())
                 || event.getClickedInventory()!=event.getView().getTopInventory()
                 || pending.contains(p.getUniqueId()))return;
-        if(!p.hasPermission(adminPermission)){display.error(p,"Brak uprawnień.");later(p,p::closeInventory);return;}
+        if(!ToolsAccess.admin(p,ranks,adminPermission)){display.error(p,"Brak uprawnień.");later(p,p::closeInventory);return;}
         String action=menus.action(event.getCurrentItem());
         if(action==null||action.equals("noop"))return;
         if(action.startsWith("page:")){

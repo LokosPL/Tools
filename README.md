@@ -1,3 +1,36 @@
+# Tools 1.9.0 — naprawa uprawnień, regiony i jednolite GUI
+
+**Bezpieczna aktualizacja:** wykonaj kopię `Ranks.json`, `Regions.json` i MySQL przed aktualizacją. Aktualizacja nie usuwa rang ani przypisań graczy.
+
+## Uprawnienia
+
+- Komendy administracyjne `/tools`, `/region`, `/ranga` i `/whitelist` oraz ich GUI korzystają z jednego weryfikatora `ToolsAccess`.
+- Ranga `gracz` nie może nigdy automatycznie otrzymać `*`, uprawnień administratora, node'ów Bukkit/vanilla lub uprawnień obcych komend; nawet przypadkowy wpis w JSON jest pomijany. Nadal może używać publicznych `tools.spawn` i `tools.lokalizacje`.
+- `*` zachowuje dawną semantykę pełnych uprawnień + OP, **ale tylko w jawnie nadanej randze innej niż podstawowa Gracz**. Przy cofnięciu rangi przywracamy wcześniejszy OP przed ponownym założeniem uprawnień.
+- Zwykłe `Player.hasPermission()` nie stanowi samodzielnej autoryzacji komend administracyjnych — sprawdzany jest rzeczywisty stan rangi, a nie tylko node Paper.
+- `/region bypass` **zostało całkowicie usunięte**. OP i ranki `*` podlegają flagom ochrony regionów tak samo jak pozostali. Regiony nadal konfiguruje się przez `/region edytuj`.
+- `/region stan` wyświetla liczbę regionów i ich flagi, bez możliwości ominięcia ich.
+
+## Wiadomości, dźwięki i GUI
+
+- Powodzenie komendy: miętowy znacznik ✔ i cichy, wysoki dźwięk doświadczenia.
+- Błąd/składnia: czerwony znacznik ✘ i cichy, niski dźwięk wieśniaka.
+- Dźwięki mają ograniczenie częstotliwości i emitowane są wyłącznie na wątku Paper.
+- GUI własnego Tools (rangi, regiony, lokalizacje, whitelist) mają ciemne obramowania, złote nagłówki, turkusowe nawigacje, szare opisy i jasne komunikaty akcji.
+- Edycja tekstów pozostaje w `plugins/Tools/commands/*.json`; kolorystyka obsługuje `&#RRGGBB` i `&`.
+
+**Ważne:** Tools stylizuje wyłącznie swoje GUI; nie zmienia GUI i itemów utworzonych przez inne wtyczki ani tekstur klienta Minecraft. W offline-mode sam nick nie jest wiarygodną tożsamością, nawet po włączeniu poprawnych uprawnień.
+
+### Kontrola po wdrożeniu
+
+1. Zaloguj zwykłego gracza bez OP, bez jawnej rangi i upewnij się, że `/region`, `/ranga`, `/tools`, `/whitelist` nie działają.
+2. Nadaj uprawnienie administratora **osobnej** randze testowej, przypisz ją drugiemu kontu i potwierdź dostęp.
+3. Wyłącz OP drugiemu kontu, odbierz rangę i sprawdź, że komendy znów są zablokowane.
+4. Spróbuj postawić/zniszczyć blok na chronionym obszarze jako zwykły gracz i jako OP — obaj podlegają tym samym flagom.
+5. Wpisz `/region stan`; potem `/ranga menu` i sprawdź nowe kolory oraz dźwięki.
+
+---
+
 # Tools 1.8.1 — naprawa ochrony i teksty komend
 
 **Najważniejsza poprawka:** operatorzy (OP), ranga z `*` i gracze z

@@ -8,6 +8,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.config.CommandTextRegistry;
+import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.security.ToolsAccess;
+import java.util.function.Supplier;
 import pl.lokos.tools.whitelist.*;
 
 import java.util.*;
@@ -19,15 +22,18 @@ public final class WhitelistCommand implements BasicCommand {
     private final JavaPlugin plugin;
     private final WhitelistService service;
     private final WhitelistMenu menu;
+    private final Supplier<RankManager> ranks;
 
-    public WhitelistCommand(JavaPlugin plugin, WhitelistService service, WhitelistMenu menu) {
+    public WhitelistCommand(JavaPlugin plugin, WhitelistService service, WhitelistMenu menu,
+                            Supplier<RankManager> ranks) {
         this.plugin=plugin;this.service=service;this.menu=menu;
+        this.ranks=ranks;
     }
     @Override public String permission() { return "tools.whitelist.admin"; }
     @Override public void execute(CommandSourceStack source, String[] args) { handle(source.getSender(),args); }
 
     public void handle(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(permission())) {
+        if (!ToolsAccess.admin(sender,ranks.get(),permission())) {
             CommandTextRegistry.error(sender,"whitelist","noPermission");
             return;
         }

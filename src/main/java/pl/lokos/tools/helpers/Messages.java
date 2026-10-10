@@ -1,43 +1,60 @@
 package pl.lokos.tools.helpers;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import java.util.Map;
+import java.util.UUID;
+import java.util.WeakHashMap;
 
-/** Jednolita stylistyka: &c błędy, &a potwierdzenia, &7 treść, &8 separatory. */
+/** Jeden styl HEX i nieinwazyjne dźwięki sukcesu oraz błędu. */
 public final class Messages {
     private Messages() {}
     private static volatile String prefix="";
+    private static final Map<Player,Long> lastSound=new WeakHashMap<>();
     public static void configure(String value){prefix=value==null?"":value;}
     private static String format(String text){return prefix+text;}
 
-    public static void success(CommandSender to, String value) {
-        to.sendMessage(Colors.color(format("&a&lSUKCES &8-> &7" + value)));
+    private static void notifySound(CommandSender to,boolean success){
+        // API dźwięków Paper tylko na głównym wątku; callbacki SQL nie wykonują Bukkit API.
+        if(!(to instanceof Player player) || !Bukkit.isPrimaryThread())return;
+        long now=System.currentTimeMillis();
+        Long previous=lastSound.get(player);
+        if(previous!=null && now-previous<300)return;
+        lastSound.put(player,now);
+        player.playSound(player.getLocation(),
+                success?Sound.ENTITY_EXPERIENCE_ORB_PICKUP:Sound.ENTITY_VILLAGER_NO,
+                SoundCategory.MASTER,success?0.50f:0.42f,success?1.38f:0.88f);
     }
 
+    public static void success(CommandSender to,String value) {
+        to.sendMessage(Colors.color(format("&#81E5B3✔ &8» &7"+value)));
+        notifySound(to,true);
+    }
     public static void unknown(CommandSender to) {
-        to.sendMessage(Colors.color("&c&lBŁĄD &8-> &cNieznana komenda."));
+        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7Nieznana komenda lub brak uprawnień.")));
+        notifySound(to,false);
     }
-
-    public static void error(CommandSender to, String value) {
-        to.sendMessage(Colors.color(format("&c&lBŁĄD &8-> &c" + value)));
+    public static void error(CommandSender to,String value) {
+        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7"+value)));
+        notifySound(to,false);
     }
-
-    public static void info(CommandSender to, String value) {
-        to.sendMessage(Colors.color(format("&a • &7" + value)));
+    public static void info(CommandSender to,String value) {
+        to.sendMessage(Colors.color(format("&#71D7ED» &7"+value)));
     }
-
-    public static void line(CommandSender to, String value) {
+    public static void line(CommandSender to,String value) {
         to.sendMessage(Colors.color(format(value)));
     }
-
-    public static void title(CommandSender to, String value) {
-        to.sendMessage(Colors.color(format("&a&l" + value + " &8----------------")));
+    public static void title(CommandSender to,String value) {
+        to.sendMessage(Colors.color(format("&#FFD166&l» "+value+" &8«")));
     }
-
-    public static void usage(CommandSender to, String syntax) {
-        to.sendMessage(Colors.color(format("&8Składnia: &7" + syntax)));
+    public static void usage(CommandSender to,String syntax) {
+        to.sendMessage(Colors.color(format("&#FF7382✘ &8» &7Składnia: &#FFD166"+syntax)));
+        notifySound(to,false);
     }
-
-    public static void hint(CommandSender to, String value) {
-        to.sendMessage(Colors.color(format("&a&lTIP &8-> &7" + value)));
+    public static void hint(CommandSender to,String value) {
+        to.sendMessage(Colors.color(format("&#71D7ED➜ &7"+value)));
     }
 }

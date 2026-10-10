@@ -15,6 +15,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.ToolsConfig;
 import pl.lokos.tools.config.CommandTextRegistry;
+import pl.lokos.tools.security.ToolsAccess;
 
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.helpers.Messages;
@@ -53,6 +54,10 @@ public final class RegionCommand implements BasicCommand {
 
     @Override public void execute(CommandSourceStack source,String[] args) {
         CommandSender sender=source.getSender();
+        if (!ToolsAccess.admin(sender,ranks,commandPermission)) {
+            display.error(sender,"Brak uprawnień do edycji regionów.");
+            return;
+        }
         if(args.length==0 || args[0].equalsIgnoreCase("pomoc")) {help(sender);return;}
         if(!regions.ready()) {
             CommandTextRegistry.error(sender,"region","notReady");return;

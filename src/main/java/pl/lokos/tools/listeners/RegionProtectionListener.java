@@ -42,7 +42,7 @@ public final class RegionProtectionListener implements Listener {
     private boolean denies(Player player, Location loc, RegionFlag flag) {
         if(loc==null)return false;
         if(!regions.ready())return true;
-        return (player==null||!regions.bypass(player)) && regions.protectedLocation(loc,flag);
+        return regions.protectedLocation(loc,flag);
     }
     private boolean denies(Location loc,RegionFlag flag) {
         if(loc==null)return false;
@@ -115,7 +115,6 @@ public final class RegionProtectionListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void ignite(BlockIgniteEvent e) {
-        if (e.getPlayer()!=null && regions.bypass(e.getPlayer())) return;
         if (denies(e.getBlock().getLocation(),RegionFlag.FIRE)) e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -178,13 +177,6 @@ public final class RegionProtectionListener implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void mobs(CreatureSpawnEvent e) {
         if(!denies(e.getLocation(),RegionFlag.MOBS)) return;
-        if(e.getSpawnReason()==CreatureSpawnEvent.SpawnReason.SPAWNER_EGG) {
-            boolean adminNearby=e.getLocation().getNearbyPlayers(5.0).stream().anyMatch(regions::bypass);
-            if(adminNearby) {
-                e.getEntity().getPersistentDataContainer().set(wandKey, PersistentDataType.BYTE,(byte)2);
-                return;
-            }
-        }
         e.setCancelled(true);
     }
     /** Moby, ktore wchodza na spawn z zewnatrz, sa usuwane. */
@@ -222,8 +214,6 @@ public final class RegionProtectionListener implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
     public void hangingBreak(HangingBreakEvent e) {
-        if(e instanceof HangingBreakByEntityEvent byEntity
-                && byEntity.getRemover() instanceof Player player && regions.bypass(player))return;
         RegionFlag flag=e.getEntity() instanceof org.bukkit.entity.ItemFrame
                 ? RegionFlag.ITEM_FRAMES : RegionFlag.BREAK;
         if(denies(e.getEntity().getLocation(),flag))e.setCancelled(true);
@@ -297,7 +287,6 @@ public final class RegionProtectionListener implements Listener {
             Entity attacker=attack.getDamager();
             Player player=attacker instanceof Player p ? p
                     : attacker instanceof Projectile projectile && projectile.getShooter() instanceof Player p ? p : null;
-            if(player!=null && regions.bypass(player)) return;
             if (player != null && victim instanceof Player) {
                 Region attackerRegion=regions.at(player.getLocation());
                 if(denies(player,victim.getLocation(),RegionFlag.PVP)
@@ -350,10 +339,6 @@ public final class RegionProtectionListener implements Listener {
             Region next=regions.at(e.getTo());
             if(next!=null && !regions.canEnter(e.getPlayer(),next))e.setCancelled(true);
         }
-    }
-    @EventHandler
-    public void leave(PlayerQuitEvent event) {
-        regions.clearBypass(event.getPlayer().getUniqueId());
     }
 
 }

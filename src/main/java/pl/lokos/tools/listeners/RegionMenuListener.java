@@ -8,6 +8,7 @@ import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.inventorys.RegionMenuFactory;
 import pl.lokos.tools.manager.*;
 import pl.lokos.tools.region.*;
+import pl.lokos.tools.security.ToolsAccess;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -69,7 +70,7 @@ public final class RegionMenuListener implements Listener {
             }
             return;
         }
-        if(!player.hasPermission(adminPermission)){
+        if(!ToolsAccess.admin(player,regions.ranks(),adminPermission)){
             display.error(player,"Nie masz dostępu do edycji regionu.");
             later(player,player::closeInventory);
             return;
