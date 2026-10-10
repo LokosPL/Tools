@@ -36,6 +36,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"helpop",config.helpop());register(nodes,"gamemode",config.gamemode());
         register(nodes,"fly",config.fly());register(nodes,"broadcast",config.broadcast());
         register(nodes,"inventoryopen",config.inventoryopen());register(nodes,"speed",config.speed());
+        register(nodes,"przedmiot",config.przedmiot());
         nodes.put("spawn", "tools.spawn");
         nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
@@ -47,7 +48,8 @@ public final class ToolsCommandVisibilityListener implements Listener {
                 config.region().permission(),"tools.whitelist.admin",config.chat().permission(),
                 config.tp().permission(),config.vanish().permission(),config.gamemode().permission(),
                 config.fly().permission(),config.broadcast().permission(),
-                config.inventoryopen().permission(),config.speed().permission());
+                config.inventoryopen().permission(),config.speed().permission(),
+                config.przedmiot().permission());
         this.ranks=ranks;
     }
 

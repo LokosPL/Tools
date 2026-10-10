@@ -45,6 +45,7 @@ public final class CommandsFile {
     private Entry broadcast=new Entry(true,"Ogłoszenia bossbar",List.of(),"tools.broadcast");
     private Entry inventoryopen=new Entry(true,"Podgląd ekwipunków",List.of("invopen"),"tools.inventoryopen");
     private Entry speed=new Entry(true,"Zmiana prędkości gracza",List.of(),"tools.speed");
+    private Entry przedmiot=new Entry(true,"Przedmioty specjalne serwera",List.of("specialitem"),"tools.przedmiot.admin");
     public Entry tools(){return tools;}
     public Entry ranga(){return ranga;}
     public Entry region(){return region;}
@@ -60,6 +61,7 @@ public final class CommandsFile {
     public Entry broadcast(){return broadcast;}
     public Entry inventoryopen(){return inventoryopen;}
     public Entry speed(){return speed;}
+    public Entry przedmiot(){return przedmiot;}
     public void validate(){
         if(serverName==null||serverName.isBlank()||serverName.length()>32)
             throw new IllegalArgumentException("serverName powinno mieć 1-32 znaki");
@@ -77,10 +79,12 @@ public final class CommandsFile {
         tp.validate("tp");vanish.validate("vanish");helpop.validate("helpop");
         gamemode.validate("gamemode");fly.validate("fly");broadcast.validate("broadcast");
         inventoryopen.validate("inventoryopen");speed.validate("speed");
+        if(przedmiot==null)throw new IllegalArgumentException("Brakuje komendy przedmiot.");
+        przedmiot.validate("przedmiot");
         Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply",
-                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed"));
+                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot"));
         for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply,
-                tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed))for(String alias:entry.aliases()){
+                tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed,przedmiot))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))
                 throw new IllegalArgumentException("Powtórzony alias komendy: "+alias);
         }

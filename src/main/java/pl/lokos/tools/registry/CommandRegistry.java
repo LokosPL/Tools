@@ -16,6 +16,7 @@ import pl.lokos.tools.helpers.ToolsPermissionCatalog;
 import pl.lokos.tools.staff.StaffManager;
 import pl.lokos.tools.commands.StaffCommand;
 import pl.lokos.tools.commands.InventoryAudit;
+import pl.lokos.tools.items.SpecialItemService;
 
 public final class CommandRegistry {
     private final JavaPlugin plugin;
@@ -23,7 +24,8 @@ public final class CommandRegistry {
     public void register(CommandsFile config,DatabaseManager database,PlayerRepository repository,
                          PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus,
                          MonitoringService monitoring, HotReloadService hotReload,ChatManager chats,
-                         PrivateMessageManager privateMessages,StaffManager staff,InventoryAudit inventoryAudit) {
+                         PrivateMessageManager privateMessages,StaffManager staff,InventoryAudit inventoryAudit,
+                         SpecialItemService items) {
         if(ranks!=null && config.ranga().enabled()){
             declare(config.ranga().permission(),PermissionDefault.OP);
             plugin.registerCommand("ranga",config.ranga().description(),config.ranga().aliases(),
@@ -65,6 +67,12 @@ public final class CommandRegistry {
                 plugin.registerCommand(name,entry.description(),entry.aliases(),
                         new StaffCommand(plugin,ranks,staff,inventoryAudit,(StaffCommand.Kind)item[2],entry.permission()));
             }
+        }
+        if(items!=null && config.przedmiot().enabled()){
+            declare(config.przedmiot().permission(),PermissionDefault.OP);
+            plugin.registerCommand("przedmiot",config.przedmiot().description(),
+                    config.przedmiot().aliases(),
+                    new SpecialItemCommand(items,ranks,config.przedmiot().permission()));
         }
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);

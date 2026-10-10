@@ -39,7 +39,7 @@ public final class CommandTextFile {
                 throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
         }
     }
-    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed");}
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot");}
 
     public static CommandTextFile defaults(String name){
         CommandTextFile file=switch(name){
@@ -161,6 +161,11 @@ public final class CommandTextFile {
                     "&#70D6E8/speed &7<1-10> &8• &7Twoja prędkość",
                     "&#70D6E8/speed &7<walk|fly> <1-10> [nick]",
                     "&#70D6E8/speed &7<nick> <1-10>"),Map.of());
+            case "przedmiot" -> new CommandTextFile("PRZEDMIOTY EVENTOWE",List.of(
+                    "&#70D6E8/przedmiot lista &#A8A8B7» &7Dostępne definicje",
+                    "&#70D6E8/przedmiot info <id> &#A8A8B7» &7Szczegóły przedmiotu",
+                    "&#70D6E8/przedmiot daj <nick> <id> [liczba]",
+                    "&#A8A8B7Zmieniaj wygląd i efekty w SpecialItems.json."),Map.of());
             case "whitelist" -> new CommandTextFile("WHITELIST",List.of(
                     "&#73D6C1/whitelist &8— &7Otwórz panel",
                     "&#73D6C1/whitelist włącz &7<prace_techniczne|chwilowa_przerwa|nowa_edycja|aktualizacja>",

@@ -55,6 +55,8 @@ import pl.lokos.tools.msg.PrivateMessageListener;
 import pl.lokos.tools.listeners.UnknownCommandListener;
 import pl.lokos.tools.staff.StaffManager;
 import pl.lokos.tools.commands.InventoryAudit;
+import pl.lokos.tools.items.SpecialItemService;
+import pl.lokos.tools.config.VisualsConfig;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -82,6 +84,7 @@ public final class ToolsPlugin extends JavaPlugin {
     private PrivateMessageManager privateMessages;
     private StaffManager staffManager;
     private InventoryAudit inventoryAudit;
+    private SpecialItemService specialItems;
     private WhitelistCommand pendingWhitelistCommand;
     private WhitelistMenu pendingWhitelistMenu;
 
@@ -91,6 +94,9 @@ public final class ToolsPlugin extends JavaPlugin {
         // podczas startu serwera. Wszystkie konfiguracje ladujemy PRZED
         // rejestracja komend, listenerow, baz danych i taskow.
         try {
+            VisualsConfig theme=new JsonConfigManager(getDataFolder().toPath()).load(
+                    "Visuals.json",VisualsConfig.class,VisualsConfig::new,VisualsConfig::validate);
+            Colors.configurePalette(theme);
             this.configurations = new ConfigRegistry(getDataFolder().toPath());
             configurations.loadAll();
             this.config = configurations.tools();
@@ -199,9 +205,19 @@ public final class ToolsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(staffManager,this);
         getServer().getScheduler().runTaskTimer(this,
                 monitoring.measured("staff.vanish-bossbar",staffManager::tick),4L,4L);
+        try{
+            specialItems=new SpecialItemService(this,getDataFolder().toPath());
+        }catch(IOException problem){
+            getLogger().severe("Nie wczytano SpecialItems.json: "+problem.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        getServer().getPluginManager().registerEvents(specialItems,this);
+        getServer().getScheduler().runTaskTimer(this,
+                monitoring.measured("items.efekty",specialItems::tick),20L,20L);
         new CommandRegistry(this).register(configurations.commands(), database,
                 repository, playerData, rankManager, rankMenus, monitoring, reloadService,
-                chatManager,privateMessages,staffManager,inventoryAudit);
+                chatManager,privateMessages,staffManager,inventoryAudit,specialItems);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");

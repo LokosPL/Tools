@@ -61,7 +61,7 @@ public final class SpecialItemCommand implements BasicCommand {
                     }
                     for(int i=0;i<count;i++)target.getInventory().addItem(template.clone());
                     Messages.success(sender,"Przekazano "+count+" przedmiotów: "+id+" graczowi "+target.getName()+".");
-                    if(sender!=target)Messages.info(target,"Otrzymano przedmiot eventowy: "+template.getItemMeta().displayName());
+                    if(sender!=target)Messages.info(target,"Otrzymano przedmiot eventowy: "+id+".");
                 }
                 default -> CommandTextRegistry.help(sender,"przedmiot");
             }

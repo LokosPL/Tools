@@ -74,6 +74,9 @@ public final class ToolsPermissionCatalog {
         add(list,"tools.inventoryopen.enderchest","Podgląd enderchesta","/inventoryopen enderchest nick","Wymaga tools.inventoryopen.");
         add(list,commands.speed().permission(),"Prędkość ruchu","Zmiana szybkości chodzenia lub latania","Chodzenie i latanie.");
         add(list,"tools.speed.others","Prędkość innych","Zmiana szybkości innego gracza","Wymaga tools.speed.");
+        add(list,commands.przedmiot().permission(),"Przedmioty eventowe",
+                "Tworzenie i wydawanie przedmiotów definiowanych w JSON.",
+                "Komenda /przedmiot daj <nick> <id> [liczba].");
         add(list,commands.tools().permission(),"Narzędzia administracyjne",
                 "Dostęp do /tools.",
                 "Status serwera, test połączenia MySQL i statystyki.");
@@ -89,7 +92,7 @@ public final class ToolsPermissionCatalog {
                 commands.tp().permission(),commands.vanish().permission(),
                 commands.gamemode().permission(),commands.fly().permission(),
                 commands.broadcast().permission(),commands.inventoryopen().permission(),
-                commands.speed().permission());
+                commands.speed().permission(),commands.przedmiot().permission());
     }
 
     private static void add(List<Feature> list,String node,String name,String description,String details) {
