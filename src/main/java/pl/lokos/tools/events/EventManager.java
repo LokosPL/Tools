@@ -60,6 +60,7 @@ public final class EventManager implements Listener,AutoCloseable {
     private final RegionManager regions;
     private final NamespacedKey tokenKey;
     private final MeteorShower meteors;
+    private final EliteHunt elites;
     private final Map<String,Long> recentlyPlaced=new LinkedHashMap<>();
     private final Map<UUID,Integer> challengeBuffer=new HashMap<>();
     private final Set<UUID> pendingDelivery=new HashSet<>();
@@ -77,9 +78,19 @@ public final class EventManager implements Listener,AutoCloseable {
         storage=new StateFile<>(folder,"EventState.json",EventState.class,EventState::new,EventState::validate);
         tokenKey=new NamespacedKey(plugin,"event_token");
         meteors=new MeteorShower(plugin,this,config,regions);
+        elites=new EliteHunt(plugin,this,config,regions);
     }
     public void setCrates(CrateManager crates){this.crates=crates;}
     public MeteorShower meteors(){return meteors;}
+    public EliteHunt elites(){return elites;}
+    void eliteDefeated(Player player,int keys){
+        if(active()!=EventType.LOWY||crates==null)return;
+        crates.giveKey(player,CrateType.EVENTOWA,keys);
+        Messages.success(player,"&#FF727F☠ Pokonano Tytana! &#89E5B0+"+keys
+                +" klucz(e) eventowe.");
+        challengeAction(player,EventType.LOWY);
+        reward(player,EventType.LOWY);
+    }
     /** Nagroda z jednorazowo zebranego meteorytu; losowa pamiątka jest dodatkiem. */
     void meteorCollected(Player player,int keys,boolean rare){
         if(active()!=EventType.METEORY||crates==null)return;
@@ -141,7 +152,7 @@ public final class EventManager implements Listener,AutoCloseable {
         holder.inv=inv;
         ItemStack bg=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
         for(int i=0;i<inv.getSize();i++)inv.setItem(i,bg);
-        int[] slots={10,11,12,13,14,15,16,22};
+        int[] slots={10,11,12,13,14,15,16,22,23};
         int n=0;
         for(EventType type:EventType.values()){
             ItemStack icon=new ItemStack(Material.valueOf(type.tokenMaterial()));
@@ -239,6 +250,7 @@ public final class EventManager implements Listener,AutoCloseable {
                 "&#70D6E8» Zbieraj pamiątki podczas wydarzenia.",
                 type==EventType.METEORY?"&#FFD166☄ Meteoryty: "+meteors.activeCount()
                         +" | /meteory gdzie | /meteory namierz"
+                        :type==EventType.LOWY?"&#FF727F☠ Aktywne Tytany: "+elites.activeCount()
                         :"&#A8A8B7» Realizuj cele swojego eventu."));
         header.setItemMeta(h);inv.setItem(11,header);
         ItemStack prize;
@@ -292,7 +304,7 @@ public final class EventManager implements Listener,AutoCloseable {
                 Bukkit.getScheduler().runTask(plugin,()->openChallenges(player));
                 return;
             }
-            int[] slots={10,11,12,13,14,15,16,22};
+            int[] slots={10,11,12,13,14,15,16,22,23};
             for(int i=0;i<slots.length;i++)if(event.getRawSlot()==slots[i]){
                 EventType selected=EventType.values()[i];
                 Bukkit.getScheduler().runTask(plugin,()->open(player,selected));
@@ -417,6 +429,7 @@ public final class EventManager implements Listener,AutoCloseable {
             case LATO, WEDKOWANIE -> Particle.SPLASH;
             case ZABOJSTWA -> Particle.CRIT;
             case METEORY -> Particle.END_ROD;
+            case LOWY -> Particle.SOUL_FIRE_FLAME;
         };
         player.spawnParticle(particle,player.getLocation().add(0,1,0),8,0.5,0.4,0.5,0.01);
         int next=state().progress(player.getUniqueId())+1;
@@ -529,6 +542,7 @@ public final class EventManager implements Listener,AutoCloseable {
             for(Player player:Bukkit.getOnlinePlayers())
                 if(state().pendingKeys(player.getUniqueId())>0)deliverChallengeKeys(player);
         meteors.tick();
+        elites.tick();
         EventType type=active();
         if(type==null){
             if(state().type()!=null){
@@ -575,6 +589,7 @@ public final class EventManager implements Listener,AutoCloseable {
     @Override public void close(){
         flushChallenges();
         meteors.close();
+        elites.close();
         bars.setGlobal(BossBarHub.Slot.EVENT,null,null);
         storage.close();
     }
