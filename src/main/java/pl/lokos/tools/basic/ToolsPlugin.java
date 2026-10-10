@@ -5,6 +5,16 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import pl.lokos.tools.config.ToolsConfig;
+import pl.lokos.tools.config.SecurityConfig;
+import pl.lokos.tools.config.JsonConfigManager;
+import pl.lokos.tools.whitelist.*;
+import pl.lokos.tools.commands.WhitelistCommand;
+import pl.lokos.tools.listeners.WhitelistListener;
+import pl.lokos.tools.skins.SkinService;
+import pl.lokos.tools.security.AntiBotGuard;
+import pl.lokos.tools.helpers.Colors;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
 import pl.lokos.tools.database.DatabaseManager;
 import pl.lokos.tools.database.PlayerRepository;
 import pl.lokos.tools.database.RankRepository;
@@ -56,6 +66,9 @@ public final class ToolsPlugin extends JavaPlugin {
     private MonitoringService monitoring;
     private HotReloadService reloadService;
     private RankListener rankListener;
+    private WhitelistService whitelistService;
+    private WhitelistCommand pendingWhitelistCommand;
+    private WhitelistMenu pendingWhitelistMenu;
 
     @Override
     public void onEnable() {
@@ -69,6 +82,28 @@ public final class ToolsPlugin extends JavaPlugin {
             Messages.configure(configurations.commands().messagePrefix());
         } catch (IOException error) {
             getLogger().severe("Nie mozna zaladowac konfiguracji: " + error.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        try {
+            SecurityConfig security=new JsonConfigManager(getDataFolder().toPath()).load(
+                    "Security.json", SecurityConfig.class, SecurityConfig::new, SecurityConfig::validate);
+            this.whitelistService=new WhitelistService(this);
+            if (getServer().getPluginManager().getPermission("tools.whitelist.admin")==null)
+                getServer().getPluginManager().addPermission(
+                        new Permission("tools.whitelist.admin",PermissionDefault.OP));
+            WhitelistMenu whitelistMenu=new WhitelistMenu(whitelistService);
+            WhitelistCommand whitelistCommand=new WhitelistCommand(this,whitelistService,whitelistMenu);
+            registerCommand("whitelist","Zarządzanie whitelistą",
+                    java.util.List.of("bialalista","wl"),whitelistCommand);
+            this.pendingWhitelistCommand=whitelistCommand;
+            this.pendingWhitelistMenu=whitelistMenu;
+            getServer().getPluginManager().registerEvents(new SkinService(this,security.premiumSkins()),this);
+            getServer().getPluginManager().registerEvents(
+                    new AntiBotGuard(this,whitelistService,security.antiBot()),this);
+        } catch (IOException error) {
+            getLogger().severe("Nie można uruchomić whitelisty: "+error.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -103,6 +138,8 @@ public final class ToolsPlugin extends JavaPlugin {
         }
         this.reloadService = services.register(HotReloadService.class,
                 new HotReloadService(this, configurations, config, rankVisuals, rankListener));
+        getServer().getPluginManager().registerEvents(new WhitelistListener(
+                this,whitelistService,pendingWhitelistMenu,pendingWhitelistCommand,reloadService),this);
 
         RankMenuFactory rankMenus=null;
         if(rankManager!=null) {
@@ -118,7 +155,7 @@ public final class ToolsPlugin extends JavaPlugin {
             RegionSelection selection=new RegionSelection();
             this.borderPreview=new RegionBorderPreview(this);
             RegionMenuFactory menus=new RegionMenuFactory(regionManager,rankManager,menuKey,config.regions().teleportSeconds());
-            new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey,configurations.commands());
+            new RegionCommandRegistry(this).register(regionManager,selection,menus,rankManager,config.regions(),wandKey,configurations.commands(),regionTeleports);
             getServer().getPluginManager().registerEvents(
                     new RegionProtectionListener(regionManager,selection,wandKey,configurations.commands().region().permission()),this);
             RegionPlayerListener playerRegions=new RegionPlayerListener(
@@ -161,6 +198,14 @@ public final class ToolsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Użytkownicy dostają estetyczny powód przy planowym wyłączeniu.
+        if (whitelistService != null) {
+            for (var player : Bukkit.getOnlinePlayers()) {
+                try { player.kick(Colors.color(whitelistService.state().shutdownMessage())); }
+                catch (RuntimeException ignored) { }
+            }
+            whitelistService.close();
+        }
         if (reloadService != null) reloadService.close();
         if (monitoring != null) monitoring.stop();
         if (autosaveTask != null) {

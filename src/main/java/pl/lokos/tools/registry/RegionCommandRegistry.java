@@ -15,7 +15,7 @@ public final class RegionCommandRegistry {
     public RegionCommandRegistry(JavaPlugin plugin){this.plugin=plugin;}
     public void register(RegionManager regions,RegionSelection selection,RegionMenuFactory menus,
                          RankManager ranks,ToolsConfig.Regions settings,NamespacedKey wandKey,
-                         CommandsFile commands){
+                         CommandsFile commands,RegionTeleportManager teleports){
         permit("tools.region.bypass",PermissionDefault.OP);
         if(commands.region().enabled()){
             permit(commands.region().permission(),PermissionDefault.OP);
@@ -30,6 +30,9 @@ public final class RegionCommandRegistry {
                     new LocationsCommand(regions,menus,commands.lokalizacje().permission()));
         }
         permit("tools.lokalizacje.instant",PermissionDefault.FALSE);
+        permit("tools.spawn",PermissionDefault.TRUE);
+        plugin.registerCommand("spawn","Teleportacja do głównego spawnu",java.util.List.of(),
+                new SpawnCommand(regions,teleports));
     }
     private void permit(String name,PermissionDefault value){
         if(plugin.getServer().getPluginManager().getPermission(name)==null)

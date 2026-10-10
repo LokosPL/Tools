@@ -16,7 +16,7 @@ import java.util.*;
 
 /** GUI z kontrolowanym Holder i PDC: klikanie nigdy nie opiera sie na nazwach przedmiotow. */
 public final class RegionMenuFactory {
-    public enum View { LOCATIONS, EDIT, FLAGS, RANKS }
+    public enum View { LOCATIONS, LOCATION_CHILDREN, EDIT, FLAGS, RANKS }
     public static final class Holder implements InventoryHolder {
         private final UUID owner;
         private final View view;
@@ -62,27 +62,56 @@ public final class RegionMenuFactory {
         player.openInventory(inventory);
         return inventory;
     }
+    /**
+     * Lista głównych lokalizacji. Podlokalizacje nie mieszają się z głównymi;
+     * po kliknięciu wchodzimy do czytelnego menu wybranej lokalizacji.
+     */
     public void locations(Player player,int page) {
-        List<Region> available=regions.index().all().values().stream()
-                .filter(r->r.spawn()!=null && regions.canEnter(player,r))
+        List<Region> roots=regions.index().all().values().stream()
+                .filter(r->r.parent()==null && r.spawn()!=null && regions.canEnter(player,r))
                 .sorted(Comparator.comparing(Region::name)).toList();
-        int current=Math.max(0,Math.min(page,Math.max(0,(available.size()-1)/36)));
-        Inventory inventory=open(player,View.LOCATIONS,null,current,"&8ʟᴏᴋᴀʟɪᴢᴀᴄᴊᴇ &8• &a"+(current+1));
-        for(int i=current*36;i<Math.min((current+1)*36,available.size());i++){
-            Region region=available.get(i);
-            inventory.setItem(9+i-current*36,item(
-                    region.parent()==null?Material.GRASS_BLOCK:Material.ENDER_PEARL,
-                    "&a&l"+region.name(),"tp:"+region.name(),
-                    "&8──────────────────────",
-                    "&7Świat: &a"+Optional.ofNullable(Bukkit.getWorld(region.world()))
-                            .map(World::getName).orElse("niedostępny"),
-                    "&7Obszar: &a"+(region.maxX()-region.minX()+1)+" × "+(region.maxZ()-region.minZ()+1),
-                    "&7Typ: &a"+(region.parent()==null?"główny":"podregion"),
-                    "&8 ",
+        int current=Math.max(0,Math.min(page,Math.max(0,(roots.size()-1)/27)));
+        Inventory inventory=open(player,View.LOCATIONS,null,current,"&#7BCFFF&lLOKALIZACJE &8• &7"+(current+1));
+        for(int i=current*27;i<Math.min((current+1)*27,roots.size());i++){
+            Region root=roots.get(i);
+            long children=regions.index().all().values().stream()
+                    .filter(r->root.name().equals(r.parent()) && r.spawn()!=null && regions.canEnter(player,r))
+                    .count();
+            inventory.setItem(9+i-current*27,item(
+                    Material.COMPASS,"&#86D9FF&l"+root.name(),"browse:"+root.name(),
+                    "&7Wybierz miejsce podróży.",
+                    "&8Podlokalizacji: &f"+children,
+                    "&aKliknij, aby otworzyć"));
+        }
+        navigation(inventory,current,Math.max(0,(roots.size()-1)/27),"Główne lokalizacje: "+roots.size());
+    }
+
+    public void children(Player player,String parent,int page) {
+        Region root=regions.index().byName(parent);
+        if(root==null || root.spawn()==null || !regions.canEnter(player,root)) {
+            locations(player,0);return;
+        }
+        List<Region> children=regions.index().all().values().stream()
+                .filter(r->root.name().equals(r.parent()) && r.spawn()!=null && regions.canEnter(player,r))
+                .sorted(Comparator.comparing(Region::name)).toList();
+        int current=Math.max(0,Math.min(page,Math.max(0,(children.size()-1)/27)));
+        Inventory inventory=open(player,View.LOCATION_CHILDREN,root.name(),current,
+                "&#7BCFFF&l"+root.name()+" &8• &7"+(current+1));
+        inventory.setItem(10,item(Material.ENDER_PEARL,
+                "&#7FE3B0&lGłówna lokalizacja","tp:"+root.name(),
+                "&7Teleportuj do "+root.name(), "&aKliknij, aby rozpocząć"));
+        for(int i=current*27;i<Math.min((current+1)*27,children.size());i++) {
+            Region child=children.get(i);
+            inventory.setItem(18+i-current*27,item(Material.GRASS_BLOCK,
+                    "&#90CFFF"+child.name(),"tp:"+child.name(),
+                    "&7Podlokalizacja: &f"+root.name(),
                     "&aKliknij, aby się teleportować"));
         }
-        navigation(inventory,current,(available.size()-1)/36,"Dostępne lokalizacje: "+available.size());
+        navigation(inventory,current,Math.max(0,(children.size()-1)/27),
+                "Podlokalizacje: "+children.size());
+        inventory.setItem(48,item(Material.OAK_DOOR,"&7Powrót","locations"));
     }
+
     public void edit(Player player,String name) {
         Region region=regions.index().byName(name);
         if(region==null)return;
