@@ -343,7 +343,8 @@ public final class RegionCommand implements BasicCommand {
             if(args.length==5 && args[2].equalsIgnoreCase("flaga"))
                 return match(List.of("tak","nie","dziedzicz"),args[4]);
         }
-        if((command.equals("stworz")||command.equals("stwórz"))&&args.length==3)
+        if((command.equals("stworz")||command.equals("stwórz")
+                ||command.equals("ochrona"))&&args.length==3)
             return match(List.of("10","25","50","100","200","500"),args[2]);
         return List.of();
     }

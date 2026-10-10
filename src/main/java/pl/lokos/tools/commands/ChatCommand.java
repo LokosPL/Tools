@@ -235,12 +235,21 @@ public final class ChatCommand implements BasicCommand {
                 return prefix(options,args[1]);
             }
             if(action.equals("wycisz"))return prefix(
-                    Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(),args[1]);
+                    Bukkit.getOnlinePlayers().stream()
+                            .filter(p->!(source.getSender() instanceof Player viewer)||viewer.canSee(p))
+                            .map(Player::getName).toList(),args[1]);
             if(action.equals("odcisz"))return prefix(
                     chats.activeMutes(System.currentTimeMillis()).stream().map(e->e.mute().name()).toList(),args[1]);
         }
         if(args.length==3 && args[0].equalsIgnoreCase("wycisz"))
             return prefix(List.of("30s","5m","30m","2h","1d","*"),args[2]);
+        if(args.length==3 && args[0].equalsIgnoreCase("ogloszenia")
+                && (args[1].equalsIgnoreCase("interwal")||args[1].equalsIgnoreCase("odstep")))
+            return prefix(List.of("30","60","300","600","1800","3600"),args[2]);
+        if(args.length==2 && args[0].equalsIgnoreCase("slow"))
+            return prefix(List.of("1","2","3","4","5","10"),args[1]);
+        if(args.length==3 && args[0].equalsIgnoreCase("slow"))
+            return prefix(List.of("3","5","10","15","30","60"),args[2]);
         return List.of();
     }
     private static List<String> prefix(Collection<String> choices,String value){

@@ -464,15 +464,17 @@ public final class RankCommand implements BasicCommand {
         String action = args[0].toLowerCase(Locale.ROOT);
         if (args.length == 2) {
             if (action.equals("nadaj") || action.equals("sprawdz"))
-                return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
+                return filter(Bukkit.getOnlinePlayers().stream()
+                        .filter(p->!(source.getSender() instanceof Player viewer)||viewer.canSee(p))
+                        .map(Player::getName).toList(), args[1]);
             if (Set.of("dodaj", "pozycja", "wejscie", "usun", "edytuj", "info").contains(action))
                 return filter(ranks.snapshot().ranks().keySet(), args[1]);
         }
         if (args.length == 3) {
             if (action.equals("dodaj")) {
                 List<String> permissions = new ArrayList<>(List.of("*"));
-                permissions.addAll(Bukkit.getPluginManager().getPermissions().stream()
-                        .map(Permission::getName).toList());
+                // Nie ujawniamy permisji Bukkit ani cudzych pluginów w GUI/TAB.
+                permissions.addAll(menus.permissions());
                 return filter(permissions, args[2]);
             }
             if (action.equals("nadaj")) return filter(sortedRanks().stream()

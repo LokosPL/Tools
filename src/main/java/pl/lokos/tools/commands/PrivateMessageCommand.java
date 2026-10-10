@@ -187,7 +187,24 @@ public final class PrivateMessageCommand implements BasicCommand {
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args) {
         if(!(source.getSender() instanceof Player player) || !player.hasPermission(permission()))
             return List.of();
-        if(replyMode || args.length!=1)return List.of();
+        if(replyMode)return List.of();
+        if(args.length==2) {
+            if(args[0].equalsIgnoreCase("wycisz")) {
+                RankSnapshot snapshot=ranks==null?RankSnapshot.empty():ranks.snapshot();
+                return Bukkit.getOnlinePlayers().stream()
+                        .filter(p->!p.equals(player) && player.canSee(p))
+                        .filter(p->ToolsAccess.allowed(player.isOp(),snapshot,player.getUniqueId(),
+                                "tools.msg.staff",false)||
+                                !PrivateMessagePolicy.isStaff(snapshot,p.getUniqueId(),p.isOp(),administrativeNodes))
+                        .map(Player::getName).filter(name->name.toLowerCase(Locale.ROOT)
+                                .startsWith(args[1].toLowerCase(Locale.ROOT))).limit(50).toList();
+            }
+            if(args[0].equalsIgnoreCase("odcisz"))
+                return messages.state().ignoredBy(player.getUniqueId()).values().stream()
+                        .filter(name->name.toLowerCase(Locale.ROOT)
+                                .startsWith(args[1].toLowerCase(Locale.ROOT))).limit(50).toList();
+        }
+        if(args.length!=1)return List.of();
         List<String> candidates=new ArrayList<>(List.of("wlacz","wylacz","status",
                 "wycisz","odcisz","wyciszeni","pomoc"));
         RankSnapshot snapshot=ranks==null?RankSnapshot.empty():ranks.snapshot();
