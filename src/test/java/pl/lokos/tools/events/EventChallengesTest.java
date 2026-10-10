@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventChallengesTest {
     @TempDir Path dir;
 
-    @Test void allEightEventsHaveIndependentProgressGoalsAndTitles(){
-        assertEquals(8,EventType.values().length);
+    @Test void allNineEventsHaveIndependentProgressGoalsAndTitles(){
+        assertEquals(9,EventType.values().length);
         for(EventType type:EventType.values()){
             int[] goals=EventChallenges.goals(type);
             assertEquals(3,goals.length);

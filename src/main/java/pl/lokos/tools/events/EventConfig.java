@@ -15,6 +15,13 @@ public final class EventConfig {
     private boolean challengesEnabled=true;
     private int challengeFlushSeconds=5;
     private List<Integer> challengeKeyRewards=List.of(1,2,3);
+    private boolean eliteEnabled=true;
+    private int eliteSpawnIntervalSeconds=180;
+    private int eliteLifetimeSeconds=600;
+    private int eliteMaxActive=2;
+    private int eliteKeysPerKill=1;
+    private boolean eliteAnnouncements=true;
+    private boolean eliteEffects=true;
     private boolean meteorEnabled=true;
     private int meteorSpawnIntervalSeconds=180;
     private int meteorLifetimeSeconds=480;
@@ -41,6 +48,13 @@ public final class EventConfig {
     public boolean challengesEnabled(){return challengesEnabled;}
     public int challengeFlushSeconds(){return challengeFlushSeconds;}
     public List<Integer> challengeKeyRewards(){return List.copyOf(challengeKeyRewards);}
+    public boolean eliteEnabled(){return eliteEnabled;}
+    public int eliteSpawnIntervalSeconds(){return eliteSpawnIntervalSeconds;}
+    public int eliteLifetimeSeconds(){return eliteLifetimeSeconds;}
+    public int eliteMaxActive(){return eliteMaxActive;}
+    public int eliteKeysPerKill(){return eliteKeysPerKill;}
+    public boolean eliteAnnouncements(){return eliteAnnouncements;}
+    public boolean eliteEffects(){return eliteEffects;}
     public boolean meteorEnabled(){return meteorEnabled;}
     public int meteorSpawnIntervalSeconds(){return meteorSpawnIntervalSeconds;}
     public int meteorLifetimeSeconds(){return meteorLifetimeSeconds;}
@@ -64,6 +78,10 @@ public final class EventConfig {
                 challengeFlushSeconds<1||challengeFlushSeconds>60||
                 challengeKeyRewards==null||challengeKeyRewards.size()!=3||
                 challengeKeyRewards.stream().anyMatch(n->n==null||n<1||n>16)||
+                eliteSpawnIntervalSeconds<30||eliteSpawnIntervalSeconds>3600||
+                eliteLifetimeSeconds<60||eliteLifetimeSeconds>3600||
+                eliteMaxActive<1||eliteMaxActive>8||
+                eliteKeysPerKill<1||eliteKeysPerKill>16||
                 meteorSpawnIntervalSeconds<30||meteorSpawnIntervalSeconds>3600||
                 meteorLifetimeSeconds<60||meteorLifetimeSeconds>3600||
                 meteorMaxActive<1||meteorMaxActive>12||

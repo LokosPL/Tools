@@ -11,7 +11,8 @@ public enum EventType {
     ZABOJSTWA("zabojstwa","Arena Łowców","Wygrywaj uczciwe pojedynki PvP","RED_DYE","ostrze_lowcy"),
     METEORY("meteory","Deszcz Meteorów","Odkrywaj spadające meteoryty i wydobywaj rudy","AMETHYST_SHARD","kilof_meteorytu"),
     ZNIWA("zniwa","Święto Plonów","Zbieraj dojrzałe uprawy","WHEAT","sierp_urodzaju"),
-    WEDKOWANIE("wedkowanie","Wielkie Wędkowanie","Łów ryby i zbieraj eventowe perły","PRISMARINE_CRYSTALS","wedka_oceanu");
+    WEDKOWANIE("wedkowanie","Wielkie Wędkowanie","Łów ryby i zbieraj eventowe perły","PRISMARINE_CRYSTALS","wedka_oceanu"),
+    LOWY("lowy","Łowy na Tytanów","Znajduj i pokonuj elitarne potwory na dzikich terenach","NETHER_STAR","ostrze_lowcy");
 
     private final String id,title,description,tokenMaterial,itemId;
     EventType(String id,String title,String description,String tokenMaterial,String itemId){

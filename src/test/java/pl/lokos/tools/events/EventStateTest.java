@@ -28,7 +28,7 @@ class EventStateTest {
             loaded.update(s->s.started(EventType.HALLOWEEN,now+100,now+7200000)).join();
             assertEquals(EventType.HALLOWEEN,loaded.get().active(now+200));
         }
-        assertEquals(8,EventType.names().size());
+        assertEquals(9,EventType.names().size());
         assertEquals("zima",EventType.ZIMA.id());
         assertNull(EventType.parse("nieistniejący"));
     }

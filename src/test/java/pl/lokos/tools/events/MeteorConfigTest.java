@@ -17,6 +17,8 @@ class MeteorConfigTest {
         assertEquals(0.06,config.tokenChance(),0.000001);
         assertTrue(config.meteorEnabled());
         assertEquals(3,config.meteorMaxActive());
+        assertTrue(config.eliteEnabled());
+        assertEquals(2,config.eliteMaxActive());
         assertEquals(1,config.meteorKeysPerMeteor());
         assertEquals(0.05,config.meteorRareChance());
         assertEquals(3,config.meteorRareKeys());

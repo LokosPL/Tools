@@ -15,6 +15,7 @@ public final class EventChallenges {
             case METEORY -> new int[]{1,3,6};
             case ZNIWA -> new int[]{16,48,96};
             case WEDKOWANIE -> new int[]{5,15,40};
+            case LOWY -> new int[]{2,6,12};
         };
     }
     public static String action(EventType type){
@@ -27,6 +28,7 @@ public final class EventChallenges {
             case METEORY -> "odnalezione meteoryty";
             case ZNIWA -> "zebrane dojrzałe uprawy";
             case WEDKOWANIE -> "złowione ryby";
+            case LOWY -> "pokonani elitarni Tytani";
         };
     }
     public static List<String> names(EventType type){
@@ -39,6 +41,7 @@ public final class EventChallenges {
             case METEORY -> List.of("Odkrywca kraterów","Łowca gwiezdnego pyłu","Pogromca meteorytów");
             case ZNIWA -> List.of("Pomocnik rolnika","Mistrz plonów","Złoty żniwiarz");
             case WEDKOWANIE -> List.of("Łowca fal","Władca głębin","Legendarny wędkarz");
+            case LOWY -> List.of("Pogromca Tytanów","Strażnik dziczy","Legenda łowów");
         };
     }
 }
