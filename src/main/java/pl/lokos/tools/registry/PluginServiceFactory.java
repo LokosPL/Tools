@@ -49,6 +49,7 @@ public final class PluginServiceFactory {
                     new RegionRepository(services.require(DatabaseExecutor.class)));
             regions = services.register(RegionManager.class,
                     new RegionManager(plugin, regionRepository, ranks, definitions.definitions()));
+            regions.setRegionAdminPermission(definitions.commands().region().permission());
             teleports = services.register(RegionTeleportManager.class,
                     new RegionTeleportManager(plugin, regions, ranks, config.regions()));
         }

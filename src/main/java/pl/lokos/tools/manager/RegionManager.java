@@ -22,7 +22,7 @@ public final class RegionManager {
     private final DefinitionFiles definitions;
     private volatile RegionIndex index=RegionIndex.empty();
     private volatile String mainSpawn;
-    private final String regionAdminPermission;
+    private volatile String regionAdminPermission;
     private volatile boolean loaded;
     private boolean closing;
     private CompletableFuture<Void> queue=CompletableFuture.completedFuture(null);
@@ -30,7 +30,7 @@ public final class RegionManager {
 
     public RegionManager(JavaPlugin plugin,RegionRepository legacy,RankManager ranks,DefinitionFiles definitions) {
         this.plugin=plugin;this.legacy=legacy;this.ranks=ranks;this.definitions=definitions;
-        this.regionAdminPermission=definitions.commands().region().permission();
+        this.regionAdminPermission="tools.region.admin";
     }
     public synchronized CompletableFuture<Void> start() {
         if(firstLoad!=null)return firstLoad;
@@ -68,6 +68,11 @@ public final class RegionManager {
         return firstLoad;
     }
     public RankManager ranks(){return ranks;}
+    public void setRegionAdminPermission(String node) {
+        if (node == null || node.isBlank())
+            throw new IllegalArgumentException("Brak uprawnienia zarządzania regionami.");
+        regionAdminPermission=node;
+    }
     public boolean ready(){return loaded;}
     public RegionIndex index(){return index;}
     public Region at(Location at) {
