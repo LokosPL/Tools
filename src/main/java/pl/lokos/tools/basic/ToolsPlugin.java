@@ -251,7 +251,7 @@ public final class ToolsPlugin extends JavaPlugin {
                 monitoring.measured("antycheat.czyszczenie",antiCheat::cleanup),1200L,1200L);
         try{
             events=services.register(EventManager.class,
-                    new EventManager(this,getDataFolder().toPath(),specialItems,bossBars));
+                    new EventManager(this,getDataFolder().toPath(),specialItems,bossBars,regionManager));
             crates=services.register(CrateManager.class,
                     new CrateManager(this,rankManager,regionManager,specialItems,
                             events,getDataFolder().toPath()));
