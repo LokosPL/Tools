@@ -119,6 +119,8 @@ public final class EliteHunt implements Listener,AutoCloseable {
         Husk mob=world.spawn(loc,Husk.class,elite->{
             elite.setPersistent(false);
             elite.setRemoveWhenFarAway(false);
+            elite.setCanBreakDoors(false);
+            elite.setCanPickupItems(false);
             elite.customName(Colors.color("&#FF727F☠ TYTAN &#FFD166✦ Łowy"));
             elite.setCustomNameVisible(true);
             elite.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,
@@ -145,7 +147,7 @@ public final class EliteHunt implements Listener,AutoCloseable {
         world.playSound(loc,Sound.ENTITY_WITHER_SPAWN,0.8f,1.25f);
     }
 
-    @EventHandler(priority=EventPriority.MONITOR)
+    @EventHandler(priority=EventPriority.HIGHEST)
     public void onKill(EntityDeathEvent event){
         Elite elite=elites.remove(event.getEntity().getUniqueId());
         if(elite==null)return;
