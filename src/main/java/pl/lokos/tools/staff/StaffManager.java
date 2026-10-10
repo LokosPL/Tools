@@ -8,6 +8,9 @@ import org.bukkit.Location;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -59,7 +62,10 @@ public final class StaffManager implements Listener,AutoCloseable {
     public StaffConfig settings(){return settings;}
     public StaffState state(){return state;}
     public boolean vanished(Player player){return state.vanished(player.getUniqueId());}
-    public boolean see(Player player){return ToolsAccess.allowed(player,ranks,"tools.vanish.see",false);}
+    public boolean see(Player player){
+        return ToolsAccess.allowed(player,ranks,"tools.vanish.see",false)
+                || ToolsAccess.allowed(player,ranks,"tools.vanish.use",false);
+    }
     public boolean monitor(Player player){return ToolsAccess.allowed(player,ranks,"tools.vanish.monitor",false);}
     public boolean helpopStaff(Player player){return ToolsAccess.allowed(player,ranks,"tools.helpop.receive",false);}
 
@@ -223,6 +229,26 @@ public final class StaffManager implements Listener,AutoCloseable {
     public void pickup(EntityPickupItemEvent event){
         if(event.getEntity() instanceof Player player && vanished(player))
             event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void death(PlayerDeathEvent event){
+        if(vanished(event.getEntity()))event.deathMessage(null);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void vanishedChat(AsyncChatEvent event){
+        if(!state.vanished(event.getPlayer().getUniqueId()))return;
+        // Publiczny czat nie może ujawniać gracza ukrytego przed zwykłą osobą.
+        event.setCancelled(true);
+        Component content=event.message();
+        UUID id=event.getPlayer().getUniqueId();
+        String nick=event.getPlayer().getName();
+        Bukkit.getScheduler().runTask(plugin,()->{
+            if(!event.getPlayer().isOnline() || !state.vanished(id))return;
+            Component text=Colors.color("&#FF727F✦ VANISH &#A8A8B7» &#70D6E8"+nick+" &#A8A8B7» ")
+                    .append(content);
+            for(Player viewer:Bukkit.getOnlinePlayers())
+                if(viewer.getUniqueId().equals(id)||see(viewer))viewer.sendMessage(text);
+        });
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void join(PlayerJoinEvent event){
