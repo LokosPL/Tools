@@ -10,6 +10,7 @@ import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.security.ToolsAccess;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 /** Publiczny panel eventów bez możliwości zarządzania wydarzeniami. */
 public final class EventHubCommand implements BasicCommand {
@@ -26,13 +27,19 @@ public final class EventHubCommand implements BasicCommand {
     @Override public void execute(CommandSourceStack source,String[] args){
         CommandSender sender=source.getSender();
         if(!canUse(sender)){Messages.unknown(sender);return;}
-        if(args.length!=0){Messages.error(sender,"Użycie: /eventy");return;}
+        if(args.length>1||args.length==1&&!args[0].equalsIgnoreCase("wyzwania")){
+            Messages.error(sender,"Użycie: /eventy [wyzwania]");return;
+        }
         if(!(sender instanceof Player player)){
             Messages.error(sender,"GUI dostępne tylko w grze.");return;
         }
-        events.openHub(player);
+        if(args.length==1)events.openChallenges(player);
+        else events.openHub(player);
     }
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args){
+        if(canUse(source.getSender())&&args.length==1
+                &&"wyzwania".startsWith(args[0].toLowerCase(Locale.ROOT)))
+            return List.of("wyzwania");
         return List.of();
     }
 }
