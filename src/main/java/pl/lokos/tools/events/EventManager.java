@@ -81,11 +81,21 @@ public final class EventManager implements Listener,AutoCloseable {
     public void setCrates(CrateManager crates){this.crates=crates;}
     public MeteorShower meteors(){return meteors;}
     /** Nagroda z jednorazowo zebranego meteorytu; losowa pamiątka jest dodatkiem. */
-    void meteorCollected(Player player,int keys){
+    void meteorCollected(Player player,int keys,boolean rare){
         if(active()!=EventType.METEORY||crates==null)return;
         crates.giveKey(player,CrateType.EVENTOWA,keys);
-        Messages.success(player,"&#FFD166☄ Znaleziono meteoryt! &#89E5B0+"+keys
-                +" klucz(e) eventowe.");
+        if(rare){
+            try{
+                ItemStack prize=items.create(EventType.METEORY.itemId());
+                for(ItemStack overflow:player.getInventory().addItem(prize).values())
+                    player.getWorld().dropItemNaturally(player.getLocation(),overflow);
+            }catch(RuntimeException error){
+                plugin.getLogger().severe("Nie wydano specjalnej nagrody ze złotego meteorytu: "+error);
+            }
+        }
+        Messages.success(player,(rare?"&#FFD166✦ ZŁOTY METEORYT!":"&#FFD166☄ Znaleziono meteoryt!")
+                +" &#89E5B0+"+keys+" klucz(e) eventowe."
+                +(rare?" &#FFD166Bonus: specjalny kilof!":""));
         challengeAction(player,EventType.METEORY);
         reward(player,EventType.METEORY);
     }
@@ -228,7 +238,8 @@ public final class EventManager implements Listener,AutoCloseable {
                         +"/"+config.tokensForKey(),
                 "&#70D6E8» Zbieraj pamiątki podczas wydarzenia.",
                 type==EventType.METEORY?"&#FFD166☄ Meteoryty: "+meteors.activeCount()
-                        +" | /meteory gdzie":"&#A8A8B7» Realizuj cele swojego eventu."));
+                        +" | /meteory gdzie | /meteory namierz"
+                        :"&#A8A8B7» Realizuj cele swojego eventu."));
         header.setItemMeta(h);inv.setItem(11,header);
         ItemStack prize;
         try{prize=items.create(type.itemId());}
