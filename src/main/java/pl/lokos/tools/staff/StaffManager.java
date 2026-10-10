@@ -180,7 +180,7 @@ public final class StaffManager implements Listener,AutoCloseable {
                 }
             }
         }
-        if(currentTick%20!=0)return;
+        if(currentTick%5!=0)return;
         updateVisibility();
         renderBroadcast();
     }

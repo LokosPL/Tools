@@ -56,7 +56,7 @@ public final class ToolsPermissionCatalog {
                 "Może pisać mimo indywidualnego wyciszenia.",
                 "Nadawaj wyłącznie zaufanej moderacji.");
         add(list,commands.tp().permission(),"Teleportowanie siebie","/tp nick lub /tp x y z","Dostęp administracyjny.");
-        add(list,"tools.tp.others","Teleportowanie innych","/tp nick x y z","Wymaga także tools.tp.");
+        add(list,"tools.tp.others","Teleportowanie innych graczy","Teleportacja wskazanego gracza na współrzędne","Wymaga także tools.tp.");
         add(list,"tools.tp.all","Teleportacja wszystkich","/tp * i /tp * x y z","Wymaga także tools.tp.");
         add(list,commands.vanish().permission(),"Włączanie vanish","Niewidzialność dla zwykłych graczy","Stan zachowuje się po wyjściu.");
         add(list,"tools.vanish.see","Widzenie vanisha","Dostęp do ukrytych graczy i etykiety VANISH","Tylko moderacja.");
@@ -65,15 +65,15 @@ public final class ToolsPermissionCatalog {
         add(list,"tools.helpop.receive","Odbieranie helpop","Prywatne zgłoszenia graczy","Tylko kadra.");
         add(list,"tools.helpop.bypass.cooldown","Helpop bez limitu","Omijanie antyspamu /helpop","Tylko kadra.");
         add(list,commands.gamemode().permission(),"Zmiana trybu gry","/gm i /gamemode","Tryby 1-4.");
-        add(list,"tools.gamemode.others","Tryb gry innych","/gm nick 2","Wymaga tools.gamemode.");
+        add(list,"tools.gamemode.others","Tryb gry innych","Zmiana trybu gry wskazanego gracza","Wymaga tools.gamemode.");
         add(list,commands.fly().permission(),"Latanie","/fly wlacz/wylacz","Dla własnej postaci.");
-        add(list,"tools.fly.others","Latanie innych","/fly nick","Wymaga tools.fly.");
+        add(list,"tools.fly.others","Latanie innych","Przełączanie możliwości latania innych graczy","Wymaga tools.fly.");
         add(list,"tools.fly.monitor","Powiadomienia fly","Alerty o włączeniu latania","Tylko kadra.");
         add(list,commands.broadcast().permission(),"Ogłoszenia bossbar","/broadcast 30s tekst","Działa również po restarcie.");
         add(list,commands.inventoryopen().permission(),"Podgląd eq","/inventoryopen eq nick","Tylko uprawnione rangi.");
         add(list,"tools.inventoryopen.enderchest","Podgląd enderchesta","/inventoryopen enderchest nick","Wymaga tools.inventoryopen.");
-        add(list,commands.speed().permission(),"Prędkość ruchu","/speed 1-10","Chodzenie i latanie.");
-        add(list,"tools.speed.others","Prędkość innych","/speed nick 5","Wymaga tools.speed.");
+        add(list,commands.speed().permission(),"Prędkość ruchu","Zmiana szybkości chodzenia lub latania","Chodzenie i latanie.");
+        add(list,"tools.speed.others","Prędkość innych","Zmiana szybkości innego gracza","Wymaga tools.speed.");
         add(list,commands.tools().permission(),"Narzędzia administracyjne",
                 "Dostęp do /tools.",
                 "Status serwera, test połączenia MySQL i statystyki.");

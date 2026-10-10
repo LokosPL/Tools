@@ -14,7 +14,14 @@ class ToolsPermissionCatalogTest {
                         "tools.ranga.admin","tools.admin","tools.whitelist.admin","*",
                         "tools.chat.admin","tools.chat.bypass.slow",
                         "tools.chat.bypass.lock","tools.chat.bypass.mute",
-                        "tools.msg.staff","tools.msg.protected","tools.msg.bypass.cooldown"),
+                        "tools.msg.staff","tools.msg.protected","tools.msg.bypass.cooldown",
+                        "tools.tp","tools.tp.others","tools.tp.all",
+                        "tools.vanish.use","tools.vanish.see","tools.vanish.monitor","tools.vanish.others",
+                        "tools.helpop.receive","tools.helpop.bypass.cooldown",
+                        "tools.gamemode","tools.gamemode.others",
+                        "tools.fly","tools.fly.others","tools.fly.monitor",
+                        "tools.broadcast","tools.inventoryopen","tools.inventoryopen.enderchest",
+                        "tools.speed","tools.speed.others"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));
         assertFalse(catalog.isManaged("minecraft.command.help"));
