@@ -53,7 +53,11 @@ public final class StaffSuggestions {
                 if(args.length==1){
                     if(playerSender)options.addAll(List.of("wlacz","wylacz"));
                     if(permitted.test(other))options.addAll(players);
-                }else if(args.length==2&&permitted.test(other))options.addAll(List.of("wlacz","wylacz"));
+                }else if(args.length==2&&permitted.test(other)){
+                    if(Set.of("wlacz","wylacz","włącz","wyłącz","on","off").contains(root))
+                        options.addAll(players);
+                    else options.addAll(List.of("wlacz","wylacz"));
+                }
             }
             case SPEED -> {
                 if(args.length==1){

@@ -176,7 +176,11 @@ public final class StaffCommand implements BasicCommand {
         Boolean selected=null;
         if(args.length==0)target=self(sender);
         else if(isToggle(args[0])){
-            target=self(sender);selected=enable(args[0]);
+            selected=enable(args[0]);
+            if(args.length==2){
+                if(!sub(sender,"tools.vanish.others")){Messages.unknown(sender);return;}
+                target=mustOnline(args[1]);
+            }else target=self(sender);
         }else{
             if(!sub(sender,"tools.vanish.others")){Messages.unknown(sender);return;}
             target=mustOnline(args[0]);
@@ -233,7 +237,11 @@ public final class StaffCommand implements BasicCommand {
         Boolean desired=null;
         if(args.length==0)target=self(sender);
         else if(isToggle(args[0])) {
-            target=self(sender);desired=enable(args[0]);
+            desired=enable(args[0]);
+            if(args.length==2){
+                if(!sub(sender,"tools.fly.others")){Messages.unknown(sender);return;}
+                target=mustOnline(args[1]);
+            }else target=self(sender);
         }else{
             target=mustOnline(args[0]);
             if(target!=sender && !sub(sender,"tools.fly.others")){Messages.unknown(sender);return;}
