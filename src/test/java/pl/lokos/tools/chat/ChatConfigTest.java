@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pl.lokos.tools.config.JsonConfigManager;
 import java.nio.file.*;
+import java.io.IOException;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
