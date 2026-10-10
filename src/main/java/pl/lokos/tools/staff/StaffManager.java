@@ -224,9 +224,10 @@ public final class StaffManager implements Listener,AutoCloseable {
         if(event.getEntity() instanceof Player player && vanished(player))
             event.setCancelled(true);
     }
-    @EventHandler(priority=EventPriority.MONITOR)
+    @EventHandler(priority=EventPriority.HIGHEST)
     public void join(PlayerJoinEvent event){
-        // W tym samym ticku zanim gracz otrzyma pierwsze wpisy TAB innych graczy.
+        if(vanished(event.getPlayer()))event.joinMessage(null);
+        // HIGHEST po systemie rang: brak ujawniania nicku przy join.
         updateVisibility();
         renderBroadcast();
     }

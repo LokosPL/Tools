@@ -125,23 +125,24 @@ public final class StaffCommand implements BasicCommand {
         }
         Collection<? extends Player> targets=group?Bukkit.getOnlinePlayers():List.of(actor);
         if(targets.isEmpty()){Messages.unchanged(sender,"Brak graczy online.");return;}
-        int count=0;
+        Map<Player,Location> planned=new LinkedHashMap<>();
         for(Player target:targets) {
             Location origin=target.getLocation();
-            // Koordynaty lokalne względem celu dla /tp nick ~ ~ ~, inaczej świata celu.
+            // Wszystkie cele walidujemy PRZED pierwszą teleportacją,
+            // by błędny Y nie przeniósł tylko części graczy.
             double x=StaffParsers.coordinate(coords[0],origin.getX(),service.settings().maxTeleportCoordinate());
             double y=StaffParsers.coordinate(coords[1],origin.getY(),service.settings().maxTeleportCoordinate());
             double z=StaffParsers.coordinate(coords[2],origin.getZ(),service.settings().maxTeleportCoordinate());
             if(y<target.getWorld().getMinHeight()||y>=target.getWorld().getMaxHeight())
                 throw new IllegalArgumentException("Y poza zakresem wysokości świata "+target.getWorld().getName()+".");
-            if(origin.distanceSquared(new Location(target.getWorld(),x,y,z))<0.01){
-                if(!group)Messages.unchanged(sender,"Gracz jest już na tych współrzędnych.");
-                continue;
-            }
-            teleport(target,new Location(target.getWorld(),x,y,z,origin.getYaw(),origin.getPitch()));
-            count++;
+            if(origin.distanceSquared(new Location(target.getWorld(),x,y,z))<0.01)continue;
+            planned.put(target,new Location(target.getWorld(),x,y,z,origin.getYaw(),origin.getPitch()));
         }
-        if(count>0)Messages.success(sender,"Rozpoczęto teleportację "+count+" graczy.");
+        if(planned.isEmpty()){
+            Messages.unchanged(sender,"Wszyscy wskazani gracze są już na tych współrzędnych.");return;
+        }
+        planned.forEach(this::teleport);
+        Messages.success(sender,"Rozpoczęto teleportację "+planned.size()+" graczy.");
     }
     private void teleport(Player target,Location destination){
         target.teleportAsync(destination).whenComplete((ok,error)->{
@@ -188,8 +189,14 @@ public final class StaffCommand implements BasicCommand {
             Messages.unchanged(sender,"Poczekaj przed następnym zgłoszeniem do administracji.");return;
         }
         String msg=service.settings().helpopFormat().replace("{player}",player.getName());
+        String[] halves=msg.split("\\{message\\}",-1);
+        net.kyori.adventure.text.Component rendered=pl.lokos.tools.helpers.Colors.color(halves[0]);
+        for(int i=1;i<halves.length;i++){
+            rendered=rendered.append(net.kyori.adventure.text.Component.text(text));
+            rendered=rendered.append(pl.lokos.tools.helpers.Colors.color(halves[i]));
+        }
         for(Player viewer:Bukkit.getOnlinePlayers())if(service.helpopStaff(viewer))
-            viewer.sendMessage(pl.lokos.tools.helpers.Colors.color(msg.replace("{message}",text)));
+            viewer.sendMessage(rendered);
         Messages.success(sender,"Wysłano zgłoszenie do administracji.");
     }
 
@@ -228,7 +235,9 @@ public final class StaffCommand implements BasicCommand {
         target.setAllowFlight(enabled);
         Messages.success(sender,(enabled?"Włączono":"Wyłączono")+" latanie dla "+target.getName()+".");
         if(target!=sender)Messages.info(target,(enabled?"Włączono":"Wyłączono")+" Ci latanie.");
-        service.audit(target,enabled?"włączył fly":"wyłączył fly","tools.fly.monitor");
+        service.audit(sender instanceof Player p?p:target,
+                (sender==target?"":("ustawił "+target.getName()+": "))
+                        +(enabled?"włączył fly":"wyłączył fly"),"tools.fly.monitor");
     }
 
     private void broadcast(CommandSender sender,String[] args){

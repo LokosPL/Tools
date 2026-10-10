@@ -102,7 +102,8 @@ public final class RankVisualManager {
             RankSnapshot.Rank rank = ranksSnapshot.forPlayer(viewer.getUniqueId());
             TabPanel.Stats stats = new TabPanel.Stats(
                     viewer.getName(), rank == null ? "Gracz" : rank.name(),
-                    online.size(), Bukkit.getMaxPlayers(), viewer.getPing(),
+                    (int)online.stream().filter(other -> viewer.equals(other)||viewer.canSee(other)).count(),
+                    Bukkit.getMaxPlayers(), viewer.getPing(),
                     viewer.getStatistic(Statistic.PLAYER_KILLS),
                     viewer.getStatistic(Statistic.DEATHS),
                     viewer.getStatistic(Statistic.PLAY_ONE_MINUTE), tps);
