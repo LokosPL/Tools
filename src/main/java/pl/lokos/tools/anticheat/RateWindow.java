@@ -5,7 +5,9 @@ import java.util.*;
 /** Okno stałej długości, ograniczone mapy pamięci (ochrona przed DoS). */
 public final class RateWindow<K> {
     private record Bucket(long start,int count) {}
-    private final Map<K,Bucket> entries=new HashMap<>();
+    // Utrzymujemy aktywne klucze, usuwając najstarszy w stałym czasie.
+    // Nigdy nie resetujemy wszystkich liczników, bo umożliwiałoby to obejście limitów.
+    private final Map<K,Bucket> entries=new LinkedHashMap<>(16,0.75f,true);
     private final long milliseconds;
     private final int maximumKeys;
     public RateWindow(long milliseconds,int maximumKeys){
@@ -15,8 +17,10 @@ public final class RateWindow<K> {
     public boolean exceeded(K key,int max,long now){
         Bucket old=entries.get(key);
         if(old==null||now-old.start()>=milliseconds||now<old.start()){
-            if(entries.size()>=maximumKeys)cleanup(now);
-            if(entries.size()>=maximumKeys)entries.clear(); // mała, ograniczona liczba kluczy
+            if(entries.size()>=maximumKeys){
+                Iterator<K> oldest=entries.keySet().iterator();
+                if(oldest.hasNext()){oldest.next();oldest.remove();}
+            }
             entries.put(key,new Bucket(now,1));
             return false;
         }
