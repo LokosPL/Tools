@@ -7,6 +7,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.helpers.Messages;
+import pl.lokos.tools.config.CommandTextRegistry;
 import pl.lokos.tools.whitelist.*;
 
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 public final class WhitelistCommand implements BasicCommand {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("whitelist");
     private final JavaPlugin plugin;
     private final WhitelistService service;
     private final WhitelistMenu menu;
@@ -26,7 +28,7 @@ public final class WhitelistCommand implements BasicCommand {
 
     public void handle(CommandSender sender, String[] args) {
         if (!sender.hasPermission(permission())) {
-            Messages.error(sender,"Nie masz uprawnień do zarządzania whitelistą.");
+            CommandTextRegistry.error(sender,"whitelist","noPermission");
             return;
         }
         if (args.length==0 || args[0].equalsIgnoreCase("gui")) {
@@ -45,7 +47,7 @@ public final class WhitelistCommand implements BasicCommand {
                             ? service.add(player.getName()).thenCompose(ignored -> service.enable(mode))
                             : service.enable(mode);
                     update(sender,activation,"Włączono whitelistę: &f"+mode.title()+".");
-                } catch (IllegalArgumentException error) {Messages.error(sender,error.getMessage());}
+                } catch (IllegalArgumentException error) {display.error(sender,error.getMessage());}
             }
             case "wyłącz","wylacz","off" -> {
                 if(args.length!=1){usage(sender);return;}
@@ -54,12 +56,12 @@ public final class WhitelistCommand implements BasicCommand {
             case "dodaj" -> {
                 if(args.length!=2){usage(sender);return;}
                 try { update(sender,service.add(args[1]),"Dodano gracza &f"+args[1]+"&a do whitelisty."); }
-                catch (IllegalArgumentException error){Messages.error(sender,error.getMessage());}
+                catch (IllegalArgumentException error){display.error(sender,error.getMessage());}
             }
             case "usuń","usun" -> {
                 if(args.length!=2){usage(sender);return;}
                 try { update(sender,service.remove(args[1]),"Usunięto gracza &f"+args[1]+"&a z whitelisty."); }
-                catch (IllegalArgumentException error){Messages.error(sender,error.getMessage());}
+                catch (IllegalArgumentException error){display.error(sender,error.getMessage());}
             }
             case "lista" -> {
                 if (args.length!=1){usage(sender);return;}
@@ -70,30 +72,24 @@ public final class WhitelistCommand implements BasicCommand {
         }
     }
     private void list(CommandSender sender){
-        Messages.title(sender,"WHITELIST");
-        Messages.info(sender, "Stan: "+(service.state().enabled()?"&aWłączona":"&7Wyłączona"));
-        Messages.info(sender, "Tryb: &f"+service.state().mode());
-        Messages.info(sender,"Dodani: &f"+service.state().players().size());
-        service.state().players().stream().sorted().forEach(n -> Messages.line(sender,"&8• &7"+n));
+        display.title(sender,"WHITELIST");
+        display.info(sender, "Stan: "+(service.state().enabled()?"&aWłączona":"&7Wyłączona"));
+        display.info(sender, "Tryb: &f"+service.state().mode());
+        display.info(sender,"Dodani: &f"+service.state().players().size());
+        service.state().players().stream().sorted().forEach(n -> display.line(sender,"&8• &7"+n));
     }
-    private void usage(CommandSender s){
-        Messages.title(s,"ZARZĄDZANIE WHITELISTĄ");
-        Messages.line(s,"&a/whitelist &8— &7Panel graficzny");
-        Messages.line(s,"&a/whitelist włącz &7<prace_techniczne|chwilowa_przerwa|nowa_edycja|aktualizacja>");
-        Messages.line(s,"&a/whitelist wyłącz");
-        Messages.line(s,"&a/whitelist dodaj &7<nick>");
-        Messages.line(s,"&a/whitelist usuń &7<nick>");
-        Messages.line(s,"&a/whitelist lista &8— &7Główki graczy");
+    private void usage(CommandSender sender) {
+        CommandTextRegistry.help(sender,"whitelist");
     }
     public void update(CommandSender s, CompletableFuture<Void> operation, String message) {
         operation.whenComplete((unused,problem)->{
             if(!plugin.isEnabled())return;
             Bukkit.getScheduler().runTask(plugin,()->{
-                if(problem==null)Messages.success(s,message);
+                if(problem==null)display.success(s,message);
                 else {
                     Throwable root=problem;
                     while(root instanceof CompletionException && root.getCause()!=null)root=root.getCause();
-                    Messages.error(s,root.getMessage()==null?"Nie zapisano whitelisty.":root.getMessage());
+                    display.error(s,root.getMessage()==null?"Nie zapisano whitelisty.":root.getMessage());
                 }
             });
         });

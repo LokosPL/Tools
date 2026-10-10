@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.database.RankRepository;
+import pl.lokos.tools.config.CommandTextRegistry;
+
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.helpers.RankValidity;
 import java.time.ZoneId;
@@ -22,6 +24,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 
 public final class RankCommand implements BasicCommand {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("ranga");
     private static final List<String> ACTIONS = List.of(
             "stworz", "dodaj", "pozycja", "wejscie", "usun",
             "nadaj", "edytuj", "info", "lista", "sprawdz", "menu", "pomoc");
@@ -49,8 +52,7 @@ public final class RankCommand implements BasicCommand {
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (args.length == 0) {
-            if(sender instanceof Player p)menus.list(p,0);
-            else help(sender);
+            help(sender);
             return;
         }
         String operation = args[0].toLowerCase(Locale.ROOT);
@@ -68,8 +70,8 @@ public final class RankCommand implements BasicCommand {
                     String prefix = displayValue(args[2]);
                     String suffix = args.length == 4 ? displayValue(args[3]) : "";
                     if (ranks.snapshot().ranks().containsKey(name)) {
-                        Messages.error(sender, "Ranga &c&n" + name + "&r&c już istnieje.");
-                        Messages.hint(sender, "Jeśli chcesz ją zmienić, użyj &a/ranga edytuj " + name + " prefix <tekst>");
+                        display.error(sender, "Ranga &c&n" + name + "&r&c już istnieje.");
+                        display.hint(sender, "Jeśli chcesz ją zmienić, użyj &a/ranga edytuj " + name + " prefix <tekst>");
                         return;
                     }
                     checkLength("Prefix", prefix, 256);
@@ -176,12 +178,12 @@ public final class RankCommand implements BasicCommand {
                 case "lista" -> list(sender, args);
                 case "info" -> showInfo(sender, args);
                 default -> {
-                    Messages.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
-                    Messages.hint(sender, "Użyj &a/ranga &7aby zobaczyć dostępne komendy.");
+                    display.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
+                    display.hint(sender, "Użyj &a/ranga &7aby zobaczyć dostępne komendy.");
                 }
             }
         } catch (IllegalArgumentException ex) {
-            Messages.error(sender, ex.getMessage());
+            display.error(sender, ex.getMessage());
         }
     }
 
@@ -195,13 +197,13 @@ public final class RankCommand implements BasicCommand {
         String name = rankName(args[2]);
         RankSnapshot.Rank rank = ranks.snapshot().ranks().get(name);
         if (rank == null) {
-            Messages.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
-            Messages.hint(sender, "Wpisz &a/ranga lista&7, aby zobaczyć istniejące rangi.");
+            display.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
+            display.hint(sender, "Wpisz &a/ranga lista&7, aby zobaczyć istniejące rangi.");
             return;
         }
         if (!rank.assignable()) {
-            Messages.error(sender, "Ranga &c&n" + name + "&r&c nie ma ustawionej pozycji.");
-            Messages.hint(sender, "Najpierw wpisz &a/ranga pozycja " + name + " 1");
+            display.error(sender, "Ranga &c&n" + name + "&r&c nie ma ustawionej pozycji.");
+            display.hint(sender, "Najpierw wpisz &a/ranga pozycja " + name + " 1");
             return;
         }
         String duration = join(args, 3);
@@ -237,30 +239,30 @@ public final class RankCommand implements BasicCommand {
             return repository.findGrant(uuid);
         }).whenComplete((grant, error) -> onMain(() -> {
             if (error != null) {
-                Messages.error(sender, "Nie można sprawdzić rangi. " + readableError(error));
+                display.error(sender, "Nie można sprawdzić rangi. " + readableError(error));
                 return;
             }
-            Messages.title(sender, "RANGA GRACZA " + nick);
+            display.title(sender, "RANGA GRACZA " + nick);
             long now = System.currentTimeMillis();
             if (grant == null) {
-                Messages.info(sender, "Przypisanie: &7brak rangi");
-                Messages.info(sender, "Ważność: &7nie dotyczy");
+                display.info(sender, "Przypisanie: &7brak rangi");
+                display.info(sender, "Ważność: &7nie dotyczy");
             } else {
-                Messages.info(sender, "Ranga w bazie: &a" + grant.rank());
-                Messages.info(sender, "Ważność: " + (grant.active(now) ? "&a" : "&c")
+                display.info(sender, "Ranga w bazie: &a" + grant.rank());
+                display.info(sender, "Ważność: " + (grant.active(now) ? "&a" : "&c")
                         + RankValidity.remaining(grant.expiresAt(), now));
                 if (grant.expiresAt() != null) {
-                    Messages.info(sender, "Data wygaśnięcia: &7"
+                    display.info(sender, "Data wygaśnięcia: &7"
                             + RankValidity.expirationDate(grant.expiresAt(), ZoneId.systemDefault()));
                 }
             }
             Player current = Bukkit.getPlayerExact(nick);
             if (current != null) {
                 RankSnapshot.Rank inCache = ranks.snapshot().forPlayer(current.getUniqueId());
-                Messages.info(sender, "Widoczna na serwerze: &a" + (inCache == null ? "Gracz" : inCache.name()));
-                Messages.info(sender, "Gracz jest online: &aTak");
+                display.info(sender, "Widoczna na serwerze: &a" + (inCache == null ? "Gracz" : inCache.name()));
+                display.info(sender, "Gracz jest online: &aTak");
             } else {
-                Messages.info(sender, "Gracz jest offline; uprawnienia zastosują się po wejściu.");
+                display.info(sender, "Gracz jest offline; uprawnienia zastosują się po wejściu.");
             }
         }));
     }
@@ -301,24 +303,24 @@ public final class RankCommand implements BasicCommand {
             return;
         }
         List<RankSnapshot.Rank> all = sortedRanks();
-        Messages.line(sender," ");
-        Messages.title(sender, "LISTA RANG");
-        Messages.line(sender,"&7  Nazwa &8• &7Priorytet &8• &7Stan");
-        Messages.line(sender," ");
+        display.line(sender," ");
+        display.title(sender, "LISTA RANG");
+        display.line(sender,"&7  Nazwa &8• &7Priorytet &8• &7Stan");
+        display.line(sender," ");
         if (all.isEmpty()) {
-            Messages.info(sender, "Nie utworzono jeszcze żadnej rangi.");
-            Messages.hint(sender, "Pierwszą rangę dodasz przez &a/ranga stworz");
+            display.info(sender, "Nie utworzono jeszcze żadnej rangi.");
+            display.hint(sender, "Pierwszą rangę dodasz przez &a/ranga stworz");
             return;
         }
         int index = 1;
         for (RankSnapshot.Rank rank : all) {
             String position = rank.position() == null ? "&8nieustawiona" : "&a" + rank.position();
-            Messages.line(sender, "&8" + index++ + ". &7" + rank.name()
+            display.line(sender, "&8" + index++ + ". &7" + rank.name()
                     + " &8│ &7Pozycja: " + position
                     + (rank.assignable() ? " &8│ &aGotowa" : " &8│ &cNiegotowa"));
         }
-        Messages.line(sender," ");
-        Messages.hint(sender, "Szczegóły: &a/ranga info <nazwa>");
+        display.line(sender," ");
+        display.hint(sender, "Szczegóły: &a/ranga info <nazwa>");
     }
 
     private List<RankSnapshot.Rank> sortedRanks() {
@@ -341,25 +343,25 @@ public final class RankCommand implements BasicCommand {
         String name = rankName(args[1]);
         RankSnapshot.Rank rank = ranks.snapshot().ranks().get(name);
         if (rank == null) {
-            Messages.error(sender, "Ranga &c&n" + name + "&r&c nie istnieje.");
-            Messages.hint(sender, "Sprawdź listę przez &a/ranga lista");
+            display.error(sender, "Ranga &c&n" + name + "&r&c nie istnieje.");
+            display.hint(sender, "Sprawdź listę przez &a/ranga lista");
             return;
         }
         repository.count(name).whenComplete((count, error) -> onMain(() -> {
             if (error != null) {
-                Messages.error(sender, "Nie udało się odczytać liczby graczy z bazy.");
+                display.error(sender, "Nie udało się odczytać liczby graczy z bazy.");
                 return;
             }
-            Messages.title(sender, "RANGA " + rank.name().toUpperCase(Locale.ROOT));
-            Messages.info(sender, "Pozycja: &a" + (rank.position() == null ? "nieustawiona" : rank.position()));
-            Messages.info(sender, "Graczy z rangą: &a" + count);
-            Messages.info(sender, "Prefix: " + rank.prefix() + " &8│ &7Sufix: " + rank.suffix());
+            display.title(sender, "RANGA " + rank.name().toUpperCase(Locale.ROOT));
+            display.info(sender, "Pozycja: &a" + (rank.position() == null ? "nieustawiona" : rank.position()));
+            display.info(sender, "Graczy z rangą: &a" + count);
+            display.info(sender, "Prefix: " + rank.prefix() + " &8│ &7Sufix: " + rank.suffix());
             Set<String> granted = ranks.snapshot().permissions().getOrDefault(name, Set.of());
             List<String> available = menus.permissions().stream().filter(granted::contains).toList();
-            Messages.info(sender, "Funkcje Tools: &a"
+            display.info(sender, "Funkcje Tools: &a"
                     + (available.isEmpty() ? "brak" : String.join("&7, &a",available)));
-            Messages.hint(sender, "Zarządzaj dostępem: &a/ranga edytuj " + name);
-            Messages.info(sender, "Powitanie: &a"
+            display.hint(sender, "Zarządzaj dostępem: &a/ranga edytuj " + name);
+            display.info(sender, "Powitanie: &a"
                     + (rank.joinMessage() == null || rank.joinMessage().isBlank()
                     ? "wyłączone" : rank.joinMessage()));
         }));
@@ -369,14 +371,14 @@ public final class RankCommand implements BasicCommand {
         try {
             action.get().whenComplete((unused, error) -> onMain(() -> {
                 if (error == null) {
-                    Messages.success(sender, success);
+                    display.success(sender, success);
                 } else {
                     Throwable cause = error instanceof CompletionException && error.getCause() != null
                             ? error.getCause() : error;
                     if (cause instanceof IllegalArgumentException) {
-                        Messages.error(sender, cause.getMessage());
+                        display.error(sender, cause.getMessage());
                     } else {
-                        Messages.error(sender, cause instanceof IllegalStateException
+                        display.error(sender, cause instanceof IllegalStateException
                                 ? cause.getMessage()
                                 : "Nie wykonano operacji. " + readableError(cause));
                         plugin.getLogger().warning("Błąd operacji rang: " + cause.getMessage());
@@ -384,7 +386,7 @@ public final class RankCommand implements BasicCommand {
                 }
             }));
         } catch (RuntimeException error) {
-            Messages.error(sender, error.getMessage());
+            display.error(sender, error.getMessage());
         }
     }
 
@@ -394,32 +396,18 @@ public final class RankCommand implements BasicCommand {
 
     private boolean requireRank(CommandSender sender, String name) {
         if (ranks.snapshot().ranks().containsKey(name)) return true;
-        Messages.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
-        Messages.hint(sender, "Dostępne rangi sprawdzisz przez &a/ranga lista");
+        display.error(sender, "Nie znaleziono rangi &c&n" + name + "&r&c.");
+        display.hint(sender, "Dostępne rangi sprawdzisz przez &a/ranga lista");
         return false;
     }
 
     private void errorUsage(CommandSender sender, String error, String usage) {
-        Messages.error(sender, error);
-        Messages.usage(sender, usage);
+        display.error(sender, error);
+        display.usage(sender, usage);
     }
 
     private void help(CommandSender sender) {
-        Messages.line(sender," ");
-        Messages.title(sender, "ZARZĄDZANIE RANGAMI");
-        Messages.line(sender,"&7  Tworzenie i konfiguracja");
-        Messages.line(sender, "&a/ranga stworz &7<nazwa> <prefix> [sufix]");
-        Messages.line(sender, "&a/ranga dodaj &7<ranga> <uprawnienie>");
-        Messages.line(sender, "&a/ranga pozycja &7<ranga> <1-9998>");
-        Messages.line(sender, "&a/ranga wejscie &7<ranga> <tekst|brak>");
-        Messages.line(sender," ");
-        Messages.line(sender,"&7  Nadawanie i administracja");
-        Messages.line(sender, "&a/ranga nadaj &7<nick> <ranga> <czas|*|na_zawsze>");
-        Messages.line(sender, "&a/ranga edytuj &7<ranga> <prefix|sufix|nazwa> <wartość>");
-        Messages.line(sender, "&a/ranga info &7<ranga> &8• &a/ranga lista");
-        Messages.line(sender, "&a/ranga usun &7<ranga>");
-        Messages.line(sender, "&a/ranga sprawdz &7<nick> &8- &7odczyt przypisania z MySQL");
-        Messages.line(sender," ");
+        CommandTextRegistry.help(sender,"ranga");
     }
 
     public static String rankName(String raw) {

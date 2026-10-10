@@ -11,6 +11,7 @@ import pl.lokos.tools.helpers.PlayerDataHelper;
 import pl.lokos.tools.manager.PlayerDataManager;
 import pl.lokos.tools.diagnostics.MonitoringService;
 import pl.lokos.tools.config.HotReloadService;
+import pl.lokos.tools.config.CommandTextRegistry;
 import java.util.concurrent.CompletionException;
 
 import java.util.Collection;
@@ -19,6 +20,7 @@ import java.util.Locale;
 import java.util.logging.Level;
 
 public final class ToolsCommand implements BasicCommand {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("tools");
     private final JavaPlugin plugin;
     private final DatabaseManager database;
     private final PlayerRepository repository;
@@ -48,103 +50,96 @@ public final class ToolsCommand implements BasicCommand {
     public void execute(CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (args.length == 0 || args[0].equalsIgnoreCase("pomoc") || args[0].equalsIgnoreCase("help")) {
-            Messages.title(sender, "NARZĘDZIA SERWERA");
-            Messages.line(sender, "&a/tools status &8- &7Stan połączenia bazy danych");
-            Messages.line(sender, "&a/tools zdrowie &8- &7Pamięć, TPS, baza i wątki");
-            Messages.line(sender, "&a/tools diagnostyka &8- &7Czasy pracy modułów");
-            Messages.line(sender, "&a/tools przeladuj &8- &7Bezpieczne odświeżenie wyglądu i tekstów");
-            Messages.line(sender, "&a/tools ping &8- &7Czas odpowiedzi bazy danych");
-            Messages.line(sender, "&a/tools stats <nick> &8- &7Statystyki gracza");
-            Messages.line(sender, "&a/ranga lista &8- &7Lista dostępnych rang");
+            CommandTextRegistry.help(sender,"tools");
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "status" -> {
                 String state = database == null ? "Wyłączona" : database.status().displayName();
-                Messages.info(sender, "Baza danych: &a" + state
+                display.info(sender, "Baza danych: &a" + state
                         + "&7 | Graczy online: &a" + (playerData == null ? 0 : playerData.onlineCount()));
             }
             case "zdrowie" -> {
                 MonitoringService.Health h = monitoring.snapshot();
-                Messages.title(sender, "STAN SERWERA");
-                Messages.info(sender, "TPS (1 min): &a" + String.format(Locale.ROOT, "%.2f", h.tps())
+                display.title(sender, "STAN SERWERA");
+                display.info(sender, "TPS (1 min): &a" + String.format(Locale.ROOT, "%.2f", h.tps())
                         + " &8| &7Wątki JVM: &a" + h.threads());
-                Messages.info(sender, "Pamięć: &a" + h.usedMb() + " / " + h.maxMb()
+                display.info(sender, "Pamięć: &a" + h.usedMb() + " / " + h.maxMb()
                         + " MiB &8(&a" + h.heapPercent() + "%&8)");
-                Messages.info(sender, "Baza: &a" + h.databaseStatus()
+                display.info(sender, "Baza: &a" + h.databaseStatus()
                         + " &8(&7" + h.backend() + "&8) &8| &7Zadania: &a" + h.pluginTasks());
-                Messages.info(sender, "SQL: &a" + h.queries() + " &7zapytań &8| &7Błędów: &c"
+                display.info(sender, "SQL: &a" + h.queries() + " &7zapytań &8| &7Błędów: &c"
                         + h.sqlFailures() + " &8| &7Kolejka: &a" + h.sqlQueued()
                         + " &8| &7Oczekuje: &a" + h.sqlWaiting());
-                Messages.info(sender, "Ostatnie zapytanie: &a" + h.lastSqlMs() + " ms");
+                display.info(sender, "Ostatnie zapytanie: &a" + h.lastSqlMs() + " ms");
             }
             case "diagnostyka" -> {
                 MonitoringService.Health health = monitoring.snapshot();
-                Messages.title(sender, "CZAS MODUŁÓW");
-                if (health.modules().isEmpty()) Messages.info(sender, "Brak zebranych pomiarów.");
+                display.title(sender, "CZAS MODUŁÓW");
+                if (health.modules().isEmpty()) display.info(sender, "Brak zebranych pomiarów.");
                 for (MonitoringService.ModuleTiming timing : health.modules().stream().limit(8).toList()) {
-                    Messages.info(sender, timing.name() + ": &a"
+                    display.info(sender, timing.name() + ": &a"
                             + String.format(Locale.ROOT, "%.3f", timing.meanMs())
                             + " ms średnio &8| &7max: &a" + timing.maxMs()
                             + " ms &8| &7ponad 50 ms: &a" + timing.slowCalls());
                 }
-                Messages.hint(sender, "Pomiary obejmują tylko własne zadania Tools; nie są pełnym profilerem TPS.");
+                display.hint(sender, "Pomiary obejmują tylko własne zadania Tools; nie są pełnym profilerem TPS.");
             }
             case "przeladuj" -> {
-                Messages.info(sender, "Wczytuję i sprawdzam konfiguracje w tle...");
+                display.info(sender, "Wczytuję i sprawdzam konfiguracje w tle...");
                 reload.reload().whenComplete((message, error) -> respond(() -> {
                     if (error != null) {
                         Throwable cause = error instanceof CompletionException && error.getCause() != null
                                 ? error.getCause() : error;
-                        Messages.error(sender, cause.getMessage() == null
+                        display.error(sender, cause.getMessage() == null
                                 ? "Nie udało się przeładować konfiguracji." : cause.getMessage());
                     } else {
-                        Messages.success(sender, message);
+                        display.success(sender, message);
                     }
                 }));
             }
             case "ping" -> {
                 if (repository == null) {
-                    Messages.error(sender, "Baza MySQL jest wyłączona w konfiguracji.");
+                    display.error(sender, "Baza MySQL jest wyłączona w konfiguracji.");
                     return;
                 }
-                Messages.info(sender, "Sprawdzanie połączenia z MySQL...");
+                display.info(sender, "Sprawdzanie połączenia z MySQL...");
                 repository.ping().whenComplete((delay, error) -> respond(() -> {
                     if (error != null) {
-                        Messages.error(sender, "Nie można połączyć się z MySQL. Sprawdź konsolę.");
+                        display.error(sender, "Nie można połączyć się z MySQL. Sprawdź konsolę.");
                         plugin.getLogger().log(Level.WARNING, "Błąd testu MySQL", error);
                     } else {
-                        Messages.success(sender, "Połączenie z bazą działa. Opóźnienie: &a" + delay + " ms");
+                        display.success(sender, "Połączenie z bazą działa. Opóźnienie: &a" + delay + " ms");
                     }
                 }));
             }
             case "stats" -> {
                 if (args.length != 2) {
-                    Messages.error(sender, "Brakuje nicku gracza.");
-                    Messages.usage(sender, "/tools stats <nick>");
+                    display.error(sender, "Brakuje nicku gracza.");
+                    display.usage(sender, "/tools stats <nick>");
                     return;
                 }
                 if (repository == null) {
-                    Messages.error(sender, "Baza MySQL jest wyłączona.");
+                    display.error(sender, "Baza MySQL jest wyłączona.");
                     return;
                 }
                 String name = args[1];
                 repository.findByName(name).whenComplete((stats, error) -> respond(() -> {
                     if (error != null) {
-                        Messages.error(sender, "Nie udało się pobrać statystyk.");
+                        display.error(sender, "Nie udało się pobrać statystyk.");
                         plugin.getLogger().log(Level.WARNING, "Błąd statystyk MySQL", error);
                     } else if (stats == null) {
-                        Messages.error(sender, "Nie znaleziono gracza &c&n" + name + "&r&c w bazie.");
+                        display.error(sender, "Nie znaleziono gracza &c&n" + name + "&r&c w bazie.");
                     } else {
-                        Messages.title(sender, "STATYSTYKI " + stats.name());
-                        Messages.info(sender, "Wejścia: &a" + stats.joins());
-                        Messages.info(sender, "Czas gry: &a" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
+                        display.title(sender, "STATYSTYKI " + stats.name());
+                        display.info(sender, "Wejścia: &a" + stats.joins());
+                        display.info(sender, "Czas gry: &a" + PlayerDataHelper.formatPlaytime(stats.playtimeMs()));
                     }
                 }));
             }
             default -> {
-                Messages.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
-                Messages.hint(sender, "Użyj &a/tools pomoc&7, aby zobaczyć polecenia.");
+                display.error(sender, "Nieznana podkomenda: &c&n" + args[0] + "&r&c.");
+                display.hint(sender, "Użyj &a/tools pomoc&7, aby zobaczyć polecenia.");
             }
         }
     }

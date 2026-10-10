@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionException;
 
 /** Wstępna blokada logowania, menu GUI, własne przechwycenie vanilla /whitelist i /reload. */
 public final class WhitelistListener implements Listener {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("whitelist");
     private final JavaPlugin plugin;
     private final WhitelistService whitelist;
     private final WhitelistMenu menu;
@@ -70,7 +71,7 @@ public final class WhitelistListener implements Listener {
         else return;
         operation.whenComplete((ignored,error)->later(()->{
             if(!player.isOnline())return;
-            if(error!=null)Messages.error(player,"Nie zapisano zmian whitelisty.");
+            if(error!=null)display.error(player,"Nie zapisano zmian whitelisty.");
             else if(player.getOpenInventory().getTopInventory().getHolder() instanceof WhitelistMenu.Holder)
                 menu.open(player,holder.page());
         }));
@@ -105,16 +106,16 @@ public final class WhitelistListener implements Listener {
         if(root.equals("reload") || root.equals("minecraft:reload") || root.equals("bukkit:reload")){
             cancel.run();
             if(!sender.hasPermission("tools.admin")){
-                Messages.error(sender,"Brak uprawnienia tools.admin.");return;
+                display.error(sender,"Brak uprawnienia tools.admin.");return;
             }
-            Messages.info(sender,"Sprawdzanie konfiguracji Tools w tle...");
+            display.info(sender,"Sprawdzanie konfiguracji Tools w tle...");
             for(Player online:Bukkit.getOnlinePlayers())
                 online.sendActionBar(Colors.color(
                         whitelist.state().reloadMessage().replace("\n"," &8• ")));
             reload.reload().thenCompose(message->whitelist.reload().thenApply(ignored->message))
                     .whenComplete((message,error)->later(()->{
                         if(error==null){
-                            Messages.success(sender,"Przeładowano ustawienia Tools. "+message);
+                            display.success(sender,"Przeładowano ustawienia Tools. "+message);
                             for(Player online:Bukkit.getOnlinePlayers())
                                 online.sendActionBar(Colors.color("&aKonfiguracja Tools została przeładowana."));
                         }
@@ -122,7 +123,7 @@ public final class WhitelistListener implements Listener {
                             Throwable rootError=error;
                             while(rootError instanceof CompletionException && rootError.getCause()!=null)
                                 rootError=rootError.getCause();
-                            Messages.error(sender,"Nie przeładowano ustawień: "+rootError.getMessage());
+                            display.error(sender,"Nie przeładowano ustawień: "+rootError.getMessage());
                         }
                     }));
         }

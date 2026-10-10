@@ -13,6 +13,7 @@ import java.util.concurrent.CompletionException;
 
 /** Zweryfikowane klikniecia GUI rang z odswiezeniem po atomowym zapisie JSON. */
 public final class RankMenuListener implements Listener {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("ranga");
     private final JavaPlugin plugin;
     private final RankManager ranks;
     private final RankMenuFactory menus;
@@ -28,7 +29,7 @@ public final class RankMenuListener implements Listener {
         if(!(event.getWhoClicked() instanceof Player p) || !h.owner().equals(p.getUniqueId())
                 || event.getClickedInventory()!=event.getView().getTopInventory()
                 || pending.contains(p.getUniqueId()))return;
-        if(!p.hasPermission(adminPermission)){Messages.error(p,"Brak uprawnień.");later(p,p::closeInventory);return;}
+        if(!p.hasPermission(adminPermission)){display.error(p,"Brak uprawnień.");later(p,p::closeInventory);return;}
         String action=menus.action(event.getCurrentItem());
         if(action==null||action.equals("noop"))return;
         if(action.startsWith("page:")){
@@ -62,7 +63,7 @@ public final class RankMenuListener implements Listener {
                     if(error!=null){
                         Throwable cause=error;
                         while(cause instanceof CompletionException && cause.getCause()!=null)cause=cause.getCause();
-                        Messages.error(p,"Nie zapisano uprawnienia: "+cause.getMessage());
+                        display.error(p,"Nie zapisano uprawnienia: "+cause.getMessage());
                     }else if(p.getOpenInventory().getTopInventory().getHolder()==h){
                         menus.permissions(p,h.rank(),h.page());
                     }

@@ -1,0 +1,168 @@
+package pl.lokos.tools.config;
+import java.util.*;
+/** Fragmenty wszystkich wiadomości komend — domyślne wartości w Javie. */
+public final class CommandDefaultFragments {
+    private CommandDefaultFragments() {}
+    public static Map<String,String> fragments(String command) {
+        List<String> parts = switch (command) {
+            case "region" -> List.of(
+                "Użyj &a/region rozdzka&7, potem lewy i prawy przycisk myszy.",
+                "Przełącz omijanie wyłącznie do testów: &a/region bypass",
+                "Otrzymano różdżkę do zaznaczania podregionów.",
+                "&7  Nazwa &8• &7Rodzaj &8• &7Teleportacja",
+                "Wybierz najpierw dwa narożniki różdżką.",
+                "Ogranicz wejście: &a/region edytuj ",
+                "Sprawdź połączenie MySQL i konsolę.",
+                "Nie masz dostępu do edycji regionu.",
+                "Wybrana ranga już nie istnieje.",
+                "Nie zapisano ustawienia: ",
+                " wejscie <ranga|wszyscy>",
+                "Lokalizacja niedostępna.",
+                "Nie zapisano zmiany. ",
+                "Nieznana komenda: &c",
+                "lokalizacja dostępna",
+                "Wejście od rangi: &a",
+                "DIAGNOSTYKA OCHRONY",
+                " &8• &7Regionów: &a",
+                "Aktualny obszar: &f",
+                "Omijanie ochrony: ",
+                " &8(dziedziczenie)",
+                "Teleportacja: &a",
+                "bypassDisabled",
+                "brak teleportu",
+                "Punkt pierwszy",
+                "bypassEnabled",
+                "poza regionem",
+                "&cZablokowane",
+                "nie ustawiono",
+                "Niszczenie: ",
+                "&cZabronione",
+                "&aWYŁĄCZONE",
+                "Budowanie: ",
+                "&aDozwolone",
+                "niedostępny",
+                "Punkt drugi",
+                "Wczytane: ",
+                "podregion ",
+                "Obszar: &a",
+                "Rodzic: &a",
+                "&cAKTYWNE",
+                "Świat: &a",
+                " &7bloków",
+                "ustawiona",
+                "REGIONY",
+                "REGION ",
+                "wszyscy",
+                " &8» &a"
+            );
+            case "ranga" -> List.of(
+                "Gracz jest offline; uprawnienia zastosują się po wejściu.",
+                "Wpisz &a/ranga lista&7, aby zobaczyć istniejące rangi.",
+                "Jeśli chcesz ją zmienić, użyj &a/ranga edytuj ",
+                "Użyj &a/ranga &7aby zobaczyć dostępne komendy.",
+                "Dostępne rangi sprawdzisz przez &a/ranga lista",
+                "Nie udało się odczytać liczby graczy z bazy.",
+                "Pierwszą rangę dodasz przez &a/ranga stworz",
+                "&7  Nazwa &8• &7Priorytet &8• &7Stan",
+                "Zarządzaj dostępem: &a/ranga edytuj ",
+                "Nie utworzono jeszcze żadnej rangi.",
+                "Sprawdź listę przez &a/ranga lista",
+                "Najpierw wpisz &a/ranga pozycja ",
+                "Szczegóły: &a/ranga info <nazwa>",
+                "&r&c nie ma ustawionej pozycji.",
+                "Nie można sprawdzić rangi. ",
+                "Nie zapisano uprawnienia: ",
+                "Nieznana podkomenda: &c&n",
+                "Nie znaleziono rangi &c&n",
+                "Przypisanie: &7brak rangi",
+                "Widoczna na serwerze: &a",
+                "Gracz jest online: &aTak",
+                "Nie wykonano operacji. ",
+                "Ważność: &7nie dotyczy",
+                "Data wygaśnięcia: &7",
+                "&r&c już istnieje.",
+                "&r&c nie istnieje.",
+                "Graczy z rangą: &a",
+                "Ranga w bazie: &a",
+                "Funkcje Tools: &a",
+                " &8│ &7Pozycja: ",
+                " &8│ &cNiegotowa",
+                " prefix <tekst>",
+                "Brak uprawnień.",
+                " &8│ &7Sufix: ",
+                "RANGA GRACZA ",
+                " &8│ &aGotowa",
+                "Powitanie: &a",
+                "nieustawiona",
+                "Pozycja: &a",
+                "Ranga &c&n",
+                "LISTA RANG",
+                "Ważność: ",
+                "wyłączone",
+                "Prefix: "
+            );
+            case "tools" -> List.of(
+                "Pomiary obejmują tylko własne zadania Tools; nie są pełnym profilerem TPS.",
+                "Nie można połączyć się z MySQL. Sprawdź konsolę.",
+                "Użyj &a/tools pomoc&7, aby zobaczyć polecenia.",
+                "Wczytuję i sprawdzam konfiguracje w tle...",
+                "Baza MySQL jest wyłączona w konfiguracji.",
+                "Połączenie z bazą działa. Opóźnienie: &a",
+                "Nie udało się przeładować konfiguracji.",
+                "Sprawdzanie połączenia z MySQL...",
+                "Nie udało się pobrać statystyk.",
+                " &7zapytań &8| &7Błędów: &c",
+                "Baza MySQL jest wyłączona.",
+                "Nie znaleziono gracza &c&n",
+                " ms średnio &8| &7max: &a",
+                " ms &8| &7ponad 50 ms: &a",
+                "Nieznana podkomenda: &c&n",
+                "Brak zebranych pomiarów.",
+                "&7 | Graczy online: &a",
+                "Ostatnie zapytanie: &a",
+                "&8) &8| &7Zadania: &a",
+                "Brakuje nicku gracza.",
+                " &8| &7Wątki JVM: &a",
+                " &8| &7Oczekuje: &a",
+                "/tools stats <nick>",
+                " &8| &7Kolejka: &a",
+                "Baza danych: &a",
+                "TPS (1 min): &a",
+                "&r&c w bazie.",
+                "STAN SERWERA",
+                "CZAS MODUŁÓW",
+                "Czas gry: &a",
+                "STATYSTYKI ",
+                "Wejścia: &a",
+                "Pamięć: &a",
+                " MiB &8(&a",
+                "Baza: &a",
+                "SQL: &a"
+            );
+            case "whitelist" -> List.of(
+                "Sprawdzanie konfiguracji Tools w tle...",
+                "Przeładowano ustawienia Tools. ",
+                "Nie zapisano zmian whitelisty.",
+                "Brak uprawnienia tools.admin.",
+                "Nie przeładowano ustawień: ",
+                "Nie zapisano whitelisty.",
+                "&7Wyłączona",
+                "&aWłączona",
+                "Dodani: &f",
+                "WHITELIST",
+                "Tryb: &f"
+            );
+            case "lokalizacje" -> List.of(
+                "/lokalizacje"
+            );
+            case "spawn" -> List.of(
+                "Administrator może ustawić główną lokalizację przez /region.",
+                "Ta komenda jest dostępna tylko w grze."
+            );
+            default -> List.of();
+        };
+        Map<String,String> result = new LinkedHashMap<>();
+        for(String part:parts)result.put(part,part);
+        return result;
+    }
+}

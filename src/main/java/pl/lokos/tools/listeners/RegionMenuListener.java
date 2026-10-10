@@ -14,6 +14,7 @@ import java.util.concurrent.CompletionException;
 
 /** Autoryzacja w kazdym kliknieciu, serializacja mutacji i bezpieczne odswiezenie menu. */
 public final class RegionMenuListener implements Listener {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("region");
     private final JavaPlugin plugin;
     private final RegionMenuFactory menus;
     private final String adminPermission;
@@ -42,7 +43,7 @@ public final class RegionMenuListener implements Listener {
         RegionMenuFactory.View view=holder.view();
         if(view==RegionMenuFactory.View.LOCATIONS || view==RegionMenuFactory.View.LOCATION_CHILDREN){
             if(!ToolsCommandVisibilityListener.allowed(player,regions.ranks(),locationsPermission)) {
-                Messages.unknown(player);
+                display.unknown(player);
                 later(player,player::closeInventory);
                 return;
             }
@@ -55,7 +56,7 @@ public final class RegionMenuListener implements Listener {
                 String name=action.substring(3);
                 Region r=regions.index().byName(name);
                 if(r==null||r.spawn()==null||!regions.canEnter(player,r)){
-                    Messages.error(player,"Lokalizacja niedostępna.");return;
+                    display.error(player,"Lokalizacja niedostępna.");return;
                 }
                 later(player,()->{player.closeInventory();teleports.start(player,name);});
             } else if(action.startsWith("page:")){
@@ -69,7 +70,7 @@ public final class RegionMenuListener implements Listener {
             return;
         }
         if(!player.hasPermission(adminPermission)){
-            Messages.error(player,"Nie masz dostępu do edycji regionu.");
+            display.error(player,"Nie masz dostępu do edycji regionu.");
             later(player,player::closeInventory);
             return;
         }
@@ -103,7 +104,7 @@ public final class RegionMenuListener implements Listener {
                 }else if(view==RegionMenuFactory.View.RANKS && action.startsWith("rank:")){
                     String rank=action.substring(5);
                     if(!rank.equals("wszyscy") && !regions.ranks().snapshot().ranks().containsKey(rank)){
-                        Messages.error(player,"Wybrana ranga już nie istnieje.");return;
+                        display.error(player,"Wybrana ranga już nie istnieje.");return;
                     }
                     processing.add(player.getUniqueId());
                     regions.entryRank(r.name(),rank.equals("wszyscy")?null:rank)
@@ -122,7 +123,7 @@ public final class RegionMenuListener implements Listener {
             if(error!=null){
                 Throwable root=error;
                 while(root instanceof CompletionException && root.getCause()!=null)root=root.getCause();
-                Messages.error(player,"Nie zapisano ustawienia: "+root.getMessage());
+                display.error(player,"Nie zapisano ustawienia: "+root.getMessage());
                 return;
             }
             if(player.getOpenInventory().getTopInventory().getHolder()==previous)refresh.run();

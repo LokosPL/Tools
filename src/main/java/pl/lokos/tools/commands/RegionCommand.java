@@ -14,6 +14,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.config.ToolsConfig;
+import pl.lokos.tools.config.CommandTextRegistry;
+
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.inventorys.RegionMenuFactory;
@@ -29,8 +31,9 @@ import java.util.function.Supplier;
 
 /** Paper BasicCommand: rejestracja w Javie, bez commands w plugin.yml. */
 public final class RegionCommand implements BasicCommand {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("region");
     private static final List<String> ACTIONS=List.of("stworz","stwórz","edytuj","usun","lista",
-            "info","spawn","różdżka","rozdzka","podregion","ochrona","pomoc");
+            "info","spawn","różdżka","rozdzka","podregion","ochrona","bypass","stan","pomoc");
     private final JavaPlugin plugin;
     private final RegionManager regions;
     private final RegionSelection selection;
@@ -52,7 +55,7 @@ public final class RegionCommand implements BasicCommand {
         CommandSender sender=source.getSender();
         if(args.length==0 || args[0].equalsIgnoreCase("pomoc")) {help(sender);return;}
         if(!regions.ready()) {
-            Messages.error(sender,"Regiony nie są jeszcze gotowe. Sprawdź połączenie MySQL.");return;
+            CommandTextRegistry.error(sender,"region","notReady");return;
         }
         try {
             String action=args[0].toLowerCase(Locale.ROOT);
@@ -61,19 +64,44 @@ public final class RegionCommand implements BasicCommand {
                 case "podregion" -> nested(sender,args);
                 case "ochrona" -> protection(sender,args);
                 case "spawn" -> spawn(sender,args);
+                case "bypass" -> bypass(sender,args);
+                case "stan" -> status(sender,args);
                 case "różdżka","rozdzka" -> wand(sender,args);
                 case "edytuj" -> edit(sender,args);
                 case "usun" -> delete(sender,args);
                 case "lista" -> list(sender);
                 case "info" -> info(sender,args);
                 default -> {
-                    Messages.error(sender,"Nieznana komenda: &c"+args[0]);
+                    display.error(sender,"Nieznana komenda: &c"+args[0]);
                     help(sender);
                 }
             }
         } catch(IllegalArgumentException error) {
-            Messages.error(sender,error.getMessage());
+            display.error(sender,error.getMessage());
         }
+    }
+
+    private void bypass(CommandSender sender,String[] args) {
+        if(args.length!=1){failSyntax(sender,"Nie podawaj argumentów.","/region bypass");return;}
+        Player player=requirePlayer(sender);
+        boolean enabled=regions.toggleBypass(player);
+        display.info(sender,CommandTextRegistry.text("region",enabled?"bypassEnabled":"bypassDisabled"));
+    }
+
+    private void status(CommandSender sender,String[] args) {
+        if(args.length!=1){failSyntax(sender,"Nie podawaj argumentów.","/region stan");return;}
+        Player player=requirePlayer(sender);
+        var state=regions.protectionStatus(player);
+        display.title(sender,"DIAGNOSTYKA OCHRONY");
+        display.info(sender,"Wczytane: "+(state.ready()?"&aTak":"&cNie")
+                +" &8• &7Regionów: &a"+state.regions());
+        display.info(sender,"Aktualny obszar: &f"+(state.region()==null?"poza regionem":state.region()));
+        display.info(sender,"Omijanie ochrony: "+(state.bypass()?"&cAKTYWNE":"&aWYŁĄCZONE"));
+        if(state.region()!=null){
+            display.info(sender,"Budowanie: "+(state.buildingAllowed()?"&aDozwolone":"&cZablokowane"));
+            display.info(sender,"Niszczenie: "+(state.breakingAllowed()?"&aDozwolone":"&cZablokowane"));
+        }
+        display.hint(sender,"Przełącz omijanie wyłącznie do testów: &a/region bypass");
     }
 
     private Player requirePlayer(CommandSender sender) {
@@ -119,8 +147,8 @@ public final class RegionCommand implements BasicCommand {
         String name=name(args[2]);
         RegionSelection.Pair pair=selection.get(((Player)sender).getUniqueId());
         if(!pair.complete()) {
-            Messages.error(sender,"Wybierz najpierw dwa narożniki różdżką.");
-            Messages.hint(sender,"Użyj &a/region rozdzka&7, potem lewy i prawy przycisk myszy.");
+            display.error(sender,"Wybierz najpierw dwa narożniki różdżką.");
+            display.hint(sender,"Użyj &a/region rozdzka&7, potem lewy i prawy przycisk myszy.");
             return;
         }
         Location one=pair.first(),two=pair.second();
@@ -186,7 +214,7 @@ public final class RegionCommand implements BasicCommand {
         meta.getPersistentDataContainer().set(wandKey,PersistentDataType.BYTE,(byte)1);
         stick.setItemMeta(meta);
         p.getInventory().addItem(stick).values().forEach(overflow->p.getWorld().dropItemNaturally(p.getLocation(),overflow));
-        Messages.success(sender,"Otrzymano różdżkę do zaznaczania podregionów.");
+        display.success(sender,"Otrzymano różdżkę do zaznaczania podregionów.");
     }
     private void edit(CommandSender sender,String[] args) {
         if(args.length<2) {failSyntax(sender,"Wybierz region.","/region edytuj <nazwa> [flaga|wejscie]");return;}
@@ -215,7 +243,7 @@ public final class RegionCommand implements BasicCommand {
         } else {
             failSyntax(sender,"Niepoprawne parametry edycji.",
                     "/region edytuj <nazwa> flaga <flaga> <tak|nie|dziedzicz>");
-            Messages.hint(sender,"Ogranicz wejście: &a/region edytuj "+r.name()+" wejscie <ranga|wszyscy>");
+            display.hint(sender,"Ogranicz wejście: &a/region edytuj "+r.name()+" wejscie <ranga|wszyscy>");
         }
     }
     private void delete(CommandSender sender,String[] args) {
@@ -225,25 +253,25 @@ public final class RegionCommand implements BasicCommand {
                 "&7 oraz wszystkie jego podregiony.");
     }
     private void list(CommandSender sender) {
-        Messages.line(sender," ");
-        Messages.title(sender,"REGIONY");
-        Messages.line(sender,"&7  Nazwa &8• &7Rodzaj &8• &7Teleportacja");
-        Messages.line(sender," ");
+        display.line(sender," ");
+        display.title(sender,"REGIONY");
+        display.line(sender,"&7  Nazwa &8• &7Rodzaj &8• &7Teleportacja");
+        display.line(sender," ");
         regions.index().all().values().stream().sorted(Comparator.comparing(Region::name))
-                .forEach(r->Messages.info(sender,"&a"+r.name()+" &8• &7"+(r.parent()==null?"główny":"podregion "+r.parent())+
+                .forEach(r->display.info(sender,"&a"+r.name()+" &8• &7"+(r.parent()==null?"główny":"podregion "+r.parent())+
                         " &8• &7"+(r.spawn()==null?"brak teleportu":"lokalizacja dostępna")));
     }
     private void info(CommandSender sender,String[] args) {
         if(args.length!=2) {failSyntax(sender,"Podaj nazwę regionu.","/region info <nazwa>");return;}
         Region r=region(args[1]);
-        Messages.title(sender,"REGION "+r.name().toUpperCase(Locale.ROOT));
-        Messages.info(sender,"Świat: &a"+Optional.ofNullable(Bukkit.getWorld(r.world())).map(w->w.getName()).orElse("niedostępny"));
-        Messages.info(sender,"Obszar: &a"+(r.maxX()-r.minX()+1)+" × "+(r.maxZ()-r.minZ()+1)+" &7bloków");
-        Messages.info(sender,"Rodzic: &a"+(r.parent()==null?"brak":r.parent()));
-        Messages.info(sender,"Wejście od rangi: &a"+(r.entryRank()==null?"wszyscy":r.entryRank()));
-        Messages.info(sender,"Teleportacja: &a"+(r.spawn()==null?"nie ustawiono":"ustawiona"));
+        display.title(sender,"REGION "+r.name().toUpperCase(Locale.ROOT));
+        display.info(sender,"Świat: &a"+Optional.ofNullable(Bukkit.getWorld(r.world())).map(w->w.getName()).orElse("niedostępny"));
+        display.info(sender,"Obszar: &a"+(r.maxX()-r.minX()+1)+" × "+(r.maxZ()-r.minZ()+1)+" &7bloków");
+        display.info(sender,"Rodzic: &a"+(r.parent()==null?"brak":r.parent()));
+        display.info(sender,"Wejście od rangi: &a"+(r.entryRank()==null?"wszyscy":r.entryRank()));
+        display.info(sender,"Teleportacja: &a"+(r.spawn()==null?"nie ustawiono":"ustawiona"));
         for(RegionFlag f:RegionFlag.values()) {
-            Messages.info(sender,f.label()+" &8» "+(regions.index().enabled(r,f)?"&aDozwolone":"&cZabronione")
+            display.info(sender,f.label()+" &8» "+(regions.index().enabled(r,f)?"&aDozwolone":"&cZabronione")
                     +(r.flags().containsKey(f)?"":" &8(dziedziczenie)"));
         }
     }
@@ -253,18 +281,10 @@ public final class RegionCommand implements BasicCommand {
         return r;
     }
     private void failSyntax(CommandSender sender,String explanation,String usage) {
-        Messages.error(sender,explanation);Messages.usage(sender,usage);
+        display.error(sender,explanation);display.usage(sender,usage);
     }
     private void help(CommandSender sender) {
-        Messages.line(sender," ");
-        Messages.title(sender,"ZARZĄDZANIE REGIONAMI");
-        Messages.line(sender," ");
-        Messages.line(sender,"&a/region stworz &7<nazwa> <promień>");
-        Messages.line(sender,"&a/region rozdzka &8• &a/region podregion &7<rodzic> <nazwa>");
-        Messages.line(sender,"&a/region ochrona &7<region> <promień>");
-        Messages.line(sender,"&a/region edytuj &7<nazwa> &8• &a/region spawn");
-        Messages.line(sender,"&a/region usun &7<nazwa> &8• &a/region lista");
-        Messages.line(sender," ");
+        CommandTextRegistry.help(sender,"region");
     }
     private void perform(CommandSender sender,Supplier<CompletableFuture<Void>> action,String success) {
         perform(sender,action,success,()->{});
@@ -274,17 +294,17 @@ public final class RegionCommand implements BasicCommand {
             action.get().whenComplete((v,error)->{
                 if(!plugin.isEnabled())return;
                 Bukkit.getScheduler().runTask(plugin,()-> {
-                    if(error==null){Messages.success(sender,success);onSuccess.run();}
+                    if(error==null){display.success(sender,success);onSuccess.run();}
                     else {
                         Throwable cause=error;
                         while(cause instanceof CompletionException && cause.getCause()!=null)cause=cause.getCause();
-                        Messages.error(sender,"Nie zapisano zmiany. "+(cause instanceof IllegalArgumentException?
+                        display.error(sender,"Nie zapisano zmiany. "+(cause instanceof IllegalArgumentException?
                                 cause.getMessage():"Sprawdź połączenie MySQL i konsolę."));
                         plugin.getLogger().warning("Błąd operacji regionu: "+cause);
                     }
                 });
             });
-        } catch(RuntimeException e) {Messages.error(sender,e.getMessage());}
+        } catch(RuntimeException e) {display.error(sender,e.getMessage());}
     }
 
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args) {

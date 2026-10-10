@@ -19,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.NamespacedKey;
 import pl.lokos.tools.helpers.Messages;
+import pl.lokos.tools.config.CommandTextRegistry;
 import pl.lokos.tools.manager.RegionManager;
 import pl.lokos.tools.region.*;
 
@@ -28,6 +29,7 @@ import java.util.UUID;
 
 /** Ochrona regionow, takze zmian z sasiadujacych chunkow. Bez SQL w eventach. */
 public final class RegionProtectionListener implements Listener {
+    private static final pl.lokos.tools.helpers.CommandMessages display = new pl.lokos.tools.helpers.CommandMessages("region");
     private final RegionManager regions;
     private final RegionSelection selection;
     private final NamespacedKey wandKey;
@@ -52,7 +54,8 @@ public final class RegionProtectionListener implements Listener {
     }
     private void blocked(Player player) {
         // actionbar zamiast zalewania chatu przy kazdym uderzeniu.
-        player.sendActionBar(pl.lokos.tools.helpers.Colors.color("&cᴛᴇɴ ᴏʙꜱᴢᴀʀ ᴊᴇꜱᴛ ᴄʜʀᴏɴɪᴏɴʏ"));
+        player.sendActionBar(pl.lokos.tools.helpers.Colors.color(
+                CommandTextRegistry.text("region","protectedAction")));
     }
 
     public boolean isWand(ItemStack item) {
@@ -72,7 +75,7 @@ public final class RegionProtectionListener implements Listener {
         e.setCancelled(true);
         selection.choose(player.getUniqueId(),first,e.getClickedBlock().getLocation());
         Location at=e.getClickedBlock().getLocation();
-        Messages.info(player,(first?"Punkt pierwszy":"Punkt drugi")+
+        display.info(player,(first?"Punkt pierwszy":"Punkt drugi")+
                 " &8» &a"+at.getBlockX()+"&7, &a"+at.getBlockY()+"&7, &a"+at.getBlockZ());
     }
 
@@ -348,4 +351,9 @@ public final class RegionProtectionListener implements Listener {
             if(next!=null && !regions.canEnter(e.getPlayer(),next))e.setCancelled(true);
         }
     }
+    @EventHandler
+    public void leave(PlayerQuitEvent event) {
+        regions.clearBypass(event.getPlayer().getUniqueId());
+    }
+
 }

@@ -3,6 +3,7 @@ package pl.lokos.tools.config;
 import com.google.gson.Gson;
 import org.bukkit.plugin.java.JavaPlugin;
 import pl.lokos.tools.helpers.Messages;
+import java.util.Map;
 import pl.lokos.tools.listeners.RankListener;
 import pl.lokos.tools.manager.RankVisualManager;
 import pl.lokos.tools.registry.ConfigRegistry;
@@ -26,17 +27,19 @@ public final class HotReloadService implements AutoCloseable {
     private final ToolsConfig settings;
     private final RankVisualManager visuals;
     private final RankListener listener;
+    private final CommandTextRegistry commandTexts;
     private final ThreadPoolExecutor io;
     private final AtomicBoolean busy = new AtomicBoolean();
     private volatile boolean closed;
 
     public HotReloadService(JavaPlugin plugin, ConfigRegistry active, ToolsConfig settings,
-                            RankVisualManager visuals, RankListener listener) {
+                            RankVisualManager visuals, RankListener listener, CommandTextRegistry commandTexts) {
         this.plugin = plugin;
         this.active = active;
         this.settings = settings;
         this.visuals = visuals;
         this.listener = listener;
+        this.commandTexts=commandTexts;
         this.io = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(8), task -> {
                     Thread thread = new Thread(task, "Tools-Konfiguracja");
@@ -64,6 +67,7 @@ public final class HotReloadService implements AutoCloseable {
                             RanksFile::new, RanksFile::validate);
                     RegionsFile regions = json.load("Regions.json", RegionsFile.class,
                             RegionsFile::new, RegionsFile::validate);
+                    Map<String,CommandTextFile> nextTexts=commandTexts.loadSnapshot();
 
                     verifySafeToReload(settings.database(), db,
                             active.commands(), commands,
@@ -84,7 +88,8 @@ public final class HotReloadService implements AutoCloseable {
                             Messages.configure(commands.messagePrefix());
                             if (visuals != null) visuals.applySettings(ranks.settings());
                             if (listener != null) listener.applySettings(ranks.settings());
-                            result.complete("Odświeżono wygląd TAB-u, czat i komunikaty. "
+                            commandTexts.install(nextTexts);
+                            result.complete("Odświeżono wygląd TAB-u, czat i teksty commands/*.json. "
                                     + "Zmiana aliasów, uprawnień, regionów lub MySQL wymaga restartu.");
                         } catch (Exception failure) {
                             result.completeExceptionally(failure);

@@ -1,0 +1,116 @@
+package pl.lokos.tools.config;
+
+import java.util.*;
+
+/**
+ * Każda komenda ma własne teksty z domyślnymi wartościami w Javie.
+ * JSON przechowuje WYŁĄCZNIE wygląd i teksty; komendy są rejestrowane w Java.
+ */
+public final class CommandTextFile {
+    private String title;
+    private List<String> help;
+    private Map<String,String> messages;
+    private Map<String,String> replacements;
+    private CommandTextFile(String title,List<String> help,Map<String,String> messages){
+        this.title=title;this.help=new ArrayList<>(help);this.messages=new LinkedHashMap<>(messages);
+        this.replacements=new LinkedHashMap<>();
+    }
+    public String title(){return title;}
+    public List<String> help(){return List.copyOf(help);}
+    public Map<String,String> messages(){return Map.copyOf(messages);}
+    public String message(String key){return messages.get(key);}
+    public Map<String,String> replacements(){return Map.copyOf(replacements);}
+    public void validate(){
+        if(title==null||title.length()>200 || help==null || messages==null || replacements==null)
+            throw new IllegalArgumentException("Niekompletna konfiguracja tekstów komendy.");
+        if(help.size()>80)throw new IllegalArgumentException("Maksymalnie 80 linii pomocy.");
+        for(String line:help)if(line==null||line.length()>500)
+            throw new IllegalArgumentException("Linia pomocy nie może być pusta/null ani przekraczać 500 znaków.");
+        if(replacements.size()>750) throw new IllegalArgumentException("Maksymalnie 750 zamian tekstu.");
+        for(var e:replacements.entrySet()) {
+            if(e.getKey()==null||e.getKey().isEmpty()||e.getKey().length()>500
+                    ||e.getValue()==null||e.getValue().length()>1000)
+                throw new IllegalArgumentException("Błędna zamiana tekstu.");
+        }
+        if(messages.size()>250)throw new IllegalArgumentException("Maksymalnie 250 szablonów.");
+        for(var e:messages.entrySet()){
+            if(e.getKey()==null||!e.getKey().matches("[a-zA-Z0-9_.-]{1,64}")
+                    ||e.getValue()==null||e.getValue().length()>1200)
+                throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
+        }
+    }
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist");}
+
+    public static CommandTextFile defaults(String name){
+        CommandTextFile file=switch(name){
+            case "region" -> new CommandTextFile("ZARZĄDZANIE REGIONAMI",List.of(
+                    "&8&m                               ",
+                    "&#73D6C1/region stworz &7<nazwa> <promień>",
+                    "&#73D6C1/region rozdzka &8• &#73D6C1/region podregion &7<rodzic> <nazwa>",
+                    "&#73D6C1/region ochrona &7<region> <promień>",
+                    "&#73D6C1/region edytuj &7<nazwa> &8• &#73D6C1/region spawn",
+                    "&#73D6C1/region stan &8• &#73D6C1/region bypass",
+                    "&#73D6C1/region usun &7<nazwa> &8• &#73D6C1/region lista",
+                    "&8&m                               "),
+                    Map.of(
+                            "notReady","&cRegiony nie zostały poprawnie wczytane. Sprawdź Regions.json i konsolę.",
+                            "protectedAction","&#FF6B79Ten obszar jest chroniony.",
+                            "bypassEnabled","&cTryb omijania ochrony włączony. &7Wyłącz: &#73D6C1/region bypass",
+                            "bypassDisabled","&aTryb omijania ochrony wyłączony.",
+                            "noRegion","&cNie znaleziono regionu {region}.",
+                            "saved","&aZapisano zmianę regionu.",
+                            "saveError","&cNie udało się zapisać ustawień regionu."
+                    ));
+            case "ranga" -> new CommandTextFile("ZARZĄDZANIE RANGAMI",List.of(
+                    "&7Tworzenie i konfiguracja",
+                    "&#73D6C1/ranga stworz &7<nazwa> <prefix> [sufix]",
+                    "&#73D6C1/ranga dodaj &7<ranga> <uprawnienie>",
+                    "&#73D6C1/ranga pozycja &7<ranga> <1-9998>",
+                    "&#73D6C1/ranga wejscie &7<ranga> <tekst|brak>",
+                    "&7Nadawanie i administracja",
+                    "&#73D6C1/ranga nadaj &7<nick> <ranga> <czas|*>",
+                    "&#73D6C1/ranga edytuj &7<ranga> <prefix|sufix|nazwa> <wartość>",
+                    "&#73D6C1/ranga info &7<ranga> &8• &#73D6C1/ranga lista",
+                    "&#73D6C1/ranga menu &8— &7Otwiera GUI",
+                    "&#73D6C1/ranga usun &7<ranga> &8• &#73D6C1/ranga sprawdz &7<nick>"),
+                    Map.of(
+                            "notFound","&cNie znaleziono rangi {ranga}.",
+                            "alreadyExists","&cRanga {ranga} już istnieje.",
+                            "noPermission","&cNie masz uprawnień do zarządzania rangami.",
+                            "saved","&aZapisano ustawienia rangi."
+                    ));
+            case "tools" -> new CommandTextFile("NARZĘDZIA SERWERA",List.of(
+                    "&#73D6C1/tools status &8• &7Stan bazy",
+                    "&#73D6C1/tools zdrowie &8• &7Pamięć, TPS i wątki",
+                    "&#73D6C1/tools diagnostyka &8• &7Czasy modułów",
+                    "&#73D6C1/tools przeladuj &8• &7Bezpieczne odświeżenie tekstów",
+                    "&#73D6C1/tools ping &8• &7Czas odpowiedzi bazy",
+                    "&#73D6C1/tools stats &7<nick> &8• &7Statystyki gracza"),
+                    Map.of("noDatabase","&cBaza danych jest wyłączona.",
+                            "unknown","&cNieznana podkomenda: {argument}.",
+                            "reloadSuccess","&aPrzeładowano teksty i obsługiwane ustawienia."));
+            case "lokalizacje" -> new CommandTextFile("LOKALIZACJE",List.of(
+                    "&#73D6C1/lokalizacje &8— &7Otwiera wybór teleportacji"),
+                    Map.of("notReady","&cLokalizacje jeszcze się wczytują.",
+                            "onlyPlayer","&cMenu lokalizacji jest dostępne tylko w grze."));
+            case "spawn" -> new CommandTextFile("SPAWN",List.of(
+                    "&#73D6C1/spawn &8— &7Teleportacja na główny spawn"),
+                    Map.of("notSet","&cSpawn nie został jeszcze ustawiony.",
+                            "notReady","&cLokalizacje nie zostały wczytane."));
+            case "whitelist" -> new CommandTextFile("WHITELIST",List.of(
+                    "&#73D6C1/whitelist &8— &7Otwórz panel",
+                    "&#73D6C1/whitelist włącz &7<prace_techniczne|chwilowa_przerwa|nowa_edycja|aktualizacja>",
+                    "&#73D6C1/whitelist wyłącz",
+                    "&#73D6C1/whitelist dodaj &7<nick>",
+                    "&#73D6C1/whitelist usuń &7<nick>",
+                    "&#73D6C1/whitelist lista &8— &7Lista główek graczy"),
+                    Map.of("noPermission","&cNie możesz zarządzać whitelistą.",
+                            "saved","&aZapisano whitelistę.",
+                            "saveError","&cNie udało się zapisać whitelisty."));
+            default -> throw new IllegalArgumentException("Nieznana komenda: "+name);
+        };
+        file.replacements.putAll(CommandDefaultFragments.fragments(name));
+        file.validate();
+        return file;
+    }
+}

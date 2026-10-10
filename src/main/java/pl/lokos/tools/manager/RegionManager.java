@@ -24,6 +24,8 @@ public final class RegionManager {
     private volatile String mainSpawn;
     private volatile boolean loaded;
     private boolean closing;
+    /** Administrator włącza omijanie ochrony świadomie, nigdy automatycznie przez OP. */
+    private final Set<UUID> bypassToggles = new HashSet<>();
     private CompletableFuture<Void> queue=CompletableFuture.completedFuture(null);
     private CompletableFuture<Void> firstLoad;
 
@@ -52,6 +54,14 @@ public final class RegionManager {
             if(spawn!=null && new RegionIndex(imported).byName(spawn)==null)spawn=null;
             definitions.saveRegions(RegionsFile.from(imported,spawn,definitions.regions().settings()));
             plugin.getLogger().info("Przeniesiono "+imported.size()+" regionów do Regions.json.");
+        }).exceptionally(error -> {
+            // Ochrona nie może znikać tylko dlatego, że dawna baza SQL jest niedostępna.
+            // Jeżeli Regions.json zawiera regiony, wczytujemy bezpiecznie lokalne definicje.
+            if(definitions.regions().regions().isEmpty())
+                throw new java.util.concurrent.CompletionException(error);
+            plugin.getLogger().log(Level.WARNING,
+                    "Nie można zaimportować dawnych regionów SQL. Używam istniejącego Regions.json.", error);
+            return null;
         }) : CompletableFuture.<Void>completedFuture(null)).thenCompose(unused->refresh());
         queue=firstLoad.handle((v,e)->null);
         firstLoad.exceptionally(error->{plugin.getLogger().log(Level.SEVERE,"Nie załadowano Regions.json",error);return null;});
@@ -180,8 +190,34 @@ public final class RegionManager {
         });
     }
     public boolean bypass(Player p) {
-        return p.isOp()||p.hasPermission("tools.region.bypass")||
-                (ranks!=null&&ranks.snapshot().permissionsFor(p.getUniqueId()).contains("*"));
+        // Sam status OP, ranga '*' ani posiadanie uprawnienia bypass NIE wystarczają.
+        return RegionBypassPolicy.active(
+                p.isOp() || p.hasPermission("tools.region.bypass"),
+                bypassToggles.contains(p.getUniqueId()));
+    }
+
+    public boolean bypassEnabled(Player p) { return bypass(p); }
+
+    public boolean toggleBypass(Player p) {
+        if (!p.isOp() && !p.hasPermission("tools.region.bypass"))
+            throw new IllegalArgumentException("Nie masz uprawnienia do trybu omijania ochrony.");
+        if (!bypassToggles.add(p.getUniqueId())) {
+            bypassToggles.remove(p.getUniqueId());
+            return false;
+        }
+        return true;
+    }
+
+    public void clearBypass(UUID uuid) { bypassToggles.remove(uuid); }
+
+    public record ProtectionStatus(boolean ready, int regions, String region,
+                                   boolean bypass, boolean buildingAllowed, boolean breakingAllowed) {}
+
+    public ProtectionStatus protectionStatus(Player p) {
+        Region region=at(p.getLocation());
+        return new ProtectionStatus(ready(), index.all().size(), region == null ? null : region.name(),
+                bypass(p), region != null && index.enabled(region, RegionFlag.BUILD),
+                region != null && index.enabled(region, RegionFlag.BREAK));
     }
     public boolean allowed(Player player,Region region,RegionFlag flag) {
         return region==null||bypass(player)||index.enabled(region,flag);
@@ -207,5 +243,5 @@ public final class RegionManager {
         Region.Spawn s=r.spawn();
         return new Location(world,s.x(),s.y(),s.z(),s.yaw(),s.pitch());
     }
-    public void shutdown(){closing=true;}
+    public void shutdown(){closing=true; bypassToggles.clear();}
 }

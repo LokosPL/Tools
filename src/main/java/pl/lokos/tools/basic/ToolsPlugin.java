@@ -5,6 +5,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import pl.lokos.tools.config.ToolsConfig;
+import pl.lokos.tools.config.CommandTextRegistry;
 import pl.lokos.tools.config.SecurityConfig;
 import pl.lokos.tools.config.JsonConfigManager;
 import pl.lokos.tools.whitelist.*;
@@ -62,6 +63,7 @@ public final class ToolsPlugin extends JavaPlugin {
     private BukkitTask autosaveTask;
     private ConfigRegistry configurations;
     private ToolsConfig config;
+    private CommandTextRegistry commandTexts;
     private ServiceRegistry services;
     private MonitoringService monitoring;
     private HotReloadService reloadService;
@@ -79,6 +81,8 @@ public final class ToolsPlugin extends JavaPlugin {
             this.configurations = new ConfigRegistry(getDataFolder().toPath());
             configurations.loadAll();
             this.config = configurations.tools();
+            this.commandTexts = new CommandTextRegistry(getDataFolder().toPath());
+            commandTexts.install(commandTexts.loadSnapshot());
             Messages.configure(configurations.commands().messagePrefix());
         } catch (IOException error) {
             getLogger().severe("Nie mozna zaladowac konfiguracji: " + error.getMessage());
@@ -137,7 +141,7 @@ public final class ToolsPlugin extends JavaPlugin {
             this.rankListener = new RankListener(rankManager, rankVisuals, config.ranks());
         }
         this.reloadService = services.register(HotReloadService.class,
-                new HotReloadService(this, configurations, config, rankVisuals, rankListener));
+                new HotReloadService(this, configurations, config, rankVisuals, rankListener, commandTexts));
         getServer().getPluginManager().registerEvents(new WhitelistListener(
                 this,whitelistService,pendingWhitelistMenu,pendingWhitelistCommand,reloadService),this);
 
