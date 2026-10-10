@@ -145,7 +145,7 @@ public final class EventManager implements Listener,AutoCloseable {
         item.setItemMeta(meta);
         return item;
     }
-    /** Publiczny panel wyboru ośmiu wydarzeń. */
+    /** Publiczny panel wyboru dziewięciu wydarzeń. */
     public void openHub(Player player){
         Menu holder=new Menu(null);
         Inventory inv=Bukkit.createInventory(holder,27,Colors.color("&#FFD166✦ WYDARZENIA SERWERA"));
