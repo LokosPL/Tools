@@ -87,7 +87,9 @@ public final class PrivateMessageCommand implements BasicCommand {
                         target=UUID.fromString(entry.getKey());break;
                     }
                 }
-                if(target==null){Messages.error(player,"Nie ignorujesz tego gracza.");return;}
+                if(target==null){
+                    Messages.unchanged(player,"Nie ignorujesz już tego gracza.");return;
+                }
                 save(player,messages.ignore(player.getUniqueId(),target,args[1],false),
                         "Możesz ponownie odbierać wiadomości od "+args[1]+".");
             }

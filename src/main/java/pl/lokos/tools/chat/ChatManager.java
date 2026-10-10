@@ -40,6 +40,16 @@ public final class ChatManager implements AutoCloseable {
     private int nextAnnouncement;
     private volatile long nextAnnouncementAt;
     private long nextCleanupAt;
+    private long lastClearAt;
+    /**
+     * Zabezpiecza /chat wyczysc przed spamowaniem historią czatu.
+     * Odczyt i zapis odbywa się tylko na głównym wątku komend.
+     */
+    public boolean markChatCleared(long now) {
+        if(lastClearAt>0 && now-lastClearAt<5000L)return false;
+        lastClearAt=now;
+        return true;
+    }
 
     public ChatManager(JavaPlugin plugin,RankManager ranks,Path folder) throws IOException {
         this.plugin=plugin;this.ranks=ranks;this.folder=folder;

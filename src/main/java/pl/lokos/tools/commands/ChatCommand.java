@@ -65,6 +65,10 @@ public final class ChatCommand implements BasicCommand {
                 }
                 case "wyczysc","wyczyść" -> {
                     requireCount(args,1);
+                    if(!chats.markChatCleared(System.currentTimeMillis())){
+                        Messages.unchanged(sender,"Czat został już niedawno wyczyszczony.");
+                        return;
+                    }
                     for(Player target:Bukkit.getOnlinePlayers()){
                         for(int line=0;line<75;line++)target.sendMessage(net.kyori.adventure.text.Component.empty());
                         target.sendMessage(Colors.color("&#FFD166✦ &7Czat został wyczyszczony przez administrację."));
@@ -110,7 +114,7 @@ public final class ChatCommand implements BasicCommand {
                         }
                     }
                     if(match.isEmpty()){
-                        Messages.error(sender,CommandTextRegistry.text("chat","notMuted"));return;
+                        Messages.unchanged(sender,"Ten gracz nie jest już wyciszony na czacie.");return;
                     }
                     var entry=match.get();
                     save(sender,()->chats.unsilence(entry.uuid()),"Cofnięto wyciszenie "+entry.mute().name()+".");
