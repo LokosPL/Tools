@@ -38,6 +38,13 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"inventoryopen",config.inventoryopen());register(nodes,"speed",config.speed());
         register(nodes,"przedmiot",config.przedmiot());
         register(nodes,"antycheat",config.antycheat());
+        register(nodes,"event",config.event());
+        register(nodes,"skrzynia",config.skrzynia());
+        register(nodes,"granica",config.granica());
+        for(pl.lokos.tools.events.EventType type:pl.lokos.tools.events.EventType.values()){
+            nodes.put(type.id(),"tools.event.info");
+            nodes.put("tools:"+type.id(),"tools.event.info");
+        }
         nodes.put("spawn", "tools.spawn");
         nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
@@ -50,7 +57,8 @@ public final class ToolsCommandVisibilityListener implements Listener {
                 config.tp().permission(),config.vanish().permission(),config.gamemode().permission(),
                 config.fly().permission(),config.broadcast().permission(),
                 config.inventoryopen().permission(),config.speed().permission(),
-                config.przedmiot().permission(),config.antycheat().permission());
+                config.przedmiot().permission(),config.antycheat().permission(),
+                config.event().permission(),config.skrzynia().permission(),config.granica().permission());
         this.ranks=ranks;
     }
 

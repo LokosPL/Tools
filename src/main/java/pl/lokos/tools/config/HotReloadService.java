@@ -132,7 +132,9 @@ public final class HotReloadService implements AutoCloseable {
                 && same(a.helpop(),b.helpop()) && same(a.gamemode(),b.gamemode())
                 && same(a.fly(),b.fly()) && same(a.broadcast(),b.broadcast())
                 && same(a.inventoryopen(),b.inventoryopen()) && same(a.speed(),b.speed())
-                && same(a.przedmiot(),b.przedmiot()) && same(a.antycheat(),b.antycheat());
+                && same(a.przedmiot(),b.przedmiot()) && same(a.antycheat(),b.antycheat())
+                && same(a.event(),b.event()) && same(a.skrzynia(),b.skrzynia())
+                && same(a.granica(),b.granica());
     }
 
     private static boolean same(CommandsFile.Entry a, CommandsFile.Entry b) {

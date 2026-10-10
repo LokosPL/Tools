@@ -19,6 +19,9 @@ import pl.lokos.tools.commands.InventoryAudit;
 import pl.lokos.tools.items.SpecialItemService;
 import pl.lokos.tools.items.SpecialItemMenu;
 import pl.lokos.tools.anticheat.AntiCheatManager;
+import pl.lokos.tools.events.*;
+import pl.lokos.tools.border.BorderManager;
+import pl.lokos.tools.crates.CrateManager;
 
 public final class CommandRegistry {
     private final JavaPlugin plugin;
@@ -27,7 +30,8 @@ public final class CommandRegistry {
                          PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus,
                          MonitoringService monitoring, HotReloadService hotReload,ChatManager chats,
                          PrivateMessageManager privateMessages,StaffManager staff,InventoryAudit inventoryAudit,
-                         SpecialItemService items,SpecialItemMenu itemMenu,AntiCheatManager anticheat) {
+                         SpecialItemService items,SpecialItemMenu itemMenu,AntiCheatManager anticheat,
+                         EventManager events,CrateManager crates,BorderManager border) {
         if(ranks!=null && config.ranga().enabled()){
             declare(config.ranga().permission(),PermissionDefault.OP);
             plugin.registerCommand("ranga",config.ranga().description(),config.ranga().aliases(),
@@ -82,6 +86,25 @@ public final class CommandRegistry {
             plugin.registerCommand("antycheat",config.antycheat().description(),
                     config.antycheat().aliases(),new AntiCheatCommand(plugin,anticheat,ranks,
                             config.antycheat().permission()));
+        }
+        if(events!=null&&config.event().enabled()){
+            declare(config.event().permission(),PermissionDefault.OP);
+            declare("tools.event.info",PermissionDefault.TRUE);
+            plugin.registerCommand("event",config.event().description(),config.event().aliases(),
+                    new EventCommand(plugin,events,ranks,null,config.event().permission()));
+            for(EventType type:EventType.values())
+                plugin.registerCommand(type.id(),"Informacje: "+type.title(),java.util.List.of(),
+                        new EventCommand(plugin,events,ranks,type,"tools.event.info"));
+        }
+        if(crates!=null&&config.skrzynia().enabled()){
+            declare(config.skrzynia().permission(),PermissionDefault.OP);
+            plugin.registerCommand("skrzynia",config.skrzynia().description(),config.skrzynia().aliases(),
+                    new CrateCommand(crates,ranks,config.skrzynia().permission()));
+        }
+        if(border!=null&&config.granica().enabled()){
+            declare(config.granica().permission(),PermissionDefault.OP);
+            plugin.registerCommand("granica",config.granica().description(),config.granica().aliases(),
+                    new BorderCommand(plugin,border,ranks,config.granica().permission()));
         }
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);

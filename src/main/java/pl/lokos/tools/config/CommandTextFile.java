@@ -39,7 +39,8 @@ public final class CommandTextFile {
                 throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
         }
     }
-    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot","antycheat");}
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot","antycheat","event","skrzynia","granica",
+            "zima","halloween","wielkanoc","lato","zabojstwa","meteory","zniwa","wedkowanie");}
 
     public static CommandTextFile defaults(String name){
         CommandTextFile file=switch(name){
@@ -161,6 +162,24 @@ public final class CommandTextFile {
                     "&#70D6E8/speed &7<1-10> &8• &7Twoja prędkość",
                     "&#70D6E8/speed &7<walk|fly> <1-10> [nick]",
                     "&#70D6E8/speed &7<nick> <1-10>"),Map.of());
+            case "event" -> new CommandTextFile("WYDARZENIA SERWERA",List.of(
+                    "&#70D6E8/event lista &#A8A8B7» Dostępne wydarzenia",
+                    "&#70D6E8/event status &#A8A8B7» Aktualny event",
+                    "&#70D6E8/event wlacz <zima|halloween|wielkanoc|lato|zabojstwa|meteory|zniwa|wedkowanie> <2h|1d>",
+                    "&#70D6E8/event zakoncz &#A8A8B7» Zakończ aktualne wydarzenie"),Map.of());
+            case "skrzynia" -> new CommandTextFile("SKRZYNIE SERWERA",List.of(
+                    "&#70D6E8/skrzynia &#A8A8B7» GUI pobierania skrzyń",
+                    "&#70D6E8/skrzynia klucz <zwykla|premium|afk|eventowa|specjalna> <nick> [liczba]",
+                    "&#70D6E8/skrzynia usun &#A8A8B7» Usuń skrzynię, na którą patrzysz",
+                    "&#70D6E8/skrzynia lista &#A8A8B7» Liczba postawionych skrzyń"),Map.of());
+            case "granica" -> new CommandTextFile("GRANICA ŚWIATA",List.of(
+                    "&#70D6E8/granica status",
+                    "&#70D6E8/granica pauza &#A8A8B7» Zatrzymaj ekspansję",
+                    "&#70D6E8/granica wznow &#A8A8B7» Wznów ekspansję",
+                    "&#70D6E8/granica rozbuduj <bloki>"),Map.of());
+            case "zima","halloween","wielkanoc","lato","zabojstwa","meteory","zniwa","wedkowanie" ->
+                    new CommandTextFile("WYDARZENIE: "+name.toUpperCase(java.util.Locale.ROOT),List.of(
+                            "&#70D6E8/"+name+" &#A8A8B7» Szczegóły i nagrody wydarzenia"),Map.of());
             case "antycheat" -> new CommandTextFile("ANTYCHEAT",List.of(
                     "&#70D6E8/antycheat status &8• &7Stan zabezpieczeń",
                     "&#70D6E8/antycheat wlacz &8• &7Włącz kontrolę graczy",

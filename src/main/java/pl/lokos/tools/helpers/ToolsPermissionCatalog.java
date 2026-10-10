@@ -74,6 +74,14 @@ public final class ToolsPermissionCatalog {
         add(list,"tools.inventoryopen.enderchest","Podgląd enderchesta","/inventoryopen enderchest nick","Wymaga tools.inventoryopen.");
         add(list,commands.speed().permission(),"Prędkość ruchu","Zmiana szybkości chodzenia lub latania","Chodzenie i latanie.");
         add(list,"tools.speed.others","Prędkość innych","Zmiana szybkości innego gracza","Wymaga tools.speed.");
+        add(list,"tools.event.info","Szczegóły eventów",
+                "Dostęp do /zima i innych informatorów wydarzeń.","Publiczna komenda.");
+        add(list,commands.event().permission(),"Zarządzanie eventami",
+                "Uruchamianie i kończenie wydarzeń.","Jednocześnie może trwać jeden event.");
+        add(list,commands.skrzynia().permission(),"Zarządzanie skrzyniami",
+                "GUI skrzyń, ustawianie i wydawanie kluczy.","Postawienie tylko na głównym spawnie.");
+        add(list,commands.granica().permission(),"Granica świata",
+                "Powiększanie, pauza i status ekspansji.","Nie usuwa istniejących regionów.");
         add(list,commands.antycheat().permission(),"Zarządzanie antycheatem",
                 "Przełącza globalne wykrywanie zagrożeń.","Bez zwalniania OP z kontroli.");
         add(list,"tools.antycheat.alerts","Alerty antycheata",
@@ -97,7 +105,8 @@ public final class ToolsPermissionCatalog {
                 commands.gamemode().permission(),commands.fly().permission(),
                 commands.broadcast().permission(),commands.inventoryopen().permission(),
                 commands.speed().permission(),commands.przedmiot().permission(),
-                commands.antycheat().permission());
+                commands.antycheat().permission(),commands.event().permission(),
+                commands.skrzynia().permission(),commands.granica().permission());
     }
 
     private static void add(List<Feature> list,String node,String name,String description,String details) {

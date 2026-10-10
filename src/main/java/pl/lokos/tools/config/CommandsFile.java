@@ -47,6 +47,9 @@ public final class CommandsFile {
     private Entry speed=new Entry(true,"Zmiana prędkości gracza",List.of(),"tools.speed");
     private Entry przedmiot=new Entry(true,"Przedmioty specjalne serwera",List.of("specialitem"),"tools.przedmiot.admin");
     private Entry antycheat=new Entry(true,"Ochrona antycheat serwera",List.of("ac"),"tools.antycheat.admin");
+    private Entry event=new Entry(true,"Zarządzanie wydarzeniami",List.of("wydarzenie"),"tools.event.admin");
+    private Entry skrzynia=new Entry(true,"Zarządzanie skrzyniami",List.of("crates"),"tools.skrzynia.admin");
+    private Entry granica=new Entry(true,"Granica i rozrost świata",List.of("worldborder"),"tools.granica.admin");
     public Entry tools(){return tools;}
     public Entry ranga(){return ranga;}
     public Entry region(){return region;}
@@ -64,6 +67,9 @@ public final class CommandsFile {
     public Entry speed(){return speed;}
     public Entry przedmiot(){return przedmiot;}
     public Entry antycheat(){return antycheat;}
+    public Entry event(){return event;}
+    public Entry skrzynia(){return skrzynia;}
+    public Entry granica(){return granica;}
     public void validate(){
         if(serverName==null||serverName.isBlank()||serverName.length()>32)
             throw new IllegalArgumentException("serverName powinno mieć 1-32 znaki");
@@ -85,10 +91,13 @@ public final class CommandsFile {
         przedmiot.validate("przedmiot");
         if(antycheat==null)throw new IllegalArgumentException("Brakuje komendy antycheat.");
         antycheat.validate("antycheat");
+        if(event==null||skrzynia==null||granica==null)
+            throw new IllegalArgumentException("Brak konfiguracji Event/Skrzynia/Granica.");
+        event.validate("event");skrzynia.validate("skrzynia");granica.validate("granica");
         Set<String> used=new HashSet<>(Set.of("tools","ranga","region","lokalizacje","chat","msg","reply",
-                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot","antycheat"));
+                "tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot","antycheat","event","skrzynia","granica"));
         for(Entry entry:List.of(tools,ranga,region,lokalizacje,chat,msg,reply,
-                tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed,przedmiot,antycheat))for(String alias:entry.aliases()){
+                tp,vanish,helpop,gamemode,fly,broadcast,inventoryopen,speed,przedmiot,antycheat,event,skrzynia,granica))for(String alias:entry.aliases()){
             if(!used.add(alias.toLowerCase(Locale.ROOT)))
                 throw new IllegalArgumentException("Powtórzony alias komendy: "+alias);
         }
