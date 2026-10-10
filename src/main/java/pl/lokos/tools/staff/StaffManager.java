@@ -74,6 +74,13 @@ public final class StaffManager implements Listener,AutoCloseable {
         if(state.vanished(id)==enabled)return CompletableFuture.failedFuture(
                 new IllegalArgumentException(enabled?"Vanish jest już włączony.":"Vanish jest już wyłączony."));
         state=state.withVanish(id,enabled);
+        if(enabled){
+            // Usuwamy również cele już zapamiętane przez AI mobów sprzed vanisha.
+            // Samo anulowanie przyszłych EntityTargetLivingEntityEvent nie wystarcza.
+            for(Entity entity:player.getNearbyEntities(64,64,64))
+                if(entity instanceof Mob mob && player.equals(mob.getTarget()))
+                    mob.setTarget(null);
+        }
         updateVisibility();
         String action=enabled?"włączył vanish":"wyłączył vanish";
         if(!player.getName().equals(actor))action+=" (przez "+actor+")";
