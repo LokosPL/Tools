@@ -211,7 +211,8 @@ public final class PrivateMessageCommand implements BasicCommand {
         boolean canStaff=ToolsAccess.allowed(player.isOp(),snapshot,player.getUniqueId(),
                 "tools.msg.staff",false);
         for(Player target:Bukkit.getOnlinePlayers()){
-            if(!target.equals(player) && (canStaff || !PrivateMessagePolicy.isStaff(snapshot,
+            if(!target.equals(player) && player.canSee(target)
+                    && (canStaff || !PrivateMessagePolicy.isStaff(snapshot,
                     target.getUniqueId(),target.isOp(),administrativeNodes)))
                 candidates.add(target.getName());
         }

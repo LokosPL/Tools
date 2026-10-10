@@ -38,19 +38,19 @@ public final class WhitelistMenu {
         GuiTheme.frame(inv);
         inv.setItem(4, icon(service.state().enabled() ? Material.LIME_DYE : Material.GRAY_DYE,
                 service.state().enabled() ? "&a&lWhitelist włączona" : "&7Whitelist wyłączona",
-                "&8Tryb: &f" + service.state().mode(), "&7Kliknij, aby zmienić stan"));
+                "&8Tryb: &f" + service.state().mode(), "&#70D6E8» Kliknij, aby zmienić stan"));
         holder.actions.put(4, service.state().enabled() ? "disable" : "mode:PRACE_TECHNICZNE");
         WhitelistMode[] modes = WhitelistMode.values();
         for (int i=0;i<modes.length;i++) {
             WhitelistMode m = modes[i];
             inv.setItem(i+9,icon(m.name().equals(service.state().mode()) && service.state().enabled()
-                    ? Material.EMERALD : Material.PAPER,"&#85CFFF"+m.title(),
+                    ? Material.EMERALD : Material.PAPER,"&#70D6E8"+m.title(),
                     "&7Włącz serwer w tym trybie.", "&aKliknij, aby wybrać"));
             holder.actions.put(i+9,"mode:"+m.name());
         }
         for (int i=0;i<Math.min(27,users.size()-page*27);i++) {
             String name=users.get(page*27+i);
-            ItemStack head = icon(Material.PLAYER_HEAD, "&#78CFFF" + name, "&7Na liście dozwolonych.", "&cKliknij, aby usunąć");
+            ItemStack head = icon(Material.PLAYER_HEAD, "&#70D6E8" + name, "&7Na liście dozwolonych.", "&cKliknij, aby usunąć");
             if (head.getItemMeta() instanceof SkullMeta skull) {
                 // Samo przypisanie OfflinePlayer nie odpytuje API Mojang synchronicznie.
                 skull.setOwningPlayer(Bukkit.getOfflinePlayer(name));
@@ -61,7 +61,7 @@ public final class WhitelistMenu {
         }
         if(page>0) { inv.setItem(45,icon(Material.ARROW,"&7Poprzednia strona"));holder.actions.put(45,"page:"+(page-1));}
         if(page<max){inv.setItem(53,icon(Material.ARROW,"&7Następna strona"));holder.actions.put(53,"page:"+(page+1));}
-        inv.setItem(49,icon(Material.BOOK,"&#85CFFF&lGracze: &f"+users.size(),
+        inv.setItem(49,icon(Material.BOOK,"&#70D6E8&lGracze: &f"+users.size(),
                 "&7Dodawanie: &f/whitelist dodaj <nick>",
                 "&7Usuwanie: kliknij główkę gracza"));
         player.openInventory(inv);
