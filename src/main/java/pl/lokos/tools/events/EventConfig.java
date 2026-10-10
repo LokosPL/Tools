@@ -22,6 +22,8 @@ public final class EventConfig {
     private int meteorRadiusBlocks=48;
     private int meteorMinimumDistanceBlocks=12;
     private int meteorKeysPerMeteor=1;
+    private double meteorRareChance=0.05;
+    private int meteorRareKeys=3;
     private boolean meteorAnnouncements=true;
     private boolean meteorEffects=true;
     private int snowParticleCount=12;
@@ -46,6 +48,8 @@ public final class EventConfig {
     public int meteorRadiusBlocks(){return meteorRadiusBlocks;}
     public int meteorMinimumDistanceBlocks(){return meteorMinimumDistanceBlocks;}
     public int meteorKeysPerMeteor(){return meteorKeysPerMeteor;}
+    public double meteorRareChance(){return meteorRareChance;}
+    public int meteorRareKeys(){return meteorRareKeys;}
     public boolean meteorAnnouncements(){return meteorAnnouncements;}
     public boolean meteorEffects(){return meteorEffects;}
     public int snowParticleCount(){return snowParticleCount;}
@@ -67,6 +71,8 @@ public final class EventConfig {
                 meteorMinimumDistanceBlocks<4||
                 meteorMinimumDistanceBlocks>=meteorRadiusBlocks||
                 meteorKeysPerMeteor<1||meteorKeysPerMeteor>16||
+                meteorRareChance<0||meteorRareChance>0.5||
+                meteorRareKeys<1||meteorRareKeys>16||
                 snowParticleCount<0||snowParticleCount>50||
                 eventBar==null||!eventBar.contains("{event}")||
                 !eventBar.contains("{time}")||!eventBar.contains("{command}")||
