@@ -62,6 +62,11 @@ class ChatConfigTest {
         assertThrows(IOException.class,()->ChatConfigEditor.apply(path,data->
                 data.addProperty("announcementIntervalSeconds",1)));
         assertEquals(before,Files.readString(path));
+        // Ta sama konfiguracja nie wywołuje kolejnego zapisu ani fałszywego sukcesu.
+        Throwable unchanged=assertThrows(pl.lokos.tools.helpers.StateChanges.Unchanged.class,
+                ()->ChatConfigEditor.apply(path,data->data.addProperty("announcementIntervalSeconds",45)));
+        assertEquals("Te ustawienia czatu mają już podane wartości.",unchanged.getMessage());
+        assertEquals(before,Files.readString(path));
     }
 
     @Test void invalidInputsAreRejected(){

@@ -1,3 +1,27 @@
+# Tools — poprawa idempotencji poleceń (aktualna)
+
+W komendach modyfikujących konfigurację rozróżniamy **zmianę**, **brak zmiany** i **błąd**.
+Ponowne wykonanie `/msg wlacz`, `/msg wylacz`, `/msg wycisz`,
+`/chat wlacz`, `/chat wylacz`, `/chat ogloszenia wlacz/wylacz`,
+`/chat slow`, `/chat ogloszenia interwal`,
+`/whitelist wlacz/wylacz/dodaj/usun`, ustawianie istniejących flag regionów,
+pozycji rang, uprawnień rangi i tego samego przypisania rangi nie powoduje
+niepotrzebnego zapisu ani komunikatu sukcesu.
+
+Neutralny komunikat typu **„Prywatne wiadomości są już włączone”** ma własną
+kolorystykę i jest ograniczany czasowo, aby powtarzanie polecenia nie zalewało czatu.
+Zdarzenia GUI regionów i whitelisty także rozróżniają brak zmiany od błędu.
+
+Część poleceń jest tylko odczytem (`/chat status`, `/region info`, `/tools ping`)
+albo akcją wykonywaną na żądanie (`/chat wyczysc`). Nie są one blokowane
+jako „już zrobione”, ponieważ ich ponowne wykonanie ma sens.
+
+Testy regresyjne obejmują wielokrotne przełączanie MSG/czatu, ponowne wyciszanie
+i ignorowanie oraz niewykonywanie identycznej zmiany pliku JSON. Kompilacja i testy
+CI nie zastępują próby na działającym serwerze Paper.
+
+---
+
 # Tools 1.9.2 — prywatne wiadomości i ustawienia czatu (aktualne)
 
 ## Czat — ustawienia z gry i JSON
