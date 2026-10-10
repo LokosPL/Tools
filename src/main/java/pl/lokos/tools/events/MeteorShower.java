@@ -27,9 +27,9 @@ import java.util.concurrent.ThreadLocalRandom;
  * Każdy meteoryt znika po zebraniu, zakończeniu eventu lub unloadzie chunka.
  */
 public final class MeteorShower implements Listener,AutoCloseable {
-    private record Node(UUID world,int x,int y,int z,long expiresAt,
+    private record Node(UUID world,int x,int y,int z,long expiresAt,boolean rare,
                         BlockDisplay block,TextDisplay label,Interaction hitbox) {}
-    public record LocationHint(String world,int x,int y,int z,int secondsLeft) {}
+    public record LocationHint(String world,int x,int y,int z,int secondsLeft,boolean rare) {}
 
     private final JavaPlugin plugin;
     private final EventManager events;
@@ -51,7 +51,7 @@ public final class MeteorShower implements Listener,AutoCloseable {
             World world=Bukkit.getWorld(node.world());
             if(world!=null)
                 result.add(new LocationHint(world.getName(),node.x(),node.y(),node.z(),
-                        (int)Math.max(0,(node.expiresAt()-now+999)/1000)));
+                        (int)Math.max(0,(node.expiresAt()-now+999)/1000),node.rare()));
         }
         return List.copyOf(result);
     }
@@ -67,7 +67,33 @@ public final class MeteorShower implements Listener,AutoCloseable {
         for(LocationHint hint:list)
             Messages.info(sender,"&#FFD166✦ &#70D6E8"+hint.world()+" &#A8A8B7» X: &#FFD166"
                     +hint.x()+" &#A8A8B7Y: &#FFD166"+hint.y()+" &#A8A8B7Z: &#FFD166"
-                    +hint.z()+" &#A8A8B7| pozostało "+hint.secondsLeft()+"s");
+                    +hint.z()+" &#A8A8B7| pozostało "+hint.secondsLeft()+"s"
+                    +(hint.rare()?" &#FFD166✦ ZŁOTY":""));
+    }
+
+    /** Namierza najbliższy meteoryt w świecie gracza za pomocą kompasu. */
+    public void track(Player player){
+        if(events.active()!=EventType.METEORY){
+            Messages.error(player,"Deszcz meteorów teraz nie trwa.");return;
+        }
+        Node best=null;
+        double distance=Double.POSITIVE_INFINITY;
+        for(Node node:nodes.values()){
+            if(!node.world().equals(player.getWorld().getUID()))continue;
+            double dx=player.getLocation().getX()-node.x()-0.5;
+            double dz=player.getLocation().getZ()-node.z()-0.5;
+            double squared=dx*dx+dz*dz;
+            if(squared<distance){distance=squared;best=node;}
+        }
+        if(best==null){Messages.error(player,"Brak aktywnego meteorytu w tym świecie.");return;}
+        Location target=new Location(player.getWorld(),best.x()+0.5,
+                best.y()+0.5,best.z()+0.5);
+        player.setCompassTarget(target);
+        player.playSound(player.getLocation(),Sound.BLOCK_AMETHYST_BLOCK_CHIME,0.7f,1.1f);
+        Messages.success(player,"&#FF727F☄ Kompas namierza "+(best.rare()?"złoty ":"")
+                +"meteoryt! &#A8A8B7Odległość: &#FFD166"+
+                (int)Math.sqrt(distance)+" bloków. &#A8A8B7Świat: &#70D6E8"
+                +target.getWorld().getName());
     }
 
     public void tick(){
@@ -153,8 +179,9 @@ public final class MeteorShower implements Listener,AutoCloseable {
     private void place(Location location,long now){
         World world=location.getWorld();
         if(world==null)return;
+        boolean rare=ThreadLocalRandom.current().nextDouble()<config.meteorRareChance();
         BlockDisplay visual=world.spawn(location,BlockDisplay.class,d->{
-            d.setBlock(Material.MAGMA_BLOCK.createBlockData());
+            d.setBlock((rare?Material.GOLD_BLOCK:Material.MAGMA_BLOCK).createBlockData());
             d.setPersistent(false);
             d.setGlowing(true);
         });
@@ -163,7 +190,8 @@ public final class MeteorShower implements Listener,AutoCloseable {
             d.setBillboard(Display.Billboard.CENTER);
             d.setShadowed(true);
             d.setDefaultBackground(false);
-            d.text(Colors.color("&#FF727F☄ METEORYT &#FFD166✦\n&#A8A8B7Prawy klik = nagroda"));
+            d.text(Colors.color((rare?"&#FFD166✦ ZŁOTY METEORYT":"&#FF727F☄ METEORYT")
+                    +" &#FFD166✦\n&#A8A8B7Prawy klik = nagroda"));
         });
         Interaction hit=world.spawn(location.clone().add(0,0.5,0),Interaction.class,d->{
             d.setPersistent(false);
@@ -172,9 +200,10 @@ public final class MeteorShower implements Listener,AutoCloseable {
         });
         nodes.put(hit.getUniqueId(),new Node(world.getUID(),location.getBlockX(),
                 location.getBlockY(),location.getBlockZ(),now+config.meteorLifetimeSeconds()*1000L,
-                visual,label,hit));
+                rare,visual,label,hit));
         if(config.meteorAnnouncements())
-            Bukkit.broadcast(Colors.color("&#FF727F☄ Spadł meteoryt! &#A8A8B7Świat: &#70D6E8"
+            Bukkit.broadcast(Colors.color((rare?"&#FFD166✦ SPADŁ ZŁOTY METEORYT!":"&#FF727F☄ Spadł meteoryt!")
+                    +" &#A8A8B7Świat: &#70D6E8"
                     +world.getName()+" &#A8A8B7X: &#FFD166"+location.getBlockX()
                     +" &#A8A8B7Z: &#FFD166"+location.getBlockZ()
                     +" &#A8A8B7| szczegóły: &#70D6E8/meteory gdzie"));
@@ -198,7 +227,11 @@ public final class MeteorShower implements Listener,AutoCloseable {
         // nie mogą wypłacić jej powtórnie.
         nodes.remove(event.getRightClicked().getUniqueId());
         removeVisual(node);
-        events.meteorCollected(player,config.meteorKeysPerMeteor());
+        events.meteorCollected(player,rareKeys(node),node.rare());
+    }
+
+    private int rareKeys(Node node){
+        return node.rare()?config.meteorRareKeys():config.meteorKeysPerMeteor();
     }
 
     private boolean valid(Node node){
