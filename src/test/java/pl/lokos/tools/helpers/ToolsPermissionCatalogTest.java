@@ -11,7 +11,7 @@ class ToolsPermissionCatalogTest {
         ToolsPermissionCatalog catalog=new ToolsPermissionCatalog(new CommandsFile());
         assertEquals(Set.of("tools.lokalizacje","tools.lokalizacje.instant",
                         "tools.region.admin","tools.region.bypass",
-                        "tools.ranga.admin","tools.admin","*"),
+                        "tools.ranga.admin","tools.admin","tools.whitelist.admin","*"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));
         assertFalse(catalog.isManaged("minecraft.command.help"));
