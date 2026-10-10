@@ -35,7 +35,6 @@ import pl.lokos.tools.registry.ServiceRegistry;
 import pl.lokos.tools.registry.PluginServiceFactory;
 import pl.lokos.tools.diagnostics.MonitoringService;
 import pl.lokos.tools.config.HotReloadService;
-import pl.lokos.tools.permissions.LuckPermsBridge;
 import pl.lokos.tools.tasks.AutosaveTask;
 
 import java.io.IOException;
@@ -57,7 +56,6 @@ public final class ToolsPlugin extends JavaPlugin {
     private MonitoringService monitoring;
     private HotReloadService reloadService;
     private RankListener rankListener;
-    private LuckPermsBridge luckPerms;
 
     @Override
     public void onEnable() {
@@ -106,8 +104,6 @@ public final class ToolsPlugin extends JavaPlugin {
         this.reloadService = services.register(HotReloadService.class,
                 new HotReloadService(this, configurations, config, rankVisuals, rankListener));
 
-        this.luckPerms = LuckPermsBridge.discover().orElse(null);
-        if (luckPerms != null) services.register(LuckPermsBridge.class, luckPerms);
         RankMenuFactory rankMenus=null;
         if(rankManager!=null) {
             rankMenus=new RankMenuFactory(new NamespacedKey(this,"rank_menu"),rankManager,configurations.commands());
@@ -115,7 +111,7 @@ public final class ToolsPlugin extends JavaPlugin {
                     this,rankManager,rankMenus,configurations.commands().ranga().permission()),this);
         }
         new CommandRegistry(this).register(configurations.commands(), database,
-                repository, playerData, rankManager, rankMenus, monitoring, reloadService, luckPerms);
+                repository, playerData, rankManager, rankMenus, monitoring, reloadService);
         if(regionManager!=null) {
             NamespacedKey wandKey=new NamespacedKey(this,"region_wand");
             NamespacedKey menuKey=new NamespacedKey(this,"region_menu");

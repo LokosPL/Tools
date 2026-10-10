@@ -11,13 +11,6 @@ import pl.lokos.tools.helpers.PlayerDataHelper;
 import pl.lokos.tools.manager.PlayerDataManager;
 import pl.lokos.tools.diagnostics.MonitoringService;
 import pl.lokos.tools.config.HotReloadService;
-import pl.lokos.tools.permissions.LuckPermsBridge;
-import pl.lokos.tools.manager.RankManager;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import pl.lokos.tools.commands.RankCommand;
 import java.util.concurrent.CompletionException;
 
 import java.util.Collection;
@@ -33,13 +26,10 @@ public final class ToolsCommand implements BasicCommand {
     private final String permission;
     private final MonitoringService monitoring;
     private final HotReloadService reload;
-    private final LuckPermsBridge luckPerms;
-    private final RankManager ranks;
 
     public ToolsCommand(JavaPlugin plugin, DatabaseManager database, PlayerRepository repository,
                         PlayerDataManager playerData, String permission,
-                        MonitoringService monitoring, HotReloadService reload,
-                        LuckPermsBridge luckPerms, RankManager ranks) {
+                        MonitoringService monitoring, HotReloadService reload) {
         this.plugin = plugin;
         this.database = database;
         this.repository = repository;
@@ -47,8 +37,6 @@ public final class ToolsCommand implements BasicCommand {
         this.permission = permission;
         this.monitoring = monitoring;
         this.reload = reload;
-        this.luckPerms = luckPerms;
-        this.ranks = ranks;
     }
 
     @Override
@@ -65,7 +53,6 @@ public final class ToolsCommand implements BasicCommand {
             Messages.line(sender, "&a/tools zdrowie &8- &7Pamięć, TPS, baza i wątki");
             Messages.line(sender, "&a/tools diagnostyka &8- &7Czasy pracy modułów");
             Messages.line(sender, "&a/tools przeladuj &8- &7Bezpieczne odświeżenie wyglądu i tekstów");
-            Messages.line(sender, "&a/tools lp &8- &7Uprawnienia kontekstowe LuckPerms (opcjonalnie)");
             Messages.line(sender, "&a/tools ping &8- &7Czas odpowiedzi bazy danych");
             Messages.line(sender, "&a/tools stats <nick> &8- &7Statystyki gracza");
             Messages.line(sender, "&a/ranga lista &8- &7Lista dostępnych rang");
@@ -103,7 +90,6 @@ public final class ToolsCommand implements BasicCommand {
                 }
                 Messages.hint(sender, "Pomiary obejmują tylko własne zadania Tools; nie są pełnym profilerem TPS.");
             }
-            case "lp" -> luckPermsCommand(sender, args);
             case "przeladuj" -> {
                 Messages.info(sender, "Wczytuję i sprawdzam konfiguracje w tle...");
                 reload.reload().whenComplete((message, error) -> respond(() -> {
@@ -163,68 +149,6 @@ public final class ToolsCommand implements BasicCommand {
         }
     }
 
-    private void luckPermsCommand(CommandSender sender, String[] args) {
-        if (luckPerms == null) {
-            Messages.error(sender, "LuckPerms nie jest zainstalowany lub jego API nie jest dostępne.");
-            Messages.hint(sender, "Komendy LP działają tylko przy zainstalowanym LuckPerms.");
-            return;
-        }
-        if (args.length < 4) {
-            Messages.title(sender, "LUCKPERMS — UPRAWNIENIA");
-            Messages.line(sender, "&a/tools lp nadaj &7<nick> <uprawnienie> <czas|*> [świat]");
-            Messages.line(sender, "&a/tools lp dziedzicz &7<nick> <grupa> <czas|*> [świat]");
-            Messages.line(sender, "&a/tools lp sprawdz &7<nick> <uprawnienie> [świat]");
-            return;
-        }
-        String action = args[1].toLowerCase(Locale.ROOT);
-        String nickname = args[2];
-        String node = args[3];
-        Player online = Bukkit.getPlayerExact(nickname);
-        CompletableFuture<UUID> resolved;
-        if (online != null) resolved = CompletableFuture.completedFuture(online.getUniqueId());
-        else if (ranks != null) resolved = ranks.repository().findPlayer(nickname);
-        else {
-            Messages.error(sender, "Baza graczy nie jest dostępna.");
-            return;
-        }
-        CompletableFuture<?> call;
-        if (action.equals("sprawdz") && (args.length == 4 || args.length == 5)) {
-            String world = args.length == 5 ? args[4] : null;
-            call = resolved.thenCompose(uuid -> uuid == null ?
-                    CompletableFuture.failedFuture(new IllegalArgumentException("Nie znaleziono gracza.")) :
-                    luckPerms.hasPermission(uuid, node, world))
-                    .thenAccept(allowed -> respond(() -> Messages.info(sender,
-                            "LuckPerms: " + nickname + " &8→ &a" + node + " &8= "
-                                    + (allowed ? "&aPozwolono" : "&cOdmówiono"))));
-        } else if ((action.equals("nadaj") || action.equals("dziedzicz"))
-                && (args.length == 5 || args.length == 6)) {
-            Long expires;
-            try { expires = RankCommand.parseTime(args[4]); }
-            catch (IllegalArgumentException error) { Messages.error(sender, error.getMessage()); return; }
-            String world = args.length == 6 ? args[5] : null;
-            call = resolved.thenCompose(uuid -> {
-                if (uuid == null)
-                    return CompletableFuture.failedFuture(new IllegalArgumentException(
-                            "Gracz musi najpierw wejść na serwer."));
-                return action.equals("nadaj")
-                        ? luckPerms.grantPermission(uuid, node, expires, world)
-                        : luckPerms.inheritGroup(uuid, node, expires, world);
-            }).thenRun(() -> respond(() -> Messages.success(sender,
-                    "Zapisano w LuckPerms: &a" + nickname + " &8→ &a" + node)));
-        } else {
-            Messages.error(sender, "Nieprawidłowe argumenty komendy LuckPerms.");
-            Messages.hint(sender, "Użyj &a/tools lp &7aby zobaczyć składnię.");
-            return;
-        }
-        call.exceptionally(error -> {
-            Throwable root = error instanceof CompletionException && error.getCause() != null
-                    ? error.getCause() : error;
-            respond(() -> Messages.error(sender, root.getMessage() == null
-                    ? "Nie udało się zapisać zmian w LuckPerms." : root.getMessage()));
-            return null;
-        });
-    }
-
     private void respond(Runnable callback) {
         if (plugin.isEnabled()) plugin.getServer().getScheduler().runTask(plugin, callback);
     }
@@ -234,7 +158,7 @@ public final class ToolsCommand implements BasicCommand {
         if (!source.getSender().hasPermission(permission)) return List.of();
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
-            return List.of("pomoc", "status", "ping", "stats", "zdrowie", "diagnostyka", "przeladuj", "lp").stream()
+            return List.of("pomoc", "status", "ping", "stats", "zdrowie", "diagnostyka", "przeladuj").stream()
                     .filter(option -> option.startsWith(prefix)).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("stats")) {

@@ -1,9 +1,8 @@
 name: Tools
-version: '1.7.0-SNAPSHOT'
+version: '1.8.0-SNAPSHOT'
 main: pl.lokos.tools.basic.ToolsPlugin
 api-version: '26.3'
 description: Modularne narzedzia serwera z asynchronicznym MySQL
 author: LokosPL
 website: https://github.com/LokosPL/Tools
 
-softdepend: [LuckPerms]
