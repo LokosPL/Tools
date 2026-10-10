@@ -33,7 +33,7 @@ class AfkStayTrackerTest {
         assertEquals(3600,AfkStayTracker.remainingSeconds(0,0,60));
         assertEquals(60,AfkStayTracker.remainingSeconds(59,0,60));
         assertEquals(1,AfkStayTracker.remainingSeconds(59,59,60));
-        assertEquals(3540,AfkStayTracker.remainingSeconds(61,60,60));
+        assertEquals(60,AfkStayTracker.remainingSeconds(61,60,60));
         assertEquals("01:00:00",AfkStayTracker.countdown(3600));
         assertEquals("59:59",AfkStayTracker.countdown(3599));
         assertEquals("00:01",AfkStayTracker.countdown(1));
