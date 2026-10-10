@@ -32,6 +32,7 @@ import pl.lokos.tools.listeners.RegionPlayerListener;
 import pl.lokos.tools.listeners.RegionMenuListener;
 import pl.lokos.tools.manager.RegionManager;
 import pl.lokos.tools.manager.RegionTeleportManager;
+import pl.lokos.tools.manager.PlayerStatusBar;
 import pl.lokos.tools.region.RegionSelection;
 import pl.lokos.tools.registry.RegionCommandRegistry;
 import pl.lokos.tools.inventorys.InventoryRegistry;
