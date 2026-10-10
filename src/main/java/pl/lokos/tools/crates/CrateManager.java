@@ -222,6 +222,17 @@ public final class CrateManager implements Listener,AutoCloseable {
             Messages.error(event.getPlayer(),"Skrzynie można ustawiać tylko na głównym spawnie.");
             return;
         }
+    }
+    /** Zapis dopiero na MONITOR po regionach i wszystkich anulujących listenerach. */
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void recordPlacement(BlockPlaceEvent event){
+        ItemStack held=event.getItemInHand();
+        if(held==null||!held.hasItemMeta())return;
+        CrateType type=CrateType.parse(held.getItemMeta()
+                .getPersistentDataContainer().get(placementType,PersistentDataType.STRING));
+        if(type==null||!admin(event.getPlayer()))return;
+        Block block=event.getBlockPlaced();
+        if(!inSpawn(block)||storage.get().get(at(block))!=null)return;
         CratesState.Position position=new CratesState.Position(block.getWorld().getUID().toString(),
                 block.getX(),block.getY(),block.getZ(),type.id());
         Player actor=event.getPlayer();
