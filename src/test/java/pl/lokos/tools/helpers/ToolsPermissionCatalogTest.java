@@ -23,7 +23,8 @@ class ToolsPermissionCatalogTest {
                         "tools.broadcast","tools.inventoryopen","tools.inventoryopen.enderchest",
                         "tools.speed","tools.speed.others","tools.przedmiot.admin",
                         "tools.antycheat.admin","tools.antycheat.alerts",
-                        "tools.event.info","tools.event.admin","tools.skrzynia.admin",
+                        "tools.event.info","tools.eventy.use","tools.event.admin",
+                        "tools.skrzynia.admin","tools.skrzynie.use","tools.klucze.use",
                         "tools.granica.admin"),
                 Set.copyOf(catalog.suggestions()));
         assertFalse(catalog.isManaged("bukkit.command.plugins"));

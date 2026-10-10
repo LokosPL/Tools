@@ -84,6 +84,7 @@ public final class RankManager {
                     }
                 }
                 ensureDefault(imported);
+                if(!definitions.ranks().publicGuiDefaultsInstalled())grantPublicGuiOnce(imported);
                 definitions.saveRanks(RanksFile.from(imported,definitions.ranks().settings()));
                 plugin.getLogger().info("Rangi gotowe w Ranks.json: "+imported.size());
             }
@@ -165,12 +166,26 @@ public final class RankManager {
         map.putIfAbsent("gracz",new RanksFile.RankEntry(
                 "&8[&7Gracz&8]","",9999,"",Set.of("tools.spawn","tools.lokalizacje")));
     }
+    /** Dodatkowe publiczne nody ustawiamy tylko raz: późniejsze usunięcie jest respektowane. */
+    static void grantPublicGuiOnce(Map<String,RanksFile.RankEntry> map){
+        RanksFile.RankEntry rank=map.get("gracz");
+        if(rank==null)throw new IllegalArgumentException("Brakuje domyślnej rangi.");
+        Set<String> permissions=new HashSet<>(rank.permissions());
+        permissions.addAll(Set.of("tools.event.info","tools.eventy.use",
+                "tools.skrzynie.use","tools.klucze.use"));
+        map.put("gracz",new RanksFile.RankEntry(rank.prefix(),rank.suffix(),
+                rank.position(),rank.joinMessage(),permissions));
+    }
     private CompletableFuture<Void> ensureDefault(){
-        if(definitions.ranks().ranks().containsKey("gracz"))return CompletableFuture.completedFuture(null);
+        if(definitions.ranks().ranks().containsKey("gracz") &&
+                definitions.ranks().publicGuiDefaultsInstalled())
+            return CompletableFuture.completedFuture(null);
         return CompletableFuture.runAsync(()->{
-            Map<String,RanksFile.RankEntry> changed=new LinkedHashMap<>(definitions.ranks().ranks());
+            RanksFile current=definitions.ranks();
+            Map<String,RanksFile.RankEntry> changed=new LinkedHashMap<>(current.ranks());
             ensureDefault(changed);
-            definitions.saveRanks(RanksFile.from(changed,definitions.ranks().settings()));
+            if(!current.publicGuiDefaultsInstalled())grantPublicGuiOnce(changed);
+            definitions.saveRanks(RanksFile.from(changed,current.settings()));
         });
     }
     public CompletableFuture<Void> togglePermission(String name,String permission){

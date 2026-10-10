@@ -30,7 +30,9 @@ public final class EventCommand implements BasicCommand {
     }
     @Override public String permission(){return permission;}
     @Override public boolean canUse(CommandSender sender){
-        return information!=null || ToolsAccess.permitted(sender,ranks,permission);
+        return information!=null ? ToolsAccess.permitted(sender,ranks,"tools.event.info")
+                : ToolsAccess.permitted(sender,ranks,permission)
+                && ToolsAccess.admin(sender,ranks,"tools.event.admin");
     }
     @Override public void execute(CommandSourceStack source,String[] args){
         CommandSender sender=source.getSender();
@@ -44,6 +46,11 @@ public final class EventCommand implements BasicCommand {
                 service.open(player,information);return;
             }
             if(args.length==0){help(sender);return;}
+            if(args.length==1&&args[0].equalsIgnoreCase("gui")){
+                if(sender instanceof Player player)service.openHub(player);
+                else Messages.error(sender,"GUI dostępne tylko w grze.");
+                return;
+            }
             String action=args[0].toLowerCase(Locale.ROOT);
             if(args.length==1&&action.equals("status")){
                 EventType current=service.active();
@@ -71,6 +78,7 @@ public final class EventCommand implements BasicCommand {
     }
     private void help(CommandSender sender){
         Messages.title(sender,"WYDARZENIA");
+        Messages.info(sender,"&#70D6E8/event gui &#A8A8B7» Panel wydarzeń");
         Messages.info(sender,"&#70D6E8/event lista &#A8A8B7» Lista wydarzeń");
         Messages.info(sender,"&#70D6E8/event status &#A8A8B7» Aktywny event");
         Messages.info(sender,"&#70D6E8/event wlacz <tryb> <30m|2h|1d>");
@@ -89,7 +97,7 @@ public final class EventCommand implements BasicCommand {
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args){
         if(!canUse(source.getSender())||information!=null||args.length==0)return List.of();
         List<String> result=new ArrayList<>();
-        if(args.length==1)result.addAll(List.of("status","lista","wlacz","zakoncz"));
+        if(args.length==1)result.addAll(List.of("gui","status","lista","wlacz","zakoncz"));
         else if(args.length==2&&args[0].equalsIgnoreCase("wlacz"))result.addAll(EventType.names());
         else if(args.length==3&&args[0].equalsIgnoreCase("wlacz"))
             result.addAll(List.of("30m","1h","2h","6h","12h","1d","3d","7d"));

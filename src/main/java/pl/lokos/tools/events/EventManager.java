@@ -41,7 +41,9 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class EventManager implements Listener,AutoCloseable {
     public static final class Menu implements InventoryHolder {
+        private final EventType type;
         private Inventory inv;
+        private Menu(EventType type){this.type=type;}
         @Override public Inventory getInventory(){return inv;}
     }
     private final JavaPlugin plugin;
@@ -98,8 +100,35 @@ public final class EventManager implements Listener,AutoCloseable {
         item.setItemMeta(meta);
         return item;
     }
+    /** Publiczny panel wyboru ośmiu wydarzeń. */
+    public void openHub(Player player){
+        Menu holder=new Menu(null);
+        Inventory inv=Bukkit.createInventory(holder,27,Colors.color("&#FFD166✦ WYDARZENIA SERWERA"));
+        holder.inv=inv;
+        ItemStack bg=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
+        for(int i=0;i<inv.getSize();i++)inv.setItem(i,bg);
+        int[] slots={10,11,12,13,14,15,16,22};
+        int n=0;
+        for(EventType type:EventType.values()){
+            ItemStack icon=new ItemStack(Material.valueOf(type.tokenMaterial()));
+            ItemMeta meta=icon.getItemMeta();
+            meta.displayName(Colors.color("&#FFD166✦ "+type.title()));
+            meta.lore(GuiTheme.lore(
+                    "&#A8A8B7"+type.description(),
+                    active()==type?"&#89E5B0✔ AKTYWNY":"&#FF727F✘ Nieaktywny",
+                    "&#70D6E8» Kliknij, aby zobaczyć szczegóły.",
+                    "&#A8A8B7» Komenda: /"+type.id()));
+            icon.setItemMeta(meta);
+            inv.setItem(slots[n++],icon);
+        }
+        ItemStack close=new ItemStack(Material.BARRIER);
+        ItemMeta c=close.getItemMeta();
+        c.displayName(Colors.color("&#FF727F✘ Zamknij panel"));
+        close.setItemMeta(c);inv.setItem(26,close);
+        player.openInventory(inv);
+    }
     public void open(Player player,EventType type){
-        Menu holder=new Menu();
+        Menu holder=new Menu(type);
         Inventory inv=Bukkit.createInventory(holder,27,
                 Colors.color("&#FFD166✦ "+type.title()));
         holder.inv=inv;
@@ -112,7 +141,7 @@ public final class EventManager implements Listener,AutoCloseable {
                 "&#A8A8B7"+type.description(),
                 " ",
                 active()==type?"&#70D6E8✔ Event jest aktywny.":"&#FF727F✘ Event obecnie nieaktywny.",
-                "&#A8A8B7» Pamiątki: &#FFD166"+state().progress(player.getUniqueId())
+                "&#A8A8B7» Postęp aktywnego eventu: &#FFD166"+(active()==type?state().progress(player.getUniqueId()):0)
                         +"/"+config.tokensForKey(),
                 "&#70D6E8» Zbieraj pamiątki podczas wydarzenia."));
         header.setItemMeta(h);inv.setItem(11,header);
@@ -128,6 +157,10 @@ public final class EventManager implements Listener,AutoCloseable {
             p.lore(lines);prize.setItemMeta(p);
         }
         inv.setItem(15,prize);
+        ItemStack back=new ItemStack(Material.ARROW);
+        ItemMeta bm=back.getItemMeta();
+        bm.displayName(Colors.color("&#70D6E8← Wszystkie eventy"));
+        back.setItemMeta(bm);inv.setItem(18,back);
         ItemStack close=new ItemStack(Material.BARRIER);
         ItemMeta c=close.getItemMeta();
         c.displayName(Colors.color("&#FF727F✘ Zamknij"));
@@ -136,10 +169,27 @@ public final class EventManager implements Listener,AutoCloseable {
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void click(InventoryClickEvent event){
-        if(!(event.getView().getTopInventory().getHolder() instanceof Menu))return;
+        if(!(event.getView().getTopInventory().getHolder() instanceof Menu holder))return;
         event.setCancelled(true);
-        if(event.getRawSlot()==22 && event.getWhoClicked() instanceof Player player)
+        if(!(event.getWhoClicked() instanceof Player player))return;
+        if(holder.type==null){
+            if(event.getRawSlot()==26){
+                Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
+                return;
+            }
+            int[] slots={10,11,12,13,14,15,16,22};
+            for(int i=0;i<slots.length;i++)if(event.getRawSlot()==slots[i]){
+                EventType selected=EventType.values()[i];
+                Bukkit.getScheduler().runTask(plugin,()->open(player,selected));
+                return;
+            }
+            return;
+        }
+        if(event.getRawSlot()==18){
+            Bukkit.getScheduler().runTask(plugin,()->openHub(player));
+        }else if(event.getRawSlot()==22){
             Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void drag(InventoryDragEvent event){

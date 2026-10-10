@@ -50,6 +50,7 @@ class AdminCommandOpAccessTest {
                 new ToolsCommand(null,null,null,null,"tools.admin",null,null,unloadedRanks),
                 new ChatCommand(null,null,unloadedRanks,"tools.chat.admin"),
                 new CrateCommand(null,unloadedRanks,"tools.skrzynia.admin"),
+                new EventCommand(null,null,unloadedRanks,null,"tools.event.admin"),
                 new WhitelistCommand(null,null,null,()->unloadedRanks)
         );
     }

@@ -48,8 +48,8 @@ public final class CrateCommand implements BasicCommand {
                 }
                 Block target=player.getTargetBlockExact(6);
                 if(target==null)throw new IllegalArgumentException("Spójrz na skrzynię w odległości 6 bloków.");
+                // Wynik operacji zostanie potwierdzony dopiero po zapisie na dysku.
                 manager.remove(player,target);
-                Messages.success(sender,"Usunięto skrzynię ze spawnu.");
                 return;
             }
             if(args.length>=3&&args.length<=4&&args[0].equalsIgnoreCase("klucz")){
