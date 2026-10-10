@@ -527,8 +527,13 @@ public final class CrateManager implements Listener,AutoCloseable {
     /** Wyłącznie region o nazwie afk, bez dopasowywania nazw częściowych. */
     private boolean inAfkRegion(Location location){
         if(regions==null||!regions.ready()||location==null)return false;
-        Region region=regions.at(location);
-        return region!=null&&"afk".equalsIgnoreCase(region.name());
+        // Sprawdzamy wskazany region AFK, nie region o największym priorytecie.
+        // Dzięki temu podregiony nie zatrzymują naliczania wewnątrz strefy AFK.
+        for(Region region:regions.index().all().values())
+            if("afk".equalsIgnoreCase(region.name()))
+                return region.contains(location.getWorld().getUID(),
+                        location.getBlockX(),location.getBlockZ());
+        return false;
     }
     /** Zapis aktywności bez SQL i bez interakcji z wątkiem I/O. */
     @EventHandler(priority=EventPriority.MONITOR)
