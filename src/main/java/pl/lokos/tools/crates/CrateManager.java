@@ -1,0 +1,397 @@
+package pl.lokos.tools.crates;
+
+import net.kyori.adventure.text.Component;
+import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.entity.*;
+import org.bukkit.event.*;
+import org.bukkit.event.block.*;
+import org.bukkit.event.entity.*;
+import org.bukkit.event.inventory.*;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.*;
+import org.bukkit.inventory.*;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
+import pl.lokos.tools.config.JsonConfigManager;
+import pl.lokos.tools.events.EventManager;
+import pl.lokos.tools.events.EventType;
+import pl.lokos.tools.events.StateFile;
+import pl.lokos.tools.helpers.*;
+import pl.lokos.tools.items.SpecialItemService;
+import pl.lokos.tools.manager.RankManager;
+import pl.lokos.tools.manager.RegionManager;
+import pl.lokos.tools.region.Region;
+import pl.lokos.tools.security.ToolsAccess;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Pięć typów skrzyń z niezależnym menu i tokenami PDC.
+ * Otwieranie zarejestrowanych skrzyń działa również przy INTERACT=false
+ * w regionie; nie nadaje żadnego dostępu do innych bloków chronionego regionu.
+ */
+public final class CrateManager implements Listener,AutoCloseable {
+    private static final String ADMIN="tools.skrzynia.admin";
+    public static final class Menu implements InventoryHolder {
+        private final CrateType type;
+        private final boolean admin;
+        private Inventory inv;
+        private Menu(CrateType type,boolean admin){this.type=type;this.admin=admin;}
+        @Override public Inventory getInventory(){return inv;}
+    }
+    private final JavaPlugin plugin;
+    private final RankManager ranks;
+    private final RegionManager regions;
+    private final SpecialItemService items;
+    private final EventManager events;
+    private final CratesConfig config;
+    private final StateFile<CratesState> storage;
+    private final NamespacedKey keyType;
+    private final NamespacedKey placementType;
+    private final Map<String,TextDisplay> displays=new HashMap<>();
+    private long ticks;
+
+    public CrateManager(JavaPlugin plugin,RankManager ranks,RegionManager regions,
+                        SpecialItemService items,EventManager events,Path folder) throws IOException{
+        this.plugin=plugin;this.ranks=ranks;this.regions=regions;this.items=items;this.events=events;
+        config=new JsonConfigManager(folder).load("Crates.json",CratesConfig.class,
+                CratesConfig::new,CratesConfig::validate);
+        storage=new StateFile<>(folder,"CratesState.json",CratesState.class,
+                CratesState::new,CratesState::validate);
+        keyType=new NamespacedKey(plugin,"crate_key");
+        placementType=new NamespacedKey(plugin,"crate_placement");
+        for(CrateType type:CrateType.values()){
+            for(String drop:config.pool(type).keySet()){
+                if(drop.startsWith("minecraft:") ||drop.equals("@event"))continue;
+                if(items.config().get(drop)==null)
+                    throw new IOException("Crates.json: nieznany przedmiot "+drop);
+            }
+        }
+    }
+    public CratesConfig config(){return config;}
+    public CratesState state(){return storage.get();}
+    private boolean admin(Player p){return ToolsAccess.allowed(p,ranks,ADMIN,true);}
+    private static String at(Block block){
+        return block.getWorld().getUID()+":"+block.getX()+":"+block.getY()+":"+block.getZ();
+    }
+    private static boolean slotFree(Player player){
+        for(ItemStack item:player.getInventory().getStorageContents())
+            if(item==null||item.getType().isAir())return true;
+        return false;
+    }
+    private ItemStack icon(CrateType type,boolean place){
+        Material material=place?Material.valueOf(type.block()):Material.TRIPWIRE_HOOK;
+        ItemStack stack=new ItemStack(material);
+        ItemMeta meta=stack.getItemMeta();
+        meta.displayName(Colors.color(type.color()+"✦ "+(place?"POSTAW: ":"KLUCZ: ")+type.title()));
+        meta.lore(GuiTheme.lore(
+                "&#A8A8B7Typ: "+type.title(),
+                place?"&#70D6E8» Postaw tylko na głównym spawnie."
+                        :"&#70D6E8» Kliknij pasującą skrzynię na spawnie.",
+                "&#A8A8B7» Unikatowy przedmiot Tools."));
+        meta.getPersistentDataContainer().set(place?placementType:keyType,
+                PersistentDataType.STRING,type.id());
+        if(!place)meta.setEnchantmentGlintOverride(true);
+        stack.setItemMeta(meta);
+        return stack;
+    }
+    public void giveKey(Player player,CrateType type,int amount){
+        if(type==null||amount<1||amount>64)throw new IllegalArgumentException("Liczba kluczy: 1-64.");
+        ItemStack key=icon(type,false);key.setAmount(amount);
+        Map<Integer,ItemStack> overflow=player.getInventory().addItem(key);
+        for(ItemStack item:overflow.values())player.getWorld().dropItemNaturally(player.getLocation(),item);
+        player.playSound(player.getLocation(),Sound.ENTITY_PLAYER_LEVELUP,0.45f,1.7f);
+    }
+    public void givePlacement(Player player,CrateType type){
+        if(!slotFree(player))throw new IllegalArgumentException("Brak miejsca w ekwipunku.");
+        player.getInventory().addItem(icon(type,true));
+    }
+    public void adminMenu(Player admin){
+        if(!admin(admin)){Messages.unknown(admin);return;}
+        Menu holder=new Menu(null,true);
+        Inventory inv=Bukkit.createInventory(holder,27,Colors.color("&#FFD166✦ SKRZYNIE SERWERA"));
+        holder.inv=inv;
+        ItemStack empty=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
+        for(int n=0;n<inv.getSize();n++)inv.setItem(n,empty);
+        int[] slots={10,11,13,15,16};
+        int i=0;
+        for(CrateType type:CrateType.values()){
+            ItemStack item=icon(type,true);
+            ItemMeta meta=item.getItemMeta();
+            var lore=new ArrayList<>(meta.lore());
+            lore.add(Colors.color("&#70D6E8» Kliknij, aby odebrać skrzynię."));
+            meta.lore(lore);item.setItemMeta(meta);
+            inv.setItem(slots[i++],item);
+        }
+        admin.openInventory(inv);
+    }
+    private void show(Player player,CrateType type){
+        Menu holder=new Menu(type,false);
+        Inventory inv=Bukkit.createInventory(holder,27,
+                Colors.color(type.color()+"✦ SKRZYNIA "+type.title().toUpperCase(Locale.ROOT)));
+        holder.inv=inv;
+        ItemStack empty=GuiTheme.border(Material.BLACK_STAINED_GLASS_PANE);
+        for(int n=0;n<inv.getSize();n++)inv.setItem(n,empty);
+        ItemStack open=new ItemStack(Material.TRIPWIRE_HOOK);
+        ItemMeta meta=open.getItemMeta();
+        meta.displayName(Colors.color("&#FFD166✦ Otwórz skrzynię"));
+        meta.lore(GuiTheme.lore(
+                "&#A8A8B7Potrzebujesz jednego klucza: "+type.title(),
+                "&#70D6E8» Kliknij, aby wylosować nagrodę.",
+                "&#A8A8B7Możliwe nagrody zależą od typu skrzyni."));
+        open.setItemMeta(meta);
+        inv.setItem(13,open);
+        inv.setItem(11,icon(type,false));
+        ItemStack reward=new ItemStack(Material.CHEST);
+        ItemMeta rm=reward.getItemMeta();
+        rm.displayName(Colors.color("&#70D6E8✦ Dostępne nagrody"));
+        List<Component> lore=new ArrayList<>();
+        for(String value:config.pool(type).keySet()){
+            String label=value.equals("@event")?events.active()==null?"Aktualny przedmiot eventowy":
+                    events.active().itemId():value.replace("minecraft:","");
+            lore.add(Colors.color("&#A8A8B7» "+label));
+        }
+        rm.lore(lore);reward.setItemMeta(rm);
+        inv.setItem(15,reward);
+        player.openInventory(inv);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void interact(PlayerInteractEvent event){
+        Block clicked=event.getClickedBlock();
+        if(clicked==null)return;
+        CratesState.Position crate=storage.get().get(at(clicked));
+        if(crate==null)return;
+        if(event.getAction()!=Action.RIGHT_CLICK_BLOCK)return;
+        event.setCancelled(true);
+        Player player=event.getPlayer();
+        CrateType type=crate.kind();
+        // Otwieramy w następnym ticku, po wszystkich regionowych listenerach;
+        // brak ingerencji w pozostałe blokady INTERACT.
+        Bukkit.getScheduler().runTask(plugin,()->{
+            if(!player.isOnline()||!storage.get().crates().contains(crate))return;
+            if(!clicked.getType().equals(Material.valueOf(type.block())))return;
+            if(type==CrateType.EVENTOWA&&events.active()==null){
+                Messages.error(player,"Skrzynia eventowa jest aktywna tylko podczas eventu.");return;
+            }
+            show(player,type);
+        });
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void place(BlockPlaceEvent event){
+        ItemStack held=event.getItemInHand();
+        if(held==null||!held.hasItemMeta())return;
+        String id=held.getItemMeta().getPersistentDataContainer()
+                .get(placementType,PersistentDataType.STRING);
+        if(id==null)return;
+        CrateType type=CrateType.parse(id);
+        Block block=event.getBlockPlaced();
+        if(!admin(event.getPlayer())||!inSpawn(block)||type==null||
+                !block.getType().equals(Material.valueOf(type.block()))
+                ||storage.get().crates().size()>=config.maximumPlacedCrates()
+                ||storage.get().get(at(block))!=null){
+            event.setCancelled(true);
+            Messages.error(event.getPlayer(),"Skrzynie można ustawiać tylko na głównym spawnie.");
+            return;
+        }
+        CratesState.Position position=new CratesState.Position(block.getWorld().getUID().toString(),
+                block.getX(),block.getY(),block.getZ(),type.id());
+        storage.update(old->old.with(position));
+        Bukkit.getScheduler().runTaskLater(plugin,()->hologram(position),2L);
+        Messages.success(event.getPlayer(),"Ustawiono skrzynię "+type.title()+".");
+    }
+    private boolean inSpawn(Block block){
+        if(regions==null||!regions.ready())return false;
+        Region spawn=regions.mainSpawn();
+        return spawn!=null&&spawn.contains(block.getWorld().getUID(),block.getX(),block.getZ());
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void breakBlock(BlockBreakEvent event){
+        if(storage.get().get(at(event.getBlock()))==null)return;
+        event.setCancelled(true);
+        Messages.error(event.getPlayer(),"Ta skrzynia jest chroniona. Użyj /skrzynia usun.");
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void explode(org.bukkit.event.entity.EntityExplodeEvent event){
+        event.blockList().removeIf(block->storage.get().get(at(block))!=null);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void explode(BlockExplodeEvent event){
+        event.blockList().removeIf(block->storage.get().get(at(block))!=null);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void piston(BlockPistonExtendEvent event){
+        for(Block block:event.getBlocks())if(storage.get().get(at(block))!=null){
+            event.setCancelled(true);return;
+        }
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=false)
+    public void piston(BlockPistonRetractEvent event){
+        for(Block block:event.getBlocks())if(storage.get().get(at(block))!=null){
+            event.setCancelled(true);return;
+        }
+    }
+    public void remove(Player admin,Block block){
+        if(!admin(admin))throw new IllegalArgumentException("Brak uprawnień.");
+        CratesState.Position position=storage.get().get(at(block));
+        if(position==null)throw new IllegalArgumentException("Wskazany blok nie jest skrzynią Tools.");
+        storage.update(old->old.without(position.key()));
+        TextDisplay tag=displays.remove(position.key());if(tag!=null)tag.remove();
+        block.setType(Material.AIR,false);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void menu(InventoryClickEvent event){
+        if(!(event.getView().getTopInventory().getHolder() instanceof Menu holder))return;
+        event.setCancelled(true);
+        if(!(event.getWhoClicked() instanceof Player player)||
+                event.getClickedInventory()!=event.getView().getTopInventory())return;
+        if(holder.admin){
+            if(!admin(player)){Messages.unknown(player);return;}
+            int[] slots={10,11,13,15,16};
+            for(int i=0;i<slots.length;i++)if(slots[i]==event.getRawSlot()){
+                try{givePlacement(player,CrateType.values()[i]);
+                    Messages.success(player,"Otrzymano skrzynię do postawienia na spawnie.");
+                }catch(IllegalArgumentException error){Messages.error(player,error.getMessage());}
+                return;
+            }
+            return;
+        }
+        if(event.getRawSlot()!=13)return;
+        openReward(player,holder.type);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void drag(InventoryDragEvent event){
+        if(event.getView().getTopInventory().getHolder() instanceof Menu)event.setCancelled(true);
+    }
+    private int findKey(Player player,CrateType type){
+        ItemStack[] storage=player.getInventory().getStorageContents();
+        for(int i=0;i<storage.length;i++){
+            ItemStack item=storage[i];if(item==null||!item.hasItemMeta())continue;
+            if(type.id().equals(item.getItemMeta().getPersistentDataContainer()
+                    .get(keyType,PersistentDataType.STRING)))return i;
+        }
+        return -1;
+    }
+    private void openReward(Player player,CrateType type){
+        if(type==CrateType.EVENTOWA&&events.active()==null){
+            Messages.error(player,"Event się zakończył.");return;
+        }
+        int keySlot=findKey(player,type);
+        if(keySlot<0){Messages.error(player,"Nie masz pasującego klucza.");return;}
+        if(!slotFree(player)){
+            Messages.error(player,"Zwolnij miejsce w ekwipunku.");return;
+        }
+        Map<String,Integer> table=config.pool(type);
+        int total=table.values().stream().mapToInt(Integer::intValue).sum();
+        String roll=CratesConfig.choose(table,ThreadLocalRandom.current().nextInt(total));
+        if(roll.equals("@event")){
+            EventType current=events.active();
+            if(current==null){Messages.error(player,"Event nie jest już aktywny.");return;}
+            roll=current.itemId();
+        }
+        ItemStack prize;
+        try{
+            if(roll.startsWith("minecraft:")){
+                Material m=Material.matchMaterial(roll.substring(10));
+                if(m==null||!m.isItem())throw new IllegalArgumentException("Nieznany materiał "+roll);
+                prize=new ItemStack(m,1);
+            }else prize=items.create(roll);
+        }catch(RuntimeException error){
+            plugin.getLogger().warning("Błędna tabela dropów "+type.id()+": "+error.getMessage());
+            Messages.error(player,"Skrzynia wymaga poprawienia konfiguracji.");return;
+        }
+        ItemStack key=player.getInventory().getItem(keySlot);
+        if(key==null)return;
+        if(key.getAmount()==1)player.getInventory().setItem(keySlot,null);
+        else key.setAmount(key.getAmount()-1);
+        Map<Integer,ItemStack> remaining=player.getInventory().addItem(prize);
+        if(!remaining.isEmpty()){
+            // Bezstratny fallback w sytuacji równoczesnej zmiany slotów.
+            for(ItemStack overflow:remaining.values())player.getWorld().dropItemNaturally(player.getLocation(),overflow);
+        }
+        player.playSound(player.getLocation(),Sound.ENTITY_PLAYER_LEVELUP,0.6f,1.5f);
+        Messages.success(player,"Wygrałeś: "+Colors.plain(prize.getItemMeta()==null?
+                prize.getType().name():prize.getItemMeta().hasDisplayName()?
+                prize.getItemMeta().getDisplayName():prize.getType().name())+"!");
+    }
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void killed(EntityDeathEvent event){
+        if(!(event.getEntity() instanceof Enemy))return;
+        Player player=event.getEntity().getKiller();
+        if(player==null)return;
+        double roll=ThreadLocalRandom.current().nextDouble();
+        if(roll<config.specialKeyChanceFromHostileMob())
+            giveKey(player,CrateType.SPECJALNA,1);
+        else if(roll<config.specialKeyChanceFromHostileMob()+config.ordinaryKeyChanceFromHostileMob())
+            giveKey(player,CrateType.ZWYKLA,1);
+    }
+    public void tick(){
+        ticks++;
+        if(ticks%60==0){
+            Map<String,Integer> count=new HashMap<>(storage.get().afkMinutes());
+            for(Player player:Bukkit.getOnlinePlayers()){
+                String id=player.getUniqueId().toString();
+                int next=count.getOrDefault(id,0)+1;
+                if(next>=config.afkKeyMinutes()){
+                    count.put(id,0);
+                    giveKey(player,CrateType.AFK,1);
+                    Messages.info(player,"&#70D6E8✦ Nagroda za czas online: klucz AFK.");
+                }else count.put(id,next);
+            }
+            storage.update(old->old.withAfk(count));
+        }
+        if(!config.particles()&&!config.holograms())return;
+        for(CratesState.Position position:storage.get().crates()){
+            UUID worldId=UUID.fromString(position.world());
+            World world=Bukkit.getWorld(worldId);
+            if(world==null||!world.isChunkLoaded(position.x()>>4,position.z()>>4))continue;
+            Block block=world.getBlockAt(position.x(),position.y(),position.z());
+            if(block.getType()!=Material.valueOf(position.kind().block()))continue;
+            if(config.holograms())hologram(position);
+            if(config.particles()&&ticks%3==0){
+                Location loc=block.getLocation().add(0.5,1.05,0.5);
+                if(world.getPlayers().stream().anyMatch(p->p.getLocation().distanceSquared(loc)<24*24))
+                    world.spawnParticle(Particle.END_ROD,loc,3,0.28,0.2,0.28,0.002);
+            }
+        }
+    }
+    private void hologram(CratesState.Position position){
+        if(!config.holograms())return;
+        String key=position.key();
+        World world=Bukkit.getWorld(UUID.fromString(position.world()));
+        if(world==null||!world.isChunkLoaded(position.x()>>4,position.z()>>4))return;
+        TextDisplay display=displays.get(key);
+        if(display==null||!display.isValid()){
+            Location at=new Location(world,position.x()+0.5,position.y()+1.7,position.z()+0.5);
+            display=world.spawn(at,TextDisplay.class,d->{
+                d.setBillboard(Display.Billboard.CENTER);
+                d.setPersistent(false);d.setSeeThrough(true);d.setShadowed(false);
+                d.setDefaultBackground(false);
+            });
+            displays.put(key,display);
+        }
+        String name=position.kind().color()+"✦ SKRZYNIA "+position.kind().title().toUpperCase(Locale.ROOT);
+        if(position.kind()==CrateType.EVENTOWA && events.active()!=null)
+            name+="\n&#70D6E8"+events.active().title();
+        display.text(Colors.color(name+"\n&#A8A8B7» Prawy klik, aby otworzyć"));
+    }
+    @EventHandler public void chunkUnload(ChunkUnloadEvent event){
+        for(var iterator=displays.entrySet().iterator();iterator.hasNext();){
+            var entry=iterator.next();
+            TextDisplay display=entry.getValue();
+            if(display.getWorld().equals(event.getWorld()) &&
+                    display.getLocation().getBlockX()>>4==event.getChunk().getX() &&
+                    display.getLocation().getBlockZ()>>4==event.getChunk().getZ()){
+                display.remove();iterator.remove();
+            }
+        }
+    }
+    @Override public void close(){
+        for(TextDisplay display:displays.values())display.remove();
+        displays.clear();storage.close();
+    }
+}
