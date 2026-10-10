@@ -221,7 +221,7 @@ public final class ToolsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(specialItems,this);
         getServer().getScheduler().runTaskTimer(this,
                 monitoring.measured("items.efekty",specialItems::tick),20L,20L);
-        specialItemMenu=new SpecialItemMenu(specialItems,rankManager,
+        specialItemMenu=new SpecialItemMenu(this,specialItems,rankManager,
                 configurations.commands().przedmiot().permission());
         getServer().getPluginManager().registerEvents(specialItemMenu,this);
         try{

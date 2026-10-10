@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.event.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -25,11 +26,12 @@ public final class SpecialItemMenu implements Listener {
         private Holder(UUID viewer,UUID recipient){this.viewer=viewer;this.recipient=recipient;}
         @Override public Inventory getInventory(){return inventory;}
     }
+    private final JavaPlugin plugin;
     private final SpecialItemService items;
     private final RankManager ranks;
     private final String permission;
-    public SpecialItemMenu(SpecialItemService items,RankManager ranks,String permission){
-        this.items=items;this.ranks=ranks;this.permission=permission;
+    public SpecialItemMenu(JavaPlugin plugin,SpecialItemService items,RankManager ranks,String permission){
+        this.plugin=plugin;this.items=items;this.ranks=ranks;this.permission=permission;
     }
     public void open(Player viewer,Player recipient){
         if(!ToolsAccess.allowed(viewer,ranks,permission,true)){
@@ -76,7 +78,11 @@ public final class SpecialItemMenu implements Listener {
             Messages.unknown(viewer);return;
         }
         if(event.getRawSlot()==49){
-            viewer.closeInventory();return;
+            // Zamykanie InventoryClickEvent odraczamy do następnego ticka.
+            plugin.getServer().getScheduler().runTask(plugin,()->{
+                if(viewer.isOnline())viewer.closeInventory();
+            });
+            return;
         }
         String id=holder.ids.get(event.getRawSlot());
         if(id==null)return;

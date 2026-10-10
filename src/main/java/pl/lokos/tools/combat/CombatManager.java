@@ -134,7 +134,14 @@ public final class CombatManager implements Listener {
             Region region=regions.mainSpawn();
             if(region!=null)spawn=regions.spawnOf(region);
         }
-        if(spawn==null)spawn=event.getPlayer().getWorld().getSpawnLocation();
+        if(spawn==null){
+            // Gdy region Spawn nie został jeszcze skonfigurowany, wybierz
+            // główny świat serwera zamiast bieżącego Netheru lub Endu.
+            World fallback=Bukkit.getWorlds().stream()
+                    .filter(world->world.getEnvironment()==World.Environment.NORMAL)
+                    .findFirst().orElse(event.getPlayer().getWorld());
+            spawn=fallback.getSpawnLocation();
+        }
         event.setRespawnLocation(spawn);
     }
     public void shutdown(){
