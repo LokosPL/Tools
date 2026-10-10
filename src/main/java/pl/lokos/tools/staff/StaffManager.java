@@ -69,13 +69,15 @@ public final class StaffManager implements Listener,AutoCloseable {
     public boolean monitor(Player player){return ToolsAccess.allowed(player,ranks,"tools.vanish.monitor",false);}
     public boolean helpopStaff(Player player){return ToolsAccess.allowed(player,ranks,"tools.helpop.receive",false);}
 
-    public synchronized CompletableFuture<Void> vanish(Player player,boolean enabled){
+    public synchronized CompletableFuture<Void> vanish(Player player,boolean enabled,String actor){
         UUID id=player.getUniqueId();
         if(state.vanished(id)==enabled)return CompletableFuture.failedFuture(
                 new IllegalArgumentException(enabled?"Vanish jest już włączony.":"Vanish jest już wyłączony."));
         state=state.withVanish(id,enabled);
         updateVisibility();
-        audit(player,enabled?"włączył vanish":"wyłączył vanish","tools.vanish.monitor");
+        String action=enabled?"włączył vanish":"wyłączył vanish";
+        if(!player.getName().equals(actor))action+=" (przez "+actor+")";
+        audit(player,action,"tools.vanish.monitor");
         return write(state);
     }
 

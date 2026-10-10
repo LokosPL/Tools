@@ -187,7 +187,8 @@ public final class StaffCommand implements BasicCommand {
             Messages.unchanged(sender,next?"Vanish jest już włączony.":"Vanish jest już wyłączony.");return;
         }
         boolean result=next;
-        complete(sender,service.vanish(target,next),result?"Włączono vanish.":"Wyłączono vanish.");
+        complete(sender,service.vanish(target,next,sender.getName()),
+                result?"Włączono vanish.":"Wyłączono vanish.");
         if(sender!=target)Messages.info(target,result?"Vanish został włączony przez administrację.":
                 "Vanish został wyłączony przez administrację.");
     }
@@ -198,14 +199,18 @@ public final class StaffCommand implements BasicCommand {
         String text=String.join(" ",args).trim();
         if(text.isBlank()||text.length()>service.settings().helpopMaxLength())
             throw new IllegalArgumentException("Zgłoszenie musi mieć 1-"+service.settings().helpopMaxLength()+" znaków.");
+        List<Player> receivers=Bukkit.getOnlinePlayers().stream()
+                .filter(service::helpopStaff).toList();
+        if(receivers.isEmpty()){
+            Messages.error(sender,"Brak administracji online mogącej odebrać zgłoszenie.");return;
+        }
         if(!service.helpopAllowed(player.getUniqueId(),System.currentTimeMillis())
                 && !sub(player,"tools.helpop.bypass.cooldown")){
             Messages.unchanged(sender,"Poczekaj przed następnym zgłoszeniem do administracji.");return;
         }
         net.kyori.adventure.text.Component rendered=
                 safeHelpop(service.settings().helpopFormat(),player.getName(),text);
-        for(Player viewer:Bukkit.getOnlinePlayers())if(service.helpopStaff(viewer))
-            viewer.sendMessage(rendered);
+        for(Player viewer:receivers)viewer.sendMessage(rendered);
         Messages.success(sender,"Wysłano zgłoszenie do administracji.");
     }
 
