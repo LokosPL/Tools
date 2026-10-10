@@ -18,6 +18,8 @@ class MeteorConfigTest {
         assertTrue(config.meteorEnabled());
         assertEquals(3,config.meteorMaxActive());
         assertEquals(1,config.meteorKeysPerMeteor());
+        assertEquals(0.05,config.meteorRareChance());
+        assertEquals(3,config.meteorRareKeys());
         String raw=Files.readString(dir.resolve("Events.json"));
         assertTrue(raw.contains("\"custom\""));
         assertTrue(raw.contains("\"meteorSpawnIntervalSeconds\""));

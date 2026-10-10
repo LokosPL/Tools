@@ -9,7 +9,7 @@ public enum EventType {
     WIELKANOC("wielkanoc","Zajączkowe Poszukiwania","Zbieraj kwiaty i poszukuj wielkanocnych jaj","EGG","buty_zajaczka"),
     LATO("lato","Letnie Łowy","Łów ryby i zdobywaj letnie muszle","NAUTILUS_SHELL","wedka_sloneczna"),
     ZABOJSTWA("zabojstwa","Arena Łowców","Wygrywaj uczciwe pojedynki PvP","RED_DYE","ostrze_lowcy"),
-    METEORY("meteory","Deszcz Meteorów","Wydobywaj rudy i odkrywaj odłamki","AMETHYST_SHARD","kilof_meteorytu"),
+    METEORY("meteory","Deszcz Meteorów","Odkrywaj spadające meteoryty i wydobywaj rudy","AMETHYST_SHARD","kilof_meteorytu"),
     ZNIWA("zniwa","Święto Plonów","Zbieraj dojrzałe uprawy","WHEAT","sierp_urodzaju"),
     WEDKOWANIE("wedkowanie","Wielkie Wędkowanie","Łów ryby i zbieraj eventowe perły","PRISMARINE_CRYSTALS","wedka_oceanu");
 
