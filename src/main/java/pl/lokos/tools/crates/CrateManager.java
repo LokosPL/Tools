@@ -371,7 +371,7 @@ public final class CrateManager implements Listener,AutoCloseable {
         if(event.getView().getTopInventory().getHolder() instanceof ResultMenu){
             event.setCancelled(true);
             if(event.getRawSlot()==22 && event.getWhoClicked() instanceof Player resultPlayer)
-                Bukkit.getScheduler().runTask(plugin,resultPlayer::closeInventory);
+                Bukkit.getScheduler().runTask(plugin,()->resultPlayer.closeInventory());
             return;
         }
         if(!(event.getView().getTopInventory().getHolder() instanceof Menu holder))return;
@@ -380,7 +380,7 @@ public final class CrateManager implements Listener,AutoCloseable {
                 event.getClickedInventory()!=event.getView().getTopInventory())return;
         if(holder.browse){
             if(event.getRawSlot()==22){
-                Bukkit.getScheduler().runTask(plugin,player::closeInventory);
+                Bukkit.getScheduler().runTask(plugin,()->player.closeInventory());
                 return;
             }
             int[] slots={10,11,13,15,16};
