@@ -8,6 +8,7 @@ import pl.lokos.tools.config.DefinitionFiles;
 import pl.lokos.tools.config.RegionsFile;
 import pl.lokos.tools.database.RegionRepository;
 import pl.lokos.tools.region.*;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -183,7 +184,12 @@ public final class RegionManager {
             List<Region> all=new ArrayList<>();
             boolean found=false;
             for(Region r:file.regions()){
-                if(r.name().equals(name)){all.add(edit.apply(r));found=true;}
+                if(r.name().equals(name)){
+                    Region updated=edit.apply(r);
+                    StateChanges.requireChange(updated.equals(r),
+                            "Region "+name+" ma już wybrane ustawienia.");
+                    all.add(updated);found=true;
+                }
                 else all.add(r);
             }
             if(!found)throw new IllegalArgumentException("Nie ma takiego regionu.");
@@ -192,6 +198,8 @@ public final class RegionManager {
     }
     public CompletableFuture<Void> flag(String name,RegionFlag f,Boolean state) {
         return edit(name,r->{
+            StateChanges.requireChange(Objects.equals(r.flags().get(f),state),
+                    "Flaga "+f.label()+" w regionie "+name+" ma już wybrany stan.");
             Map<RegionFlag,Boolean> flags=new EnumMap<>(RegionFlag.class);
             flags.putAll(r.flags());
             if(state==null)flags.remove(f);else flags.put(f,state);
@@ -200,14 +208,21 @@ public final class RegionManager {
         });
     }
     public CompletableFuture<Void> entryRank(String name,String rank) {
-        return edit(name,r->new Region(r.name(),r.world(),r.minX(),r.maxX(),r.minZ(),r.maxZ(),
-                r.parent(),rank,r.flags(),r.spawn()));
+        return edit(name,r->{
+            StateChanges.requireChange(Objects.equals(r.entryRank(),rank),
+                    "Region "+name+" ma już ustawiony dostęp dla tej rangi.");
+            return new Region(r.name(),r.world(),r.minX(),r.maxX(),r.minZ(),r.maxZ(),
+                    r.parent(),rank,r.flags(),r.spawn());
+        });
     }
     public CompletableFuture<Void> setSpawn(String name,Region.Spawn spawn) {
         return change(file->{
             List<Region> all=new ArrayList<>();boolean found=false;
             for(Region r:file.regions()){
                 if(r.name().equals(name)){
+                    StateChanges.requireChange(Objects.equals(r.spawn(),spawn)
+                                    && Objects.equals(file.mainSpawn(),name),
+                            "Punkt teleportacji i główny spawn są już ustawione w tym miejscu.");
                     all.add(new Region(r.name(),r.world(),r.minX(),r.maxX(),r.minZ(),r.maxZ(),
                             r.parent(),r.entryRank(),r.flags(),spawn));
                     found=true;

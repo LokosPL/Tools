@@ -19,6 +19,7 @@ import pl.lokos.tools.security.ToolsAccess;
 
 import pl.lokos.tools.helpers.Colors;
 import pl.lokos.tools.helpers.Messages;
+import pl.lokos.tools.helpers.StateChanges;
 import pl.lokos.tools.inventorys.RegionMenuFactory;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.manager.RegionManager;
@@ -210,6 +211,14 @@ public final class RegionCommand implements BasicCommand {
                 Colors.color("&#A8A8B7Potem użyj /region podregion.")));
         meta.getPersistentDataContainer().set(wandKey,PersistentDataType.BYTE,(byte)1);
         stick.setItemMeta(meta);
+        for(ItemStack existing:p.getInventory().getContents()) {
+            if(existing==null || !existing.hasItemMeta())continue;
+            if(Byte.valueOf((byte)1).equals(existing.getItemMeta()
+                    .getPersistentDataContainer().get(wandKey,PersistentDataType.BYTE))) {
+                display.unchanged(sender,"Masz już różdżkę regionów w ekwipunku.");
+                return;
+            }
+        }
         p.getInventory().addItem(stick).values().forEach(overflow->p.getWorld().dropItemNaturally(p.getLocation(),overflow));
         display.success(sender,"Otrzymano różdżkę do zaznaczania podregionów.");
     }
@@ -293,6 +302,7 @@ public final class RegionCommand implements BasicCommand {
                 Bukkit.getScheduler().runTask(plugin,()-> {
                     if(error==null){display.success(sender,success);onSuccess.run();}
                     else {
+                        if(StateChanges.reportUnchanged(sender,error))return;
                         Throwable cause=error;
                         while(cause instanceof CompletionException && cause.getCause()!=null)cause=cause.getCause();
                         display.error(sender,"Nie zapisano zmiany. "+(cause instanceof IllegalArgumentException?

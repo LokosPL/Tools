@@ -9,6 +9,7 @@ import pl.lokos.tools.inventorys.RegionMenuFactory;
 import pl.lokos.tools.manager.*;
 import pl.lokos.tools.region.*;
 import pl.lokos.tools.security.ToolsAccess;
+import pl.lokos.tools.helpers.StateChanges;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -124,6 +125,10 @@ public final class RegionMenuListener implements Listener {
             if(error!=null){
                 Throwable root=error;
                 while(root instanceof CompletionException && root.getCause()!=null)root=root.getCause();
+                if(StateChanges.reportUnchanged(player,root)) {
+                    if(player.getOpenInventory().getTopInventory().getHolder()==previous)refresh.run();
+                    return;
+                }
                 display.error(player,"Nie zapisano ustawienia: "+root.getMessage());
                 return;
             }

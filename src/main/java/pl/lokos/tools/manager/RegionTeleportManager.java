@@ -28,7 +28,7 @@ public final class RegionTeleportManager {
         if (statusBar!=null) statusBar.notice(player,message,1200);
     }
 
-    private record Pending(BukkitTask task, Location origin) {}
+    private record Pending(BukkitTask task, Location origin,String destination) {}
 
     public RegionTeleportManager(JavaPlugin plugin,RegionManager regions,RankManager ranks,ToolsConfig.Regions settings) {
         this.plugin=plugin;this.regions=regions;this.ranks=ranks;this.settings=settings;
@@ -42,6 +42,16 @@ public final class RegionTeleportManager {
         if(!regions.canEnter(player,region)) {Messages.error(player,"Nie masz rangi wymaganej do tej lokalizacji.");return;}
         Location target=regions.spawnOf(region);
         if(target==null) {Messages.error(player,"Świat tej lokalizacji nie jest dostępny.");return;}
+        Pending ongoing=pending.get(player.getUniqueId());
+        if(ongoing!=null && ongoing.destination().equals(name)){
+            Messages.unchanged(player,"Teleportacja do "+name+" już trwa.");
+            return;
+        }
+        if(player.getWorld().equals(target.getWorld())
+                && player.getLocation().distanceSquared(target)<0.25d){
+            Messages.unchanged(player,"Jesteś już w lokalizacji "+name+".");
+            return;
+        }
         cancel(player,false);
         // Teleportacja natychmiastowa wymaga faktycznej permisji.
         if (instantAllowed(ranks.snapshot(), player.getUniqueId(), player.isOp())) {
@@ -80,7 +90,7 @@ public final class RegionTeleportManager {
             private void finish() {pending.remove(player.getUniqueId());cancel();}
         };
         BukkitTask task=job.runTaskTimer(plugin,0L,20L);
-        pending.put(player.getUniqueId(),new Pending(task,origin));
+        pending.put(player.getUniqueId(),new Pending(task,origin,name));
     }
 
     /** Ta sama polityka uprawnień dla /spawn i menu lokalizacji. */
