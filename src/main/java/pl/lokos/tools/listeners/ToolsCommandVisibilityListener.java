@@ -37,6 +37,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
         register(nodes,"fly",config.fly());register(nodes,"broadcast",config.broadcast());
         register(nodes,"inventoryopen",config.inventoryopen());register(nodes,"speed",config.speed());
         register(nodes,"przedmiot",config.przedmiot());
+        register(nodes,"antycheat",config.antycheat());
         nodes.put("spawn", "tools.spawn");
         nodes.put("tools:spawn", "tools.spawn");
         // Whitelist była wcześniej pominięta: klient widział vanilla i aliasy Tools.
@@ -49,7 +50,7 @@ public final class ToolsCommandVisibilityListener implements Listener {
                 config.tp().permission(),config.vanish().permission(),config.gamemode().permission(),
                 config.fly().permission(),config.broadcast().permission(),
                 config.inventoryopen().permission(),config.speed().permission(),
-                config.przedmiot().permission());
+                config.przedmiot().permission(),config.antycheat().permission());
         this.ranks=ranks;
     }
 
@@ -74,6 +75,9 @@ public final class ToolsCommandVisibilityListener implements Listener {
         // MSG jest publiczne domyślnie, a odrębne uprawnienia Tools chronią administrację.
         if("tools.msg.use".equals(permission))return player.hasPermission(permission);
         if("tools.helpop.use".equals(permission))return true;
+        if("tools.antycheat.admin".equals(permission))
+            return ToolsAccess.allowed(player,ranks,permission,true)
+                    || ToolsAccess.allowed(player,ranks,"tools.antycheat.alerts",false);
         return ToolsAccess.allowed(player,ranks,permission,adminNodes.contains(permission));
     }
 

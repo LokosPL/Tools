@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import pl.lokos.tools.config.CommandTextRegistry;
 import pl.lokos.tools.helpers.Messages;
 import pl.lokos.tools.items.SpecialItemService;
+import pl.lokos.tools.items.SpecialItemMenu;
 import pl.lokos.tools.manager.RankManager;
 import pl.lokos.tools.security.ToolsAccess;
 import java.util.*;
@@ -16,10 +17,11 @@ import java.util.*;
 /** Komenda administracyjna bez plugin.yml, bez SQL i bez ujawniania nicków ukrytych graczy. */
 public final class SpecialItemCommand implements BasicCommand {
     private final SpecialItemService items;
+    private final SpecialItemMenu menu;
     private final RankManager ranks;
     private final String permission;
-    public SpecialItemCommand(SpecialItemService items,RankManager ranks,String permission){
-        this.items=items;this.ranks=ranks;this.permission=permission;
+    public SpecialItemCommand(SpecialItemService items,SpecialItemMenu menu,RankManager ranks,String permission){
+        this.items=items;this.menu=menu;this.ranks=ranks;this.permission=permission;
     }
     @Override public String permission(){return permission;}
     @Override public boolean canUse(CommandSender sender){
@@ -31,6 +33,15 @@ public final class SpecialItemCommand implements BasicCommand {
         if(args.length==0){CommandTextRegistry.help(sender,"przedmiot");return;}
         try{
             switch(args[0].toLowerCase(Locale.ROOT)){
+                case "gui" -> {
+                    if(args.length>2){CommandTextRegistry.help(sender,"przedmiot");return;}
+                    if(!(sender instanceof Player viewer)){
+                        Messages.error(sender,"GUI wymaga gracza.");return;
+                    }
+                    Player recipient=args.length==2?Bukkit.getPlayerExact(args[1]):viewer;
+                    if(recipient==null){Messages.error(sender,"Odbiorca musi być online.");return;}
+                    menu.open(viewer,recipient);
+                }
                 case "lista" -> {
                     if(args.length!=1){CommandTextRegistry.help(sender,"przedmiot");return;}
                     Messages.title(sender,"PRZEDMIOTY SPECJALNE");
@@ -71,7 +82,7 @@ public final class SpecialItemCommand implements BasicCommand {
     @Override public Collection<String> suggest(CommandSourceStack source,String[] args) {
         if(!canUse(source.getSender())||args.length==0)return List.of();
         List<String> options=new ArrayList<>();
-        if(args.length==1)options.addAll(List.of("daj","lista","info"));
+        if(args.length==1)options.addAll(List.of("daj","lista","info","gui"));
         else if(args.length==2){
             if(args[0].equalsIgnoreCase("daj")){
                 for(Player p:Bukkit.getOnlinePlayers()){
@@ -79,6 +90,11 @@ public final class SpecialItemCommand implements BasicCommand {
                         options.add(p.getName());
                 }
             }else if(args[0].equalsIgnoreCase("info"))options.addAll(items.config().items().keySet());
+            else if(args[0].equalsIgnoreCase("gui")){
+                for(Player p:Bukkit.getOnlinePlayers())
+                    if(!(source.getSender() instanceof Player viewer)||viewer.canSee(p))
+                        options.add(p.getName());
+            }
         }else if(args.length==3&&args[0].equalsIgnoreCase("daj"))
             options.addAll(items.config().items().keySet());
         else if(args.length==4&&args[0].equalsIgnoreCase("daj"))

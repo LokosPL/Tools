@@ -17,6 +17,8 @@ import pl.lokos.tools.staff.StaffManager;
 import pl.lokos.tools.commands.StaffCommand;
 import pl.lokos.tools.commands.InventoryAudit;
 import pl.lokos.tools.items.SpecialItemService;
+import pl.lokos.tools.items.SpecialItemMenu;
+import pl.lokos.tools.anticheat.AntiCheatManager;
 
 public final class CommandRegistry {
     private final JavaPlugin plugin;
@@ -25,7 +27,7 @@ public final class CommandRegistry {
                          PlayerDataManager playerData,RankManager ranks,RankMenuFactory menus,
                          MonitoringService monitoring, HotReloadService hotReload,ChatManager chats,
                          PrivateMessageManager privateMessages,StaffManager staff,InventoryAudit inventoryAudit,
-                         SpecialItemService items) {
+                         SpecialItemService items,SpecialItemMenu itemMenu,AntiCheatManager anticheat) {
         if(ranks!=null && config.ranga().enabled()){
             declare(config.ranga().permission(),PermissionDefault.OP);
             plugin.registerCommand("ranga",config.ranga().description(),config.ranga().aliases(),
@@ -72,7 +74,14 @@ public final class CommandRegistry {
             declare(config.przedmiot().permission(),PermissionDefault.OP);
             plugin.registerCommand("przedmiot",config.przedmiot().description(),
                     config.przedmiot().aliases(),
-                    new SpecialItemCommand(items,ranks,config.przedmiot().permission()));
+                    new SpecialItemCommand(items,itemMenu,ranks,config.przedmiot().permission()));
+        }
+        if(anticheat!=null&&config.antycheat().enabled()){
+            declare(config.antycheat().permission(),PermissionDefault.OP);
+            declare("tools.antycheat.alerts",PermissionDefault.OP);
+            plugin.registerCommand("antycheat",config.antycheat().description(),
+                    config.antycheat().aliases(),new AntiCheatCommand(plugin,anticheat,ranks,
+                            config.antycheat().permission()));
         }
         if(config.tools().enabled()){
             declare(config.tools().permission(),PermissionDefault.OP);

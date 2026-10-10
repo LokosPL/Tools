@@ -39,7 +39,7 @@ public final class CommandTextFile {
                 throw new IllegalArgumentException("Niepoprawny szablon: "+e.getKey());
         }
     }
-    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot");}
+    public static List<String> names(){return List.of("region","ranga","tools","lokalizacje","spawn","whitelist","chat","msg","reply","tp","vanish","helpop","gamemode","fly","broadcast","inventoryopen","speed","przedmiot","antycheat");}
 
     public static CommandTextFile defaults(String name){
         CommandTextFile file=switch(name){
@@ -161,7 +161,15 @@ public final class CommandTextFile {
                     "&#70D6E8/speed &7<1-10> &8• &7Twoja prędkość",
                     "&#70D6E8/speed &7<walk|fly> <1-10> [nick]",
                     "&#70D6E8/speed &7<nick> <1-10>"),Map.of());
+            case "antycheat" -> new CommandTextFile("ANTYCHEAT",List.of(
+                    "&#70D6E8/antycheat status &8• &7Stan zabezpieczeń",
+                    "&#70D6E8/antycheat wlacz &8• &7Włącz kontrolę graczy",
+                    "&#70D6E8/antycheat wylacz &8• &7Wyłącz kontrolę graczy",
+                    "&#70D6E8/ac powiadomienia wlacz &8• &7Alerty dla Ciebie",
+                    "&#70D6E8/ac powiadomienia wylacz &8• &7Ukryj własne alerty",
+                    "&#A8A8B7Ochrona wydajności pozostaje aktywna."),Map.of());
             case "przedmiot" -> new CommandTextFile("PRZEDMIOTY EVENTOWE",List.of(
+                    "&#70D6E8/przedmiot gui [nick] &#A8A8B7» &7Panel rozdawania",
                     "&#70D6E8/przedmiot lista &#A8A8B7» &7Dostępne definicje",
                     "&#70D6E8/przedmiot info <id> &#A8A8B7» &7Szczegóły przedmiotu",
                     "&#70D6E8/przedmiot daj <nick> <id> [liczba]",
