@@ -36,6 +36,31 @@ public final class SpecialItemsConfig {
                 "&#A8A8B7» Event: &#70D6E8{event}",
                 "&#A8A8B7━━━━━━━━━━━━━━━━━━━━"
         ));
+        public Definition(){}
+        private Definition(String material,String name,String event,String description,
+                           int speed,int jump){
+            this.material=material;
+            this.name=name;
+            this.subtitle="&#FFD166✦ PRZEDMIOT LEGENDARNY";
+            this.description=description;
+            this.eventName=event;
+            this.eventStart="2026-01-01";
+            this.eventEnd="2028-12-31";
+            this.speedLevel=speed;
+            this.jumpLevel=jump;
+            this.lore=new ArrayList<>(List.of(
+                    "&#A8A8B7━━━━━━━━━━━━━━━━━━━━",
+                    "&#FFD166✦ {subtitle}",
+                    "&#A8A8B7{description}",
+                    "",
+                    "&#70D6E8» Wytrzymałość: III",
+                    speed>0?"&#70D6E8» Szybkość: {speed}":"",
+                    jump>0?"&#70D6E8» Wysokość skoku: {jump}":"",
+                    "",
+                    "&#FFD166✦ NAGRODA EVENTOWA",
+                    "&#A8A8B7» Event: &#70D6E8{event}",
+                    "&#A8A8B7━━━━━━━━━━━━━━━━━━━━"));
+        }
         public boolean enabled(){return enabled;}
         public String material(){return material;}
         public String name(){return name;}
@@ -72,7 +97,36 @@ public final class SpecialItemsConfig {
         }
     }
 
-    private Map<String,Definition> items=new LinkedHashMap<>(Map.of("buty_szybkosci",new Definition()));
+    private static Map<String,Definition> defaults(){
+        Map<String,Definition> value=new LinkedHashMap<>();
+        value.put("buty_szybkosci",new Definition());
+        value.put("zimowe_ostrze",new Definition("DIAMOND_SWORD",
+                "&#70D6E8&l✦ MIECZ ZAMIECI","Zimowy Festiwal",
+                "Ostrze wykute z lodowego kryształu",0,0));
+        value.put("miecz_duchow",new Definition("NETHERITE_SWORD",
+                "&#FF727F&l✦ OSTRZE DUCHÓW","Noc Duchów",
+                "Broń poszukiwacza nocnych zjaw",0,0));
+        value.put("buty_zajaczka",new Definition("DIAMOND_BOOTS",
+                "&#70D6E8&l✦ BUTY ZAJĄCZKA","Zajączkowe Poszukiwania",
+                "Lekkie buty skocznego podróżnika",1,3));
+        value.put("wedka_sloneczna",new Definition("FISHING_ROD",
+                "&#FFD166&l✦ SŁONECZNA WĘDKA","Letnie Łowy",
+                "Pamiątka letniego połowu",0,0));
+        value.put("ostrze_lowcy",new Definition("NETHERITE_AXE",
+                "&#FF727F&l✦ TOPÓR ŁOWCY","Arena Łowców",
+                "Trofeum uczciwych pojedynków",0,0));
+        value.put("kilof_meteorytu",new Definition("NETHERITE_PICKAXE",
+                "&#FFD166&l✦ KILOF METEORYTU","Deszcz Meteorów",
+                "Kilof z kosmicznego odłamka",0,0));
+        value.put("sierp_urodzaju",new Definition("NETHERITE_HOE",
+                "&#89E5B0&l✦ SIERP URODZAJU","Święto Plonów",
+                "Narzędzie mistrza zbiorów",0,0));
+        value.put("wedka_oceanu",new Definition("FISHING_ROD",
+                "&#70D6E8&l✦ WĘDKA OCEANU","Wielkie Wędkowanie",
+                "Nagroda za wyjątkowy połów",0,0));
+        return value;
+    }
+    private Map<String,Definition> items=defaults();
     public Map<String,Definition> items(){return Collections.unmodifiableMap(items);}
     public Definition get(String key){return items.get(key);}
     public void validate(){

@@ -13,7 +13,9 @@ class SpecialItemsConfigTest {
         var manager=new JsonConfigManager(directory);
         var original=manager.load("SpecialItems.json",SpecialItemsConfig.class,
                 SpecialItemsConfig::new,SpecialItemsConfig::validate);
-        assertEquals(1,original.items().size());
+        assertEquals(9,original.items().size());
+        assertNotNull(original.get("miecz_duchow"));
+        assertNotNull(original.get("buty_zajaczka"));
         var boot=original.get("buty_szybkosci");
         assertEquals("DIAMOND_BOOTS",boot.material());
         assertEquals(2,boot.speedLevel());
